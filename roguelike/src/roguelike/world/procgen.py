@@ -3,6 +3,7 @@
 import random
 from typing import List
 
+from roguelike.entities.monster import Monster, create_orc, create_troll
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
 from roguelike.world.room import Room
@@ -49,6 +50,39 @@ def carve_room(game_map: GameMap, room: Room) -> None:
     for pos in room.inner_tiles():
         if game_map.in_bounds(pos):
             game_map.set_tile(pos, Tiles.FLOOR)
+
+
+def place_monsters(room: Room, max_monsters: int) -> List[Monster]:
+    """Place monsters randomly in a room.
+
+    Args:
+        room: Room to place monsters in
+        max_monsters: Maximum number of monsters
+
+    Returns:
+        List of spawned monsters
+    """
+    num_monsters = random.randint(0, max_monsters)
+    monsters: List[Monster] = []
+
+    # Get all inner tile positions
+    inner_positions = list(room.inner_tiles())
+
+    for _ in range(num_monsters):
+        if not inner_positions:
+            break
+
+        # Pick random position and remove it from available positions
+        pos = random.choice(inner_positions)
+        inner_positions.remove(pos)
+
+        # 80% chance of orc, 20% chance of troll
+        if random.random() < 0.8:
+            monsters.append(create_orc(pos))
+        else:
+            monsters.append(create_troll(pos))
+
+    return monsters
 
 
 def generate_dungeon(

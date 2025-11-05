@@ -5,9 +5,13 @@ from typing import List
 import tcod.event
 
 from roguelike.entities.entity import Entity
+from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
+from roguelike.systems.ai import MonsterAI
+from roguelike.systems.combat import attack
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.renderer import Renderer
+from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
 
 
@@ -31,6 +35,13 @@ class GameEngine:
         self.player = player
         self.entities = entities or []
         self.running = False
+        self.message_log: List[str] = []
+
+        # Create AI for monsters
+        self.monster_ais: dict[Monster, MonsterAI] = {}
+        for entity in self.entities:
+            if isinstance(entity, Monster):
+                self.monster_ais[entity] = MonsterAI(entity)
 
     def handle_action(self, action: Action) -> bool:
         """Handle a player action.
@@ -76,8 +87,6 @@ class GameEngine:
         Returns:
             True if movement was successful (consumes turn)
         """
-        from roguelike.utils.position import Position
-
         new_pos = Position(
             self.player.position.x + dx,
             self.player.position.y + dy
@@ -90,11 +99,52 @@ class GameEngine:
         # Check if any entity blocks movement at destination
         for entity in self.entities:
             if entity.position == new_pos and entity.blocks_movement:
+                # If it's a monster, attack it
+                if isinstance(entity, Monster) and entity.is_alive:
+                    result = attack(self.player, entity)
+                    self.message_log.append(
+                        f"{result.attacker_name} attacks {result.defender_name} "
+                        f"for {result.damage} damage!"
+                    )
+                    if result.defender_died:
+                        self.message_log.append(f"{result.defender_name} dies!")
+                    return True  # Attack consumes turn
                 return False
 
         # Move is valid
         self.player.move(dx, dy)
         return True
+
+    def process_enemy_turns(self) -> None:
+        """Process all enemy turns."""
+        for entity in self.entities:
+            if not isinstance(entity, Monster) or not entity.is_alive:
+                continue
+
+            ai = self.monster_ais.get(entity)
+            if not ai:
+                continue
+
+            # Get all living entities for blocking checks
+            living_entities = [e for e in self.entities if isinstance(e, Monster) and e.is_alive]
+            living_entities.append(self.player)
+
+            new_pos = ai.take_turn(self.player, self.game_map, living_entities)
+
+            if new_pos:
+                # Check if adjacent to player (attack)
+                if new_pos.manhattan_distance_to(self.player.position) <= 1:
+                    result = attack(entity, self.player)
+                    self.message_log.append(
+                        f"{result.attacker_name} attacks {result.defender_name} "
+                        f"for {result.damage} damage!"
+                    )
+                    if result.defender_died:
+                        self.message_log.append(f"{result.defender_name} dies!")
+                        self.running = False  # Player died, game over
+                else:
+                    # Move to new position
+                    entity.move_to(new_pos)
 
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
@@ -109,7 +159,9 @@ class GameEngine:
             # Render
             renderer.clear()
             renderer.render_map(self.game_map)
-            renderer.render_entities(self.entities)
+            # Only render living monsters
+            living_entities = [e for e in self.entities if not isinstance(e, Monster) or e.is_alive]
+            renderer.render_entities(living_entities)
             renderer.render_entity(self.player)
             renderer.present()
 
@@ -120,6 +172,7 @@ class GameEngine:
             action = input_handler.get_action()
             if action:
                 turn_taken = self.handle_action(action)
-                # In the future, if turn_taken, we'd process enemy turns here
+                if turn_taken and self.player.is_alive:
+                    self.process_enemy_turns()
 
         renderer.close()

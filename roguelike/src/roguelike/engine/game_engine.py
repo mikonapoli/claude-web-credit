@@ -9,6 +9,7 @@ from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai import MonsterAI
 from roguelike.systems.combat import attack
+from roguelike.systems.experience import apply_level_up, check_level_up
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
@@ -116,6 +117,18 @@ class GameEngine:
                     )
                     if result.defender_died:
                         self.message_log.append(f"{result.defender_name} dies!")
+                        # Award XP
+                        self.player.xp += entity.xp_value
+                        self.message_log.append(f"You gain {entity.xp_value} XP!")
+                        # Check for level up
+                        if check_level_up(self.player.xp, self.player.level):
+                            level_result = apply_level_up(
+                                self.player,
+                                {"hp": 20, "power": 1, "defense": 1}
+                            )
+                            self.message_log.append(
+                                f"You advance to level {level_result.new_level}!"
+                            )
                     return True  # Attack consumes turn
                 return False
 

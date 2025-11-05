@@ -12,7 +12,8 @@ def test_monster_creation():
         name="Goblin",
         max_hp=8,
         defense=0,
-        power=2
+        power=2,
+        xp_value=25
     )
     assert monster.name == "Goblin"
 

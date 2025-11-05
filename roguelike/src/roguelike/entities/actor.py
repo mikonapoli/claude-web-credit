@@ -17,6 +17,7 @@ class Actor(Entity):
         max_hp: int,
         defense: int,
         power: int,
+        xp_value: int = 0,
     ):
         """Initialize an actor.
 
@@ -27,12 +28,16 @@ class Actor(Entity):
             max_hp: Maximum hit points
             defense: Defense value (damage reduction)
             power: Attack power
+            xp_value: XP awarded when killed
         """
         super().__init__(position=position, char=char, name=name, blocks_movement=True)
         self.max_hp = max_hp
         self._hp = max_hp
         self.defense = defense
         self.power = power
+        self.xp_value = xp_value  # XP this entity gives when killed
+        self.xp = 0  # Current XP (for player)
+        self.level = 1  # Current level
 
     @property
     def hp(self) -> int:

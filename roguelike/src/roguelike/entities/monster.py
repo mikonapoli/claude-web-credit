@@ -15,6 +15,7 @@ class Monster(Actor):
         max_hp: int,
         defense: int,
         power: int,
+        xp_value: int,
     ):
         """Initialize a monster.
 
@@ -25,6 +26,7 @@ class Monster(Actor):
             max_hp: Maximum hit points
             defense: Defense value
             power: Attack power
+            xp_value: XP awarded when killed
         """
         super().__init__(
             position=position,
@@ -33,6 +35,7 @@ class Monster(Actor):
             max_hp=max_hp,
             defense=defense,
             power=power,
+            xp_value=xp_value,
         )
 
 
@@ -53,6 +56,7 @@ def create_orc(position: Position) -> Monster:
         max_hp=10,
         defense=0,
         power=3,
+        xp_value=35,
     )
 
 
@@ -72,4 +76,5 @@ def create_troll(position: Position) -> Monster:
         max_hp=16,
         defense=1,
         power=4,
+        xp_value=100,
     )

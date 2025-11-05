@@ -3,6 +3,7 @@
 from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.health import HealthComponent
+from roguelike.components.inventory import InventoryComponent
 from roguelike.components.level import LevelComponent
 from roguelike.utils.position import Position
 
@@ -27,6 +28,7 @@ def create_component_player(position: Position) -> ComponentEntity:
     player.add_component(HealthComponent(max_hp=30))
     player.add_component(CombatComponent(power=5, defense=2))
     player.add_component(LevelComponent(level=1, xp=0, xp_value=0))
+    player.add_component(InventoryComponent(capacity=26))
 
     return player
 

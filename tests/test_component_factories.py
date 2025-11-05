@@ -7,6 +7,7 @@ from roguelike.components.factories import (
     create_component_troll,
 )
 from roguelike.components.health import HealthComponent
+from roguelike.components.inventory import InventoryComponent
 from roguelike.components.level import LevelComponent
 from roguelike.utils.position import Position
 
@@ -49,6 +50,22 @@ def test_component_player_has_level():
     assert level is not None
     assert level.level == 1
     assert level.xp == 0
+
+
+def test_component_player_has_inventory():
+    """Component player has InventoryComponent."""
+    player = create_component_player(Position(10, 10))
+
+    inventory = player.get_component(InventoryComponent)
+    assert inventory is not None
+
+
+def test_component_player_inventory_capacity():
+    """Component player inventory has default capacity of 26."""
+    player = create_component_player(Position(10, 10))
+
+    inventory = player.get_component(InventoryComponent)
+    assert inventory.capacity == 26
 
 
 def test_create_component_orc():

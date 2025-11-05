@@ -68,3 +68,16 @@ class XPSource(Protocol):
     def is_alive(self) -> bool:
         """Check if entity is alive."""
         ...
+
+
+class HealthBarRenderable(Protocol):
+    """Protocol for entities that can have health bars rendered."""
+
+    position: Position
+    hp: int
+    max_hp: int
+
+    @property
+    def is_alive(self) -> bool:
+        """Check if entity is alive."""
+        ...

@@ -168,7 +168,7 @@ Or with the virtual environment activated:
 uv run pytest tests/ -v
 ```
 
-**609 passing tests** covering all major systems!
+**613 passing tests** covering all major systems!
 
 ### Running Specific Test Suites
 ```bash

@@ -11,6 +11,15 @@ The crafting system allows players to combine items to create new items through 
 - **Data-Driven**: All recipes and items defined in JSON files
 - **Extensible**: Easy to add new items and recipes without code changes
 
+### Content Summary
+
+- **36 total items** (17 materials + 19 craftable results)
+- **22 crafting recipes** covering multiple categories
+- **Integrated spell/magic system** via craftable scrolls
+- **Buff potions** for combat enhancement
+- **Advanced healing items** for survivability
+- **Special items** with unique effects
+
 ## Architecture
 
 ### Components
@@ -143,9 +152,19 @@ Defines craftable items and materials:
 | Sulfur | sulfuric, volcanic | Explosive element |
 | Frost Essence | boreal, crystalline | Ice element |
 | Dragon Scale | rare, magical | Rare magic item |
+| Runic Essence | magical, runic | Ancient magic runes |
+| Ancient Parchment | parchment, ancient | Blank scroll base |
+| Phoenix Feather | rare, fiery, magical | Fire magic component |
+| Thunder Stone | rare, electric, crystalline | Lightning magic component |
+| Shadow Ink | sinister, liquid | Dark magic ink |
+| Blessed Water | purifying, liquid, holy | Holy water |
+| Giant's Tears | rare, liquid, empowering | Strength essence |
+| Pixie Dust | magical, ethereal | Invisibility component |
+| Coffee | liquid, energizing | Energy boost ingredient |
 
 ### Craftable Results
 
+#### Basic Potions & Items
 | Item | Recipe | Description |
 |------|--------|-------------|
 | Healing Potion | herbal + magical | Restores health |
@@ -155,6 +174,41 @@ Defines craftable items and materials:
 | Spark Powder | volcanic + sulfuric | Fire damage |
 | Ice Shard | crystalline + boreal | Ice weapon |
 | Poison Blade | metallic + sinister | Poisoned weapon |
+
+#### Advanced Healing
+| Item | Recipe | Description |
+|------|--------|-------------|
+| Greater Healing Potion | herbal + herbal + holy | Powerful healing |
+| Cheese Wheel | (herbal+verdant) + purifying | Large heal food |
+
+#### Buff Potions
+| Item | Recipe | Description |
+|------|--------|-------------|
+| Potion of Strength | metallic + empowering | +3 power boost |
+| Potion of Defense | (rare+magical) + purifying | +3 defense boost |
+| Potion of Speed | energizing + magical | Double actions |
+| Potion of Invisibility | ethereal + sinister | 10 turns invisible |
+| Potion of Gigantism | empowering + magical | +5 power boost |
+| Potion of Shrinking | ethereal + boreal | +3 defense boost |
+
+#### Combat Scrolls (Spell System)
+| Item | Recipe | Description |
+|------|--------|-------------|
+| Scroll of Fireball | fiery + parchment + runic | 25 damage AoE |
+| Scroll of Lightning | electric + parchment + runic | 20 damage single target |
+| Scroll of Confusion | (sinister+liquid) + parchment + runic | 10 turns confusion |
+
+#### Utility Scrolls (Spell System)
+| Item | Recipe | Description |
+|------|--------|-------------|
+| Scroll of Teleportation | (magical+crystalline) + parchment + runic | Random teleport |
+| Scroll of Magic Mapping | (magical+crystalline) + parchment + holy | Reveals map |
+
+#### Special Items
+| Item | Recipe | Description |
+|------|--------|-------------|
+| Lucky Coin | (rare+magical) + (rare+magical) + holy | 50% XP bonus |
+| Cursed Ring | sinister + metallic + (sinister+liquid) | Random curse |
 
 ## Usage Example
 

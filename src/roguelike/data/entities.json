@@ -247,5 +247,293 @@
         "craftable": true
       }
     }
+  },
+  "runic_essence": {
+    "char": "*",
+    "name": "Runic Essence",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["magical", "runic"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "ancient_parchment": {
+    "char": "?",
+    "name": "Ancient Parchment",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["parchment", "ancient"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "phoenix_feather": {
+    "char": "^",
+    "name": "Phoenix Feather",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["rare", "fiery", "magical"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "thunder_stone": {
+    "char": "*",
+    "name": "Thunder Stone",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["rare", "electric", "crystalline"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "shadow_ink": {
+    "char": "~",
+    "name": "Shadow Ink",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["sinister", "liquid"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "blessed_water": {
+    "char": "~",
+    "name": "Blessed Water",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["purifying", "liquid", "holy"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "giants_tears": {
+    "char": "~",
+    "name": "Giant's Tears",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["rare", "liquid", "empowering"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "pixie_dust": {
+    "char": ".",
+    "name": "Pixie Dust",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["magical", "ethereal"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "greater_healing_potion": {
+    "char": "!",
+    "name": "Greater Healing Potion",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "healing", "powerful"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "cheese_wheel": {
+    "char": "%",
+    "name": "Cheese Wheel",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["food", "healing"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "strength_potion": {
+    "char": "!",
+    "name": "Potion of Strength",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "buff", "strength"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "defense_potion": {
+    "char": "!",
+    "name": "Potion of Defense",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "buff", "defense"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "speed_potion": {
+    "char": "!",
+    "name": "Potion of Speed",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "buff", "speed"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "invisibility_potion": {
+    "char": "!",
+    "name": "Potion of Invisibility",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "buff", "ethereal"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "gigantism_potion": {
+    "char": "!",
+    "name": "Potion of Gigantism",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "buff", "empowering"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "shrinking_potion": {
+    "char": "!",
+    "name": "Potion of Shrinking",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "buff", "ethereal"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "scroll_fireball": {
+    "char": "?",
+    "name": "Scroll of Fireball",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["scroll", "combat", "fire"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "scroll_lightning": {
+    "char": "?",
+    "name": "Scroll of Lightning",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["scroll", "combat", "electric"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "scroll_confusion": {
+    "char": "?",
+    "name": "Scroll of Confusion",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["scroll", "combat", "sinister"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "scroll_teleport": {
+    "char": "?",
+    "name": "Scroll of Teleportation",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["scroll", "utility", "magical"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "scroll_magic_mapping": {
+    "char": "?",
+    "name": "Scroll of Magic Mapping",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["scroll", "utility", "holy"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "coffee": {
+    "char": "~",
+    "name": "Coffee",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["liquid", "energizing"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "lucky_coin": {
+    "char": "$",
+    "name": "Lucky Coin",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["rare", "metallic", "blessed"],
+        "consumable": false,
+        "craftable": true
+      }
+    }
+  },
+  "cursed_ring": {
+    "char": "=",
+    "name": "Cursed Ring",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["cursed", "metallic", "sinister"],
+        "consumable": false,
+        "craftable": true
+      }
+    }
   }
 }

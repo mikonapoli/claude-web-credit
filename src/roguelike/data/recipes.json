@@ -62,5 +62,148 @@
     ],
     "result_type": "poison_blade",
     "description": "A blade coated with dark toxins"
+  },
+  "greater_healing_potion": {
+    "name": "Greater Healing Potion",
+    "required_tags": [
+      ["herbal"],
+      ["herbal"],
+      ["holy"]
+    ],
+    "result_type": "greater_healing_potion",
+    "description": "A potent healing elixir blessed with holy power"
+  },
+  "cheese_wheel": {
+    "name": "Cheese Wheel",
+    "required_tags": [
+      ["herbal", "verdant"],
+      ["purifying"]
+    ],
+    "result_type": "cheese_wheel",
+    "description": "Nutritious aged cheese with healing properties"
+  },
+  "strength_potion": {
+    "name": "Potion of Strength",
+    "required_tags": [
+      ["metallic"],
+      ["empowering"]
+    ],
+    "result_type": "strength_potion",
+    "description": "Empowers muscles with raw physical might"
+  },
+  "defense_potion": {
+    "name": "Potion of Defense",
+    "required_tags": [
+      ["rare", "magical"],
+      ["purifying"]
+    ],
+    "result_type": "defense_potion",
+    "description": "Hardens the body against harm"
+  },
+  "speed_potion": {
+    "name": "Potion of Speed",
+    "required_tags": [
+      ["energizing"],
+      ["magical"]
+    ],
+    "result_type": "speed_potion",
+    "description": "Accelerates movement and reflexes"
+  },
+  "invisibility_potion": {
+    "name": "Potion of Invisibility",
+    "required_tags": [
+      ["ethereal"],
+      ["sinister"]
+    ],
+    "result_type": "invisibility_potion",
+    "description": "Bends light to conceal the drinker"
+  },
+  "gigantism_potion": {
+    "name": "Potion of Gigantism",
+    "required_tags": [
+      ["empowering"],
+      ["magical"]
+    ],
+    "result_type": "gigantism_potion",
+    "description": "Causes dramatic growth and increased strength"
+  },
+  "shrinking_potion": {
+    "name": "Potion of Shrinking",
+    "required_tags": [
+      ["ethereal"],
+      ["boreal"]
+    ],
+    "result_type": "shrinking_potion",
+    "description": "Reduces size and increases agility"
+  },
+  "scroll_fireball": {
+    "name": "Scroll of Fireball",
+    "required_tags": [
+      ["fiery"],
+      ["parchment"],
+      ["runic"]
+    ],
+    "result_type": "scroll_fireball",
+    "description": "Ancient fire magic inscribed on parchment"
+  },
+  "scroll_lightning": {
+    "name": "Scroll of Lightning",
+    "required_tags": [
+      ["electric"],
+      ["parchment"],
+      ["runic"]
+    ],
+    "result_type": "scroll_lightning",
+    "description": "Captures the fury of storms in runic script"
+  },
+  "scroll_confusion": {
+    "name": "Scroll of Confusion",
+    "required_tags": [
+      ["sinister", "liquid"],
+      ["parchment"],
+      ["runic"]
+    ],
+    "result_type": "scroll_confusion",
+    "description": "Dark ink confuses and disorients foes"
+  },
+  "scroll_teleport": {
+    "name": "Scroll of Teleportation",
+    "required_tags": [
+      ["magical", "crystalline"],
+      ["parchment"],
+      ["runic"]
+    ],
+    "result_type": "scroll_teleport",
+    "description": "Space-bending magic for instant travel"
+  },
+  "scroll_magic_mapping": {
+    "name": "Scroll of Magic Mapping",
+    "required_tags": [
+      ["magical", "crystalline"],
+      ["parchment"],
+      ["holy"]
+    ],
+    "result_type": "scroll_magic_mapping",
+    "description": "Reveals hidden paths with divine insight"
+  },
+  "lucky_coin": {
+    "name": "Lucky Coin",
+    "required_tags": [
+      ["rare", "magical"],
+      ["rare", "magical"],
+      ["holy"]
+    ],
+    "result_type": "lucky_coin",
+    "description": "Twice-blessed coin that attracts fortune"
+  },
+  "cursed_ring": {
+    "name": "Cursed Ring",
+    "required_tags": [
+      ["sinister"],
+      ["metallic"],
+      ["sinister", "liquid"]
+    ],
+    "result_type": "cursed_ring",
+    "description": "A ring forged in darkness and malice"
   }
 }

@@ -11,6 +11,7 @@ from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
+from roguelike.systems.turn_manager import TurnManager
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
@@ -45,6 +46,7 @@ class GameEngine:
         self.combat_system = CombatSystem(self.event_bus)
         self.movement_system = MovementSystem(game_map)
         self.ai_system = AISystem(self.combat_system, self.movement_system, game_map)
+        self.turn_manager = TurnManager(self.combat_system, self.movement_system, self.ai_system)
 
         # Subscribe to events for message logging
         self._setup_event_subscribers()
@@ -89,86 +91,6 @@ class GameEngine:
             f"You advance to level {event.new_level}!"
         )
 
-    def handle_action(self, action: Action) -> bool:
-        """Handle a player action.
-
-        Args:
-            action: Action to handle
-
-        Returns:
-            True if the action consumed a turn
-        """
-        if action == Action.QUIT:
-            self.running = False
-            return False
-
-        if action == Action.WAIT:
-            return True
-
-        # Movement actions
-        movement_map = {
-            Action.MOVE_UP: (0, -1),
-            Action.MOVE_DOWN: (0, 1),
-            Action.MOVE_LEFT: (-1, 0),
-            Action.MOVE_RIGHT: (1, 0),
-            Action.MOVE_UP_LEFT: (-1, -1),
-            Action.MOVE_UP_RIGHT: (1, -1),
-            Action.MOVE_DOWN_LEFT: (-1, -1),
-            Action.MOVE_DOWN_RIGHT: (1, 1),
-        }
-
-        if action in movement_map:
-            dx, dy = movement_map[action]
-            return self.try_move_player(dx, dy)
-
-        return False
-
-    def try_move_player(self, dx: int, dy: int) -> bool:
-        """Try to move the player.
-
-        Args:
-            dx: X offset
-            dy: Y offset
-
-        Returns:
-            True if movement was successful (consumes turn)
-        """
-        new_pos = Position(
-            self.player.position.x + dx,
-            self.player.position.y + dy
-        )
-
-        # Check for blocking entity at destination
-        blocking_entity = self.movement_system.get_blocking_entity(new_pos, self.entities)
-
-        if blocking_entity:
-            # If it's a living monster, attack it
-            if isinstance(blocking_entity, Monster) and blocking_entity.is_alive:
-                # Use combat system to resolve attack
-                defender_died = self.combat_system.resolve_attack(self.player, blocking_entity)
-
-                if defender_died:
-                    # Handle death and award XP
-                    self.combat_system.handle_death(blocking_entity, killed_by_player=True)
-                    self.combat_system.award_xp(self.player, blocking_entity.xp_value)
-
-                return True  # Attack consumes turn
-            # Other blocking entity (not attackable)
-            return False
-
-        # Try to move player
-        if self.movement_system.move_entity(self.player, dx, dy, self.entities):
-            # Update FOV after successful movement
-            self.movement_system.update_fov(self.fov_map, self.player.position, self.fov_radius)
-            return True
-
-        return False
-
-    def process_enemy_turns(self) -> None:
-        """Process all enemy turns."""
-        player_died = self.ai_system.process_turns(self.player, self.entities)
-        if player_died:
-            self.running = False  # Game over
 
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
@@ -195,8 +117,13 @@ class GameEngine:
 
             action = input_handler.get_action()
             if action:
-                turn_taken = self.handle_action(action)
-                if turn_taken and self.player.is_alive:
-                    self.process_enemy_turns()
+                self.running = self.turn_manager.process_turn(
+                    action,
+                    self.player,
+                    self.entities,
+                    self.game_map,
+                    self.fov_map,
+                    self.fov_radius,
+                )
 
         renderer.close()

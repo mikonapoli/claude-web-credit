@@ -17,62 +17,74 @@ def test_engine_creation():
 
 
 def test_engine_quit_action_stops_running():
-    """Quit action sets running to False."""
+    """Quit action sets running to False via TurnManager."""
     game_map = GameMap(20, 20)
     player = Player(Position(10, 10))
     engine = GameEngine(game_map, player)
     engine.running = True
-    engine.handle_action(Action.QUIT)
-    assert not engine.running
+    continue_game = engine.turn_manager.process_turn(
+        Action.QUIT, player, [player], game_map, engine.fov_map, engine.fov_radius
+    )
+    assert not continue_game
 
 
 def test_engine_wait_action_consumes_turn():
-    """Wait action consumes a turn."""
+    """Wait action consumes a turn via TurnManager."""
     game_map = GameMap(20, 20)
     player = Player(Position(10, 10))
     engine = GameEngine(game_map, player)
-    turn_taken = engine.handle_action(Action.WAIT)
-    assert turn_taken
+    turn_consumed, should_quit = engine.turn_manager.handle_player_action(
+        Action.WAIT, player, [player], game_map, engine.fov_map, engine.fov_radius
+    )
+    assert turn_consumed
 
 
 def test_move_player_to_floor():
-    """Player can move to floor tile."""
+    """Player can move to floor tile via TurnManager."""
     game_map = GameMap(20, 20)
     game_map.set_tile(Position(10, 10), Tiles.FLOOR)
     game_map.set_tile(Position(10, 11), Tiles.FLOOR)
     player = Player(Position(10, 10))
     engine = GameEngine(game_map, player)
-    success = engine.try_move_player(0, 1)
-    assert success
+    turn_consumed, should_quit = engine.turn_manager.handle_player_action(
+        Action.MOVE_DOWN, player, [player], game_map, engine.fov_map, engine.fov_radius
+    )
+    assert turn_consumed
 
 
 def test_move_player_updates_position():
-    """Player position updates after successful move."""
+    """Player position updates after successful move via TurnManager."""
     game_map = GameMap(20, 20)
     game_map.set_tile(Position(10, 10), Tiles.FLOOR)
     game_map.set_tile(Position(10, 11), Tiles.FLOOR)
     player = Player(Position(10, 10))
     engine = GameEngine(game_map, player)
-    engine.try_move_player(0, 1)
+    engine.turn_manager.handle_player_action(
+        Action.MOVE_DOWN, player, [player], game_map, engine.fov_map, engine.fov_radius
+    )
     assert player.position == Position(10, 11)
 
 
 def test_cannot_move_into_wall():
-    """Player cannot move into wall."""
+    """Player cannot move into wall via TurnManager."""
     game_map = GameMap(20, 20)
     game_map.set_tile(Position(10, 10), Tiles.FLOOR)
     # Position(10, 11) is a wall (default)
     player = Player(Position(10, 10))
     engine = GameEngine(game_map, player)
-    success = engine.try_move_player(0, 1)
-    assert not success
+    turn_consumed, should_quit = engine.turn_manager.handle_player_action(
+        Action.MOVE_DOWN, player, [player], game_map, engine.fov_map, engine.fov_radius
+    )
+    assert not turn_consumed
 
 
 def test_player_position_unchanged_after_blocked_move():
-    """Player position unchanged after blocked move."""
+    """Player position unchanged after blocked move via TurnManager."""
     game_map = GameMap(20, 20)
     game_map.set_tile(Position(10, 10), Tiles.FLOOR)
     player = Player(Position(10, 10))
     engine = GameEngine(game_map, player)
-    engine.try_move_player(0, 1)  # Try to move into wall
+    engine.turn_manager.handle_player_action(
+        Action.MOVE_DOWN, player, [player], game_map, engine.fov_map, engine.fov_radius
+    )
     assert player.position == Position(10, 10)

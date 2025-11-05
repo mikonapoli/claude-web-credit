@@ -109,6 +109,11 @@ class GameEngine:
             living_entities = [e for e in self.entities if not isinstance(e, Monster) or e.is_alive]
             renderer.render_entities(living_entities, self.fov_map)
             renderer.render_entity(self.player, self.fov_map)
+
+            # Render health bars for all living entities with health
+            renderer.render_health_bars(living_entities, self.fov_map)
+            renderer.render_health_bar(self.player, self.fov_map)
+
             renderer.present()
 
             # Handle input

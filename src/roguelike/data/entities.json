@@ -55,5 +55,113 @@
         "xp_value": 100
       }
     }
+  },
+  "moonleaf": {
+    "char": "%",
+    "name": "Moonleaf",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["herbal", "verdant"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "mana_crystal": {
+    "char": "*",
+    "name": "Mana Crystal",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["magical", "crystalline"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "nightshade": {
+    "char": "%",
+    "name": "Nightshade",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["herbal", "sinister"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "purifying_salt": {
+    "char": ".",
+    "name": "Purifying Salt",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["purifying", "crystalline"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "iron_ore": {
+    "char": "=",
+    "name": "Iron Ore",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["metallic"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "volcanic_ash": {
+    "char": "~",
+    "name": "Volcanic Ash",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["volcanic"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "sulfur": {
+    "char": "~",
+    "name": "Sulfur",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["sulfuric", "volcanic"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "frost_essence": {
+    "char": "*",
+    "name": "Frost Essence",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["boreal", "crystalline"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
+  },
+  "dragon_scale": {
+    "char": "^",
+    "name": "Dragon Scale",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["rare", "magical"],
+        "consumable": true,
+        "craftable": false
+      }
+    }
   }
 }

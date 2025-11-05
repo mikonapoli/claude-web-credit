@@ -156,7 +156,7 @@ class CraftingSystem:
         ingredients: List["ComponentEntity"],
         crafter: Optional["ComponentEntity"] = None,
         position: Optional["Position"] = None,
-    ) -> Optional["ComponentEntity"]:
+    ) -> tuple[Optional["ComponentEntity"], List["ComponentEntity"]]:
         """Attempt to craft items together.
 
         Args:
@@ -165,12 +165,20 @@ class CraftingSystem:
             position: Explicit position for crafted item (overrides crafter position)
 
         Returns:
-            Resulting item entity or None if crafting failed
+            Tuple of (result_item, consumed_ingredients)
+            - result_item: Crafted item entity or None if crafting failed
+            - consumed_ingredients: List of ingredients that should be removed/destroyed
+
+            Caller is responsible for removing consumed ingredients from inventory/map.
 
         Note:
             Position priority: explicit position > crafter position > fail
             Ingredients that have been picked up retain their map coordinates,
             so we must use crafter's current position, not ingredient positions.
+
+            Ingredients marked as consumable in their CraftingComponent will be
+            included in the consumed list. Non-consumable ingredients (tools) are
+            not consumed and can be reused.
         """
         from roguelike.components.crafting import CraftingComponent
         from roguelike.data.entity_loader import EntityLoader
@@ -193,7 +201,7 @@ class CraftingSystem:
                     result_name=None,
                 )
                 self.event_bus.emit(event)
-            return None
+            return None, []
 
         # Determine spawn position for crafted item
         # Priority: explicit position > crafter position > None
@@ -203,7 +211,14 @@ class CraftingSystem:
 
         if spawn_position is None:
             # Cannot craft without a position
-            return None
+            return None, []
+
+        # Determine which ingredients are consumable
+        consumed_ingredients = []
+        for ingredient in ingredients:
+            crafting_comp = ingredient.get_component(CraftingComponent)
+            if crafting_comp and crafting_comp.consumable:
+                consumed_ingredients.append(ingredient)
 
         # Load the result entity
         entity_loader = EntityLoader()
@@ -219,4 +234,4 @@ class CraftingSystem:
             )
             self.event_bus.emit(event)
 
-        return result
+        return result, consumed_ingredients

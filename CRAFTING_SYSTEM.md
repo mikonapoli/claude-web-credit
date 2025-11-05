@@ -38,13 +38,24 @@ Recipes match ingredients in **any order** and support **multiple tags per ingre
 Main crafting logic:
 - `find_matching_recipe()`: Finds recipe matching given ingredients
 - `can_craft()`: Checks if ingredients can be crafted
-- `craft(ingredients, crafter, position)`: Performs crafting, creates result, emits events
+- `craft(ingredients, crafter, position)`: Performs crafting, creates result, returns consumed ingredients
+
+**Return Value**:
+`craft()` returns a tuple: `(result_item, consumed_ingredients)`
+- `result_item`: The crafted item entity (or None if crafting failed)
+- `consumed_ingredients`: List of ingredients marked as consumable that should be removed from inventory/map
+
+**Ingredient Consumption**:
+- Ingredients with `consumable=True` in their CraftingComponent are included in the consumed list
+- Non-consumable ingredients (tools like a mortar & pestle) are NOT consumed and can be reused
+- **Caller is responsible** for removing consumed ingredients from inventory or destroying them on the map
+- This maintains decoupling - the crafting system doesn't need to know about inventory management
 
 **Position Handling**:
 The `craft()` method requires a spawn position for the crafted item. Position is determined by priority:
 1. **Explicit `position` parameter** - If provided, always used
 2. **Crafter's position** - If crafter is provided, uses their current position
-3. **Fails** - Returns None if neither is available
+3. **Fails** - Returns (None, []) if neither is available
 
 **Important**: Items that have been picked up retain their map coordinates from when they were on the floor. Therefore, **never use ingredient positions** - always provide either a crafter or explicit position to ensure crafted items spawn at the correct location (typically where the player is).
 
@@ -167,22 +178,39 @@ entity_loader = EntityLoader()
 moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
 crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
 
-# Create player (at position 10, 10)
+# Create player with inventory
 player = entity_loader.create_entity("player", Position(10, 10))
+from roguelike.systems.inventory import Inventory
+inventory = Inventory(capacity=10)
+inventory.add(moonleaf)
+inventory.add(crystal)
 
 # Check if craftable
 if crafting_system.can_craft([moonleaf, crystal]):
-    # Perform crafting - result spawns at player's position
-    result = crafting_system.craft([moonleaf, crystal], crafter=player)
-    print(f"Crafted: {result.name}")  # "Crafted: Healing Potion"
-    print(f"Position: {result.position}")  # "Position: Position(10, 10)"
+    # Perform crafting - returns result and consumed ingredients
+    result, consumed = crafting_system.craft([moonleaf, crystal], crafter=player)
+
+    if result:
+        print(f"Crafted: {result.name}")  # "Crafted: Healing Potion"
+        print(f"Position: {result.position}")  # "Position: Position(10, 10)"
+
+        # Remove consumed ingredients from inventory
+        for ingredient in consumed:
+            inventory.remove(ingredient)
+
+        # Add crafted item to inventory
+        inventory.add(result)
 
 # Alternative: Specify explicit position
-result = crafting_system.craft(
+result, consumed = crafting_system.craft(
     [moonleaf, crystal],
     crafter=player,
     position=Position(15, 15)  # Spawn at specific location
 )
+
+# Handle consumed ingredients
+for ingredient in consumed:
+    inventory.remove(ingredient)
 ```
 
 ## Design Philosophy

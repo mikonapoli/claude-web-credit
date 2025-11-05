@@ -187,7 +187,7 @@ def test_crafting_system_craft_creates_result():
     crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
 
     # Craft with explicit position
-    result = crafting_system.craft([moonleaf, crystal], position=Position(5, 5))
+    result, consumed = crafting_system.craft([moonleaf, crystal], position=Position(5, 5))
 
     assert result is not None
     assert result.name == "Healing Potion"
@@ -208,9 +208,10 @@ def test_crafting_system_craft_returns_none_for_no_match():
     iron = entity_loader.create_entity("iron_ore", Position(5, 5))
 
     # Craft
-    result = crafting_system.craft([moonleaf, iron])
+    result, consumed = crafting_system.craft([moonleaf, iron])
 
     assert result is None
+    assert consumed == []
 
 
 def test_crafting_system_craft_emits_success_event():
@@ -237,7 +238,7 @@ def test_crafting_system_craft_emits_success_event():
     crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
 
     # Craft with explicit position
-    result = crafting_system.craft([moonleaf, crystal], position=Position(5, 5))
+    result, consumed = crafting_system.craft([moonleaf, crystal], position=Position(5, 5))
 
     assert len(received_events) == 1
     assert received_events[0].success is True
@@ -268,7 +269,7 @@ def test_crafting_system_craft_emits_failure_event():
     iron = entity_loader.create_entity("iron_ore", Position(5, 5))
 
     # Craft
-    result = crafting_system.craft([moonleaf, iron])
+    result, consumed = crafting_system.craft([moonleaf, iron])
 
     assert len(received_events) == 1
     assert received_events[0].success is False
@@ -302,7 +303,7 @@ def test_crafting_system_craft_with_crafter():
     crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
 
     # Craft
-    result = crafting_system.craft([moonleaf, crystal], crafter=player)
+    result, consumed = crafting_system.craft([moonleaf, crystal], crafter=player)
 
     assert len(received_events) == 1
     assert received_events[0].crafter_name == "Player"
@@ -327,7 +328,7 @@ def test_crafting_uses_crafter_position():
     crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
 
     # Craft - result should spawn at player position (10, 10)
-    result = crafting_system.craft([moonleaf, crystal], crafter=player)
+    result, consumed = crafting_system.craft([moonleaf, crystal], crafter=player)
 
     assert result is not None
     assert result.position == Position(10, 10)  # Crafter's position
@@ -354,7 +355,7 @@ def test_crafting_with_explicit_position():
 
     # Craft with explicit position (15, 15)
     target_pos = Position(15, 15)
-    result = crafting_system.craft([moonleaf, crystal], crafter=player, position=target_pos)
+    result, consumed = crafting_system.craft([moonleaf, crystal], crafter=player, position=target_pos)
 
     assert result is not None
     assert result.position == Position(15, 15)  # Explicit position
@@ -377,9 +378,10 @@ def test_crafting_without_crafter_or_position_fails():
     crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
 
     # Craft without crafter or position - should fail
-    result = crafting_system.craft([moonleaf, crystal])
+    result, consumed = crafting_system.craft([moonleaf, crystal])
 
     assert result is None
+    assert consumed == []
 
 
 def test_crafting_with_only_position_succeeds():
@@ -399,7 +401,171 @@ def test_crafting_with_only_position_succeeds():
 
     # Craft with explicit position but no crafter
     target_pos = Position(20, 20)
-    result = crafting_system.craft([moonleaf, crystal], position=target_pos)
+    result, consumed = crafting_system.craft([moonleaf, crystal], position=target_pos)
 
     assert result is not None
     assert result.position == Position(20, 20)
+
+
+def test_crafting_consumes_consumable_ingredients():
+    """Crafting returns list of consumable ingredients that should be removed."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create player
+    player = entity_loader.create_entity("player", Position(10, 10))
+
+    # Create consumable ingredients
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
+
+    # Craft
+    result, consumed = crafting_system.craft([moonleaf, crystal], crafter=player)
+
+    # Both ingredients should be marked as consumed
+    assert result is not None
+    assert len(consumed) == 2
+    assert moonleaf in consumed
+    assert crystal in consumed
+
+
+def test_crafting_does_not_consume_non_consumable_ingredients():
+    """Non-consumable ingredients (tools) are not consumed."""
+    from roguelike.components.crafting import CraftingComponent
+    from roguelike.components.entity import ComponentEntity
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create player
+    player = entity_loader.create_entity("player", Position(10, 10))
+
+    # Create consumable herb
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+
+    # Create non-consumable magical tool
+    wand = ComponentEntity(position=Position(2, 2), char="/", name="Magic Wand")
+    wand.add_component(CraftingComponent(tags={"magical"}, consumable=False))
+
+    # Craft
+    result, consumed = crafting_system.craft([moonleaf, wand], crafter=player)
+
+    # Only moonleaf should be consumed, wand is reusable
+    assert result is not None
+    assert len(consumed) == 1
+    assert moonleaf in consumed
+    assert wand not in consumed
+
+
+def test_crafting_consumed_list_empty_on_failure():
+    """Failed crafting returns empty consumed list."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create player
+    player = entity_loader.create_entity("player", Position(10, 10))
+
+    # Create ingredients that don't match any recipe
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    iron = entity_loader.create_entity("iron_ore", Position(2, 2))
+
+    # Craft (should fail)
+    result, consumed = crafting_system.craft([moonleaf, iron], crafter=player)
+
+    # No ingredients consumed on failure
+    assert result is None
+    assert consumed == []
+
+
+def test_crafting_with_three_consumable_ingredients():
+    """Crafting with three consumable ingredients returns all three."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create player
+    player = entity_loader.create_entity("player", Position(10, 10))
+
+    # Create three consumable ingredients for strength elixir
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
+    dragon_scale = entity_loader.create_entity("dragon_scale", Position(3, 3))
+
+    # Craft strength elixir (requires herbal + magical + rare)
+    result, consumed = crafting_system.craft([moonleaf, crystal, dragon_scale], crafter=player)
+
+    # All three ingredients should be consumed
+    assert result is not None
+    assert result.name == "Strength Elixir"
+    assert len(consumed) == 3
+    assert moonleaf in consumed
+    assert crystal in consumed
+    assert dragon_scale in consumed
+
+
+def test_caller_removes_consumed_ingredients():
+    """Demonstrate caller pattern for removing consumed ingredients."""
+    from roguelike.components.inventory import InventoryComponent
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create player with inventory
+    player = entity_loader.create_entity("player", Position(10, 10))
+
+    # Create ingredients
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
+
+    # Simulate inventory (would normally be attached to player)
+    from roguelike.systems.inventory import Inventory
+    inventory = Inventory(capacity=10)
+    inventory.add(moonleaf)
+    inventory.add(crystal)
+
+    # Verify items are in inventory
+    assert len(inventory) == 2
+
+    # Craft
+    result, consumed = crafting_system.craft([moonleaf, crystal], crafter=player)
+
+    # Caller removes consumed ingredients from inventory
+    for ingredient in consumed:
+        inventory.remove(ingredient)
+
+    # Verify ingredients were removed
+    assert len(inventory) == 0
+    assert moonleaf not in inventory.items
+    assert crystal not in inventory.items
+
+    # Result would be added to inventory (or dropped on ground)
+    inventory.add(result)
+    assert len(inventory) == 1
+    assert result in inventory.items

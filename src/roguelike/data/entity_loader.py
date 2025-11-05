@@ -9,6 +9,7 @@ from roguelike.components.crafting import CraftingComponent
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
+from roguelike.components.recipe_discovery import RecipeDiscoveryComponent
 from roguelike.utils.position import Position
 
 
@@ -100,6 +101,9 @@ class EntityLoader:
                     craftable=crafting_data.get("craftable", False),
                 )
             )
+
+        if "recipe_discovery" in components:
+            entity.add_component(RecipeDiscoveryComponent())
 
         return entity
 

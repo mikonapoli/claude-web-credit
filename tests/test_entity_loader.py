@@ -10,6 +10,7 @@ from roguelike.components.combat import CombatComponent
 from roguelike.components.crafting import CraftingComponent
 from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
+from roguelike.components.recipe_discovery import RecipeDiscoveryComponent
 from roguelike.data.entity_loader import EntityLoader
 from roguelike.utils.position import Position
 
@@ -270,3 +271,53 @@ def test_multiple_crafting_items_with_different_tags():
     assert not moonleaf_crafting.has_tag("magical")
     assert crystal_crafting.has_tag("magical")
     assert not crystal_crafting.has_tag("herbal")
+
+def test_entity_loader_can_load_recipe_discovery_component():
+    """EntityLoader can load RecipeDiscoveryComponent from template."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(
+            {
+                "test_player": {
+                    "char": "@",
+                    "name": "Test Player",
+                    "blocks_movement": True,
+                    "components": {
+                        "recipe_discovery": {}
+                    }
+                }
+            },
+            f,
+        )
+        temp_path = f.name
+
+    loader = EntityLoader(data_path=temp_path)
+    player = loader.create_entity("test_player", Position(5, 5))
+
+    assert player.has_component(RecipeDiscoveryComponent)
+    Path(temp_path).unlink()
+
+
+def test_recipe_discovery_component_starts_empty():
+    """RecipeDiscoveryComponent loaded from template starts empty."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(
+            {
+                "test_player": {
+                    "char": "@",
+                    "name": "Test Player",
+                    "blocks_movement": True,
+                    "components": {
+                        "recipe_discovery": {}
+                    }
+                }
+            },
+            f,
+        )
+        temp_path = f.name
+
+    loader = EntityLoader(data_path=temp_path)
+    player = loader.create_entity("test_player", Position(5, 5))
+
+    discovery = player.get_component(RecipeDiscoveryComponent)
+    assert discovery.get_discovery_count() == 0
+    Path(temp_path).unlink()

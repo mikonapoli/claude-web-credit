@@ -321,3 +321,20 @@ def test_recipe_discovery_component_starts_empty():
     discovery = player.get_component(RecipeDiscoveryComponent)
     assert discovery.get_discovery_count() == 0
     Path(temp_path).unlink()
+
+
+def test_player_has_recipe_discovery_component():
+    """Player created from template has RecipeDiscoveryComponent."""
+    loader = EntityLoader()
+    player = loader.create_entity("player", Position(10, 10))
+
+    assert player.has_component(RecipeDiscoveryComponent)
+
+
+def test_player_recipe_discovery_starts_empty():
+    """Player's RecipeDiscoveryComponent starts with no discovered recipes."""
+    loader = EntityLoader()
+    player = loader.create_entity("player", Position(10, 10))
+
+    discovery = player.get_component(RecipeDiscoveryComponent)
+    assert discovery.get_discovery_count() == 0

@@ -3,6 +3,28 @@
 import random
 from typing import List
 
+from roguelike.entities.item import (
+    Item,
+    create_banana_peel,
+    create_cheese_wheel,
+    create_coffee,
+    create_cursed_ring,
+    create_defense_potion,
+    create_gigantism_potion,
+    create_greater_healing_potion,
+    create_healing_potion,
+    create_invisibility_potion,
+    create_lucky_coin,
+    create_rubber_chicken,
+    create_scroll_confusion,
+    create_scroll_fireball,
+    create_scroll_lightning,
+    create_scroll_magic_mapping,
+    create_scroll_teleport,
+    create_shrinking_potion,
+    create_speed_potion,
+    create_strength_potion,
+)
 from roguelike.entities.monster import Monster, create_orc, create_troll
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
@@ -83,6 +105,68 @@ def place_monsters(room: Room, max_monsters: int) -> List[Monster]:
             monsters.append(create_troll(pos))
 
     return monsters
+
+
+def place_items(room: Room, max_items: int) -> List[Item]:
+    """Place items randomly in a room.
+
+    Args:
+        room: Room to place items in
+        max_items: Maximum number of items
+
+    Returns:
+        List of spawned items
+    """
+    num_items = random.randint(0, max_items)
+    items: List[Item] = []
+
+    # Get all inner tile positions
+    inner_positions = list(room.inner_tiles())
+
+    # Item spawn chances with weights
+    item_spawners = [
+        (create_healing_potion, 30),  # Common
+        (create_greater_healing_potion, 15),  # Uncommon
+        (create_strength_potion, 10),  # Uncommon
+        (create_defense_potion, 10),  # Uncommon
+        (create_speed_potion, 5),  # Rare
+        (create_scroll_fireball, 5),  # Rare
+        (create_scroll_lightning, 5),  # Rare
+        (create_scroll_confusion, 5),  # Rare
+        (create_scroll_teleport, 3),  # Very rare
+        (create_scroll_magic_mapping, 3),  # Very rare
+        (create_invisibility_potion, 2),  # Very rare
+        (create_coffee, 8),  # Common quirky
+        (create_cheese_wheel, 3),  # Rare
+        (create_lucky_coin, 2),  # Very rare
+        (create_banana_peel, 5),  # Uncommon quirky
+        (create_rubber_chicken, 4),  # Uncommon quirky
+        (create_gigantism_potion, 2),  # Very rare
+        (create_shrinking_potion, 2),  # Very rare
+        (create_cursed_ring, 1),  # Ultra rare
+    ]
+
+    # Calculate total weight for proper weighted selection
+    total_weight = sum(weight for _, weight in item_spawners)
+
+    for _ in range(num_items):
+        if not inner_positions:
+            break
+
+        # Pick random position and remove it from available positions
+        pos = random.choice(inner_positions)
+        inner_positions.remove(pos)
+
+        # Choose item based on weighted random selection
+        roll = random.randint(1, total_weight)
+        cumulative = 0
+        for spawner, weight in item_spawners:
+            cumulative += weight
+            if roll <= cumulative:
+                items.append(spawner(pos))
+                break
+
+    return items
 
 
 def generate_dungeon(

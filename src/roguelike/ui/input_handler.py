@@ -18,6 +18,8 @@ class Action(Enum):
     MOVE_DOWN_LEFT = "move_down_left"
     MOVE_DOWN_RIGHT = "move_down_right"
     WAIT = "wait"
+    PICKUP = "pickup"
+    INVENTORY = "inventory"
     QUIT = "quit"
 
 
@@ -67,6 +69,14 @@ class InputHandler(tcod.event.EventDispatch):
         # Wait/skip turn
         elif key == tcod.event.KeySym.PERIOD:
             self.last_action = Action.WAIT
+
+        # Pickup item
+        elif key == tcod.event.KeySym.g:
+            self.last_action = Action.PICKUP
+
+        # Inventory
+        elif key == tcod.event.KeySym.i:
+            self.last_action = Action.INVENTORY
 
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:

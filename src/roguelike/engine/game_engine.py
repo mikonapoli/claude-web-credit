@@ -5,6 +5,7 @@ from typing import List
 import tcod.event
 
 from roguelike.engine.events import EventBus, CombatEvent, DeathEvent, LevelUpEvent, XPGainEvent
+from roguelike.entities.actor import Actor
 from roguelike.entities.entity import Entity
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
@@ -110,8 +111,9 @@ class GameEngine:
             renderer.render_entities(living_entities, self.fov_map)
             renderer.render_entity(self.player, self.fov_map)
 
-            # Render health bars for all living entities with health
-            renderer.render_health_bars(living_entities, self.fov_map)
+            # Render health bars only for Actors (entities with health)
+            actors_to_render = [e for e in living_entities if isinstance(e, Actor)]
+            renderer.render_health_bars(actors_to_render, self.fov_map)
             renderer.render_health_bar(self.player, self.fov_map)
 
             renderer.present()

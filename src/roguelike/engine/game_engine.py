@@ -13,6 +13,7 @@ from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.turn_manager import TurnManager
 from roguelike.ui.input_handler import Action, InputHandler
+from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
@@ -39,7 +40,7 @@ class GameEngine:
         self.player = player
         self.entities = entities or []
         self.running = False
-        self.message_log: List[str] = []
+        self.message_log = MessageLog()
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -72,22 +73,22 @@ class GameEngine:
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
-        self.message_log.append(
+        self.message_log.add_message(
             f"{event.attacker_name} attacks {event.defender_name} "
             f"for {event.damage} damage!"
         )
 
     def _on_death_event(self, event: DeathEvent) -> None:
         """Handle death event."""
-        self.message_log.append(f"{event.entity_name} dies!")
+        self.message_log.add_message(f"{event.entity_name} dies!")
 
     def _on_xp_gain_event(self, event: XPGainEvent) -> None:
         """Handle XP gain event."""
-        self.message_log.append(f"You gain {event.xp_gained} XP!")
+        self.message_log.add_message(f"You gain {event.xp_gained} XP!")
 
     def _on_level_up_event(self, event: LevelUpEvent) -> None:
         """Handle level up event."""
-        self.message_log.append(
+        self.message_log.add_message(
             f"You advance to level {event.new_level}!"
         )
 

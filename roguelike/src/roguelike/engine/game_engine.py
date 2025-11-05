@@ -8,7 +8,7 @@ from roguelike.engine.events import EventBus, CombatEvent, DeathEvent, LevelUpEv
 from roguelike.entities.entity import Entity
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
-from roguelike.systems.ai import MonsterAI
+from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.ui.input_handler import Action, InputHandler
@@ -44,6 +44,7 @@ class GameEngine:
         self.event_bus = EventBus()
         self.combat_system = CombatSystem(self.event_bus)
         self.movement_system = MovementSystem(game_map)
+        self.ai_system = AISystem(self.combat_system, self.movement_system, game_map)
 
         # Subscribe to events for message logging
         self._setup_event_subscribers()
@@ -52,11 +53,10 @@ class GameEngine:
         self.fov_map = FOVMap(game_map)
         self.fov_radius = 8
 
-        # Create AI for monsters
-        self.monster_ais: dict[Monster, MonsterAI] = {}
+        # Register monsters with AI system
         for entity in self.entities:
             if isinstance(entity, Monster):
-                self.monster_ais[entity] = MonsterAI(entity)
+                self.ai_system.register_monster(entity)
 
         # Compute initial FOV
         self.fov_map.compute_fov(self.player.position, self.fov_radius)
@@ -166,34 +166,9 @@ class GameEngine:
 
     def process_enemy_turns(self) -> None:
         """Process all enemy turns."""
-        for entity in self.entities:
-            if not isinstance(entity, Monster) or not entity.is_alive:
-                continue
-
-            ai = self.monster_ais.get(entity)
-            if not ai:
-                continue
-
-            # Get all living entities for blocking checks
-            living_entities = [e for e in self.entities if isinstance(e, Monster) and e.is_alive]
-            living_entities.append(self.player)
-
-            new_pos = ai.take_turn(self.player, self.game_map, living_entities)
-
-            if new_pos:
-                # Check if adjacent to player (attack)
-                if new_pos.manhattan_distance_to(self.player.position) <= 1:
-                    result = attack(entity, self.player)
-                    self.message_log.append(
-                        f"{result.attacker_name} attacks {result.defender_name} "
-                        f"for {result.damage} damage!"
-                    )
-                    if result.defender_died:
-                        self.message_log.append(f"{result.defender_name} dies!")
-                        self.running = False  # Player died, game over
-                else:
-                    # Move to new position
-                    entity.move_to(new_pos)
+        player_died = self.ai_system.process_turns(self.player, self.entities)
+        if player_died:
+            self.running = False  # Game over
 
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.

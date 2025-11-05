@@ -340,3 +340,73 @@ def test_equip_multiple_items_different_slots(
     assert combat.power == initial_power + 3
     assert combat.defense == initial_defense + 3  # 2 + 1
     assert health.max_hp == initial_max_hp + 5
+
+
+def test_unequip_maintains_hp_percentage_after_damage(equipment_system, player_entity, steel_helmet):
+    """Unequipping after taking damage maintains HP percentage (prevents free healing exploit)."""
+    health = player_entity.get_component(HealthComponent)
+
+    # Equip helmet at full HP: 30 HP -> 35 HP (max), HP becomes 35 (100% of 35)
+    equipment_system.equip_item(player_entity, steel_helmet)
+    assert health.max_hp == 35
+    assert health.hp == 35  # Full HP at new max
+
+    # Take damage to ~69% HP: 35 * 0.69 = 24.15 -> 24 HP
+    health.hp = 24
+    assert health.hp == 24
+    assert health.max_hp == 35
+
+    # Unequip helmet: should maintain ~69% HP
+    # 30 * (24/35) = 30 * 0.6857 = 20.57 -> 20 HP (not 24 HP!)
+    equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
+    assert health.max_hp == 30
+    assert health.hp == int(30 * (24 / 35))  # Maintains percentage: 20 HP
+
+
+def test_equipment_toggling_does_not_heal(equipment_system, player_entity, steel_helmet):
+    """Repeatedly equipping/unequipping does not provide free healing."""
+    health = player_entity.get_component(HealthComponent)
+
+    # Start at 50% HP
+    health.hp = 15  # 15/30 = 50%
+
+    # Equip helmet: 30 -> 35 max HP, HP becomes 17 (50% of 35)
+    equipment_system.equip_item(player_entity, steel_helmet)
+    assert health.max_hp == 35
+    assert health.hp == int(35 * 0.5)  # 17 HP
+
+    # Unequip helmet: 35 -> 30 max HP, HP becomes 15 (50% of 30)
+    equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
+    assert health.max_hp == 30
+    assert health.hp == int(30 * (17 / 35))  # 14 HP (maintains percentage)
+
+    # Re-equip helmet: 30 -> 35 max HP, HP becomes ~16 (14/30 = 46.67% -> 16 HP)
+    equipment_system.equip_item(player_entity, steel_helmet)
+    assert health.max_hp == 35
+    hp_after_reequip = health.hp
+    expected_hp = int(35 * (14 / 30))  # 16 HP
+    assert hp_after_reequip == expected_hp
+
+    # Unequip again: HP should decrease proportionally, not stay at higher value
+    equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
+    assert health.max_hp == 30
+    assert health.hp == int(30 * (hp_after_reequip / 35))  # Maintains percentage
+
+
+def test_unequip_very_low_hp_maintains_percentage(equipment_system, player_entity, steel_helmet):
+    """Unequipping at very low HP maintains percentage correctly."""
+    health = player_entity.get_component(HealthComponent)
+
+    # Equip helmet: 30 -> 35 max HP
+    equipment_system.equip_item(player_entity, steel_helmet)
+    assert health.max_hp == 35
+
+    # Take damage to 10% HP: 3.5 -> 3 HP
+    health.hp = 3
+    hp_percentage = 3 / 35  # ~8.57%
+
+    # Unequip: should maintain percentage (but at least 1 HP due to int rounding)
+    equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
+    assert health.max_hp == 30
+    expected_hp = int(30 * hp_percentage)  # 2 HP
+    assert health.hp == expected_hp

@@ -196,8 +196,8 @@ class EquipmentSystem:
                 # Decrease max HP
                 health_comp.max_hp -= equipment_stats.max_hp_bonus
 
-                # Maintain same HP percentage, but ensure HP doesn't exceed new max
-                health_comp.hp = min(health_comp.hp, health_comp.max_hp)
+                # Restore same HP percentage (mirrors the equip path)
+                health_comp.hp = int(health_comp.max_hp * hp_percent)
 
     def get_effective_power(self, entity: ComponentEntity) -> int:
         """Get entity's effective power including equipment bonuses.

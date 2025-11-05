@@ -1,0 +1,23 @@
+[project]
+name = "roguelike"
+version = "0.1.0"
+description = "A classic ASCII roguelike game with procedural generation, permadeath, and turn-based combat"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pytest>=8.4.2",
+    "tcod>=19.6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/roguelike"]

@@ -1,0 +1,76 @@
+{
+  "spells": [
+    {
+      "id": "magic_missile",
+      "name": "Magic Missile",
+      "school": "EVOCATION",
+      "mana_cost": 5,
+      "power": 10,
+      "target_type": "SINGLE",
+      "range": 5,
+      "description": "A dart of magical force that unerringly strikes its target."
+    },
+    {
+      "id": "fireball",
+      "name": "Fireball",
+      "school": "EVOCATION",
+      "mana_cost": 15,
+      "power": 25,
+      "target_type": "AREA",
+      "range": 8,
+      "area_radius": 2,
+      "description": "A massive explosion of flame that damages all nearby enemies."
+    },
+    {
+      "id": "lightning_bolt",
+      "name": "Lightning Bolt",
+      "school": "EVOCATION",
+      "mana_cost": 10,
+      "power": 18,
+      "target_type": "BEAM",
+      "range": 6,
+      "description": "A bolt of lightning that strikes in a straight line."
+    },
+    {
+      "id": "heal",
+      "name": "Heal",
+      "school": "TRANSMUTATION",
+      "mana_cost": 8,
+      "power": 15,
+      "target_type": "SELF",
+      "range": 0,
+      "description": "Restore your health with magical energy."
+    },
+    {
+      "id": "shield",
+      "name": "Magic Shield",
+      "school": "TRANSMUTATION",
+      "mana_cost": 6,
+      "power": 3,
+      "target_type": "SELF",
+      "range": 0,
+      "description": "Temporarily increase your defense with a magical barrier."
+    },
+    {
+      "id": "strength",
+      "name": "Strength",
+      "school": "TRANSMUTATION",
+      "mana_cost": 7,
+      "power": 4,
+      "target_type": "SELF",
+      "range": 0,
+      "description": "Temporarily increase your physical power."
+    },
+    {
+      "id": "frost_nova",
+      "name": "Frost Nova",
+      "school": "EVOCATION",
+      "mana_cost": 12,
+      "power": 15,
+      "target_type": "AREA",
+      "range": 0,
+      "area_radius": 3,
+      "description": "A burst of freezing energy emanates from you, damaging nearby enemies."
+    }
+  ]
+}

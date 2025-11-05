@@ -123,7 +123,7 @@ def place_items(room: Room, max_items: int) -> List[Item]:
     # Get all inner tile positions
     inner_positions = list(room.inner_tiles())
 
-    # Item spawn chances (total should be ~100)
+    # Item spawn chances with weights
     item_spawners = [
         (create_healing_potion, 30),  # Common
         (create_greater_healing_potion, 15),  # Uncommon
@@ -146,6 +146,9 @@ def place_items(room: Room, max_items: int) -> List[Item]:
         (create_cursed_ring, 1),  # Ultra rare
     ]
 
+    # Calculate total weight for proper weighted selection
+    total_weight = sum(weight for _, weight in item_spawners)
+
     for _ in range(num_items):
         if not inner_positions:
             break
@@ -155,16 +158,13 @@ def place_items(room: Room, max_items: int) -> List[Item]:
         inner_positions.remove(pos)
 
         # Choose item based on weighted random selection
-        roll = random.randint(1, 100)
+        roll = random.randint(1, total_weight)
         cumulative = 0
         for spawner, weight in item_spawners:
             cumulative += weight
             if roll <= cumulative:
                 items.append(spawner(pos))
                 break
-        else:
-            # Fallback to healing potion if roll exceeds total weight
-            items.append(create_healing_potion(pos))
 
     return items
 

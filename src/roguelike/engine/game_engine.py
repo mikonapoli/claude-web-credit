@@ -103,9 +103,10 @@ class GameEngine:
         input_handler = InputHandler()
 
         # Message log display configuration
-        message_log_height = 7
-        message_log_y = renderer.height - message_log_height
-        map_viewport_height = message_log_y
+        # Use the map's actual height for viewport, message log fills remaining space
+        map_viewport_height = self.game_map.height
+        message_log_y = self.game_map.height
+        message_log_height = renderer.height - self.game_map.height
 
         while self.running:
             # Render

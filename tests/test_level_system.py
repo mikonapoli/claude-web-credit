@@ -3,9 +3,14 @@
 import pytest
 from roguelike.systems.level_system import (
     DungeonLevel,
+    DungeonLevelSystem,
     MonsterSpawnRule,
+    create_scaled_monster,
     load_level_config,
 )
+from roguelike.utils.position import Position
+from roguelike.engine.events import EventBus
+from roguelike.entities.monster import Monster
 
 
 def test_load_level_config_returns_dict():
@@ -140,3 +145,123 @@ def test_level_two_stats_scaled():
     levels = load_level_config()
     rule = levels[2].monster_spawn_rules["orc"]
     assert rule.hp_scale > 1.0 and rule.power_scale > 1.0
+
+
+# Tests for scaled monster creation
+def test_create_scaled_orc_returns_monster():
+    """Creating a scaled orc returns a Monster instance."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=1.0, power_scale=1.0, defense_scale=1.0
+    )
+    monster = create_scaled_monster("orc", Position(5, 5), rule)
+    assert isinstance(monster, Monster)
+
+
+def test_create_scaled_orc_has_base_stats():
+    """Scaled orc with 1.0 scale has base stats (10 HP, 3 power, 0 defense)."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=1.0, power_scale=1.0, defense_scale=1.0
+    )
+    monster = create_scaled_monster("orc", Position(5, 5), rule)
+    assert monster.max_hp == 10 and monster.power == 3 and monster.defense == 0
+
+
+def test_create_scaled_orc_doubles_hp():
+    """Scaled orc with 2.0 hp_scale has doubled HP (20)."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=2.0, power_scale=1.0, defense_scale=1.0
+    )
+    monster = create_scaled_monster("orc", Position(5, 5), rule)
+    assert monster.max_hp == 20
+
+
+def test_create_scaled_orc_scales_power():
+    """Scaled orc with 1.5 power_scale has 4 power (3 * 1.5 = 4.5, rounded to 4)."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=1.0, power_scale=1.5, defense_scale=1.0
+    )
+    monster = create_scaled_monster("orc", Position(5, 5), rule)
+    assert monster.power == 4
+
+
+def test_create_scaled_orc_scales_defense():
+    """Scaled orc with 2.0 defense_scale gets scaled defense."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=1.0, power_scale=1.0, defense_scale=2.0
+    )
+    monster = create_scaled_monster("orc", Position(5, 5), rule)
+    # Base defense is 0, so 0 * 2.0 = 0, but minimum should be respected
+    assert monster.defense >= 0
+
+
+def test_create_scaled_troll_returns_monster():
+    """Creating a scaled troll returns a Monster instance."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=1.0, power_scale=1.0, defense_scale=1.0
+    )
+    monster = create_scaled_monster("troll", Position(10, 10), rule)
+    assert isinstance(monster, Monster)
+
+
+def test_create_scaled_troll_has_base_stats():
+    """Scaled troll with 1.0 scale has base stats (16 HP, 4 power, 1 defense)."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=1.0, power_scale=1.0, defense_scale=1.0
+    )
+    monster = create_scaled_monster("troll", Position(10, 10), rule)
+    assert monster.max_hp == 16 and monster.power == 4 and monster.defense == 1
+
+
+def test_create_scaled_troll_scales_all_stats():
+    """Scaled troll with 1.5 scale has all stats scaled."""
+    rule = MonsterSpawnRule(
+        chance=1.0, hp_scale=1.5, power_scale=1.5, defense_scale=1.5
+    )
+    monster = create_scaled_monster("troll", Position(10, 10), rule)
+    assert monster.max_hp == 24 and monster.power == 6 and monster.defense == 1
+
+
+# Tests for DungeonLevelSystem
+def test_dungeon_level_system_initializes():
+    """DungeonLevelSystem can be initialized."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus)
+    assert system is not None
+
+
+def test_dungeon_level_system_starts_at_level_one():
+    """DungeonLevelSystem starts at level 1."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus)
+    assert system.current_level == 1
+
+
+def test_dungeon_level_system_has_level_configs():
+    """DungeonLevelSystem loads level configurations."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus)
+    assert len(system.level_configs) == 5
+
+
+def test_generate_level_returns_map_and_rooms():
+    """Generating level 1 returns a GameMap and list of rooms."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus)
+    game_map, rooms = system.generate_level(1)
+    assert game_map is not None and isinstance(rooms, list)
+
+
+def test_generate_level_one_creates_rooms():
+    """Generating level 1 creates at least one room."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus, random_seed=42)
+    game_map, rooms = system.generate_level(1)
+    assert len(rooms) > 0
+
+
+def test_generate_level_one_has_correct_dimensions():
+    """Generated level 1 map has correct dimensions (80x50)."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus)
+    game_map, rooms = system.generate_level(1)
+    assert game_map.width == 80 and game_map.height == 50

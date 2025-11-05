@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 import json
 import os
+import random
 
 from roguelike.entities.monster import Monster
 from roguelike.world.game_map import GameMap
 from roguelike.world.procgen import generate_dungeon
+from roguelike.world.room import Room
 from roguelike.utils.position import Position
 from roguelike.engine.events import EventBus
 
@@ -85,3 +87,133 @@ def load_level_config(file_path: str = None) -> Dict[int, DungeonLevel]:
         )
 
     return levels
+
+
+def create_scaled_monster(
+    monster_type: str, position: Position, spawn_rule: MonsterSpawnRule
+) -> Monster:
+    """Create a monster with scaled stats based on spawn rule.
+
+    Args:
+        monster_type: Type of monster ("orc" or "troll")
+        position: Monster position
+        spawn_rule: Spawn rule with scaling factors
+
+    Returns:
+        Monster with scaled stats
+    """
+    # Base stats for monster types
+    base_stats = {
+        "orc": {"char": "o", "name": "Orc", "max_hp": 10, "power": 3, "defense": 0, "xp_value": 35},
+        "troll": {"char": "T", "name": "Troll", "max_hp": 16, "power": 4, "defense": 1, "xp_value": 100},
+    }
+
+    if monster_type not in base_stats:
+        raise ValueError(f"Unknown monster type: {monster_type}")
+
+    stats = base_stats[monster_type]
+
+    # Apply scaling
+    scaled_hp = int(stats["max_hp"] * spawn_rule.hp_scale)
+    scaled_power = int(stats["power"] * spawn_rule.power_scale)
+    scaled_defense = int(stats["defense"] * spawn_rule.defense_scale)
+
+    return Monster(
+        position=position,
+        char=stats["char"],
+        name=stats["name"],
+        max_hp=scaled_hp,
+        power=scaled_power,
+        defense=scaled_defense,
+        xp_value=stats["xp_value"],
+    )
+
+
+def place_monsters_scaled(
+    room: Room, level_config: DungeonLevel
+) -> List[Monster]:
+    """Place monsters in a room with difficulty scaling.
+
+    Args:
+        room: Room to place monsters in
+        level_config: Level configuration with spawn rules
+
+    Returns:
+        List of spawned monsters
+    """
+    num_monsters = random.randint(0, level_config.max_monsters_per_room)
+    monsters: List[Monster] = []
+
+    # Get all inner tile positions
+    inner_positions = list(room.inner_tiles())
+
+    for _ in range(num_monsters):
+        if not inner_positions:
+            break
+
+        # Pick random position and remove it from available positions
+        pos = random.choice(inner_positions)
+        inner_positions.remove(pos)
+
+        # Select monster type based on spawn chances
+        roll = random.random()
+        cumulative_chance = 0.0
+
+        for monster_type, spawn_rule in level_config.monster_spawn_rules.items():
+            cumulative_chance += spawn_rule.chance
+            if roll < cumulative_chance:
+                monsters.append(
+                    create_scaled_monster(monster_type, pos, spawn_rule)
+                )
+                break
+
+    return monsters
+
+
+class DungeonLevelSystem:
+    """Manages dungeon level generation with difficulty progression."""
+
+    def __init__(
+        self, event_bus: EventBus, random_seed: int | None = None
+    ):
+        """Initialize dungeon level system.
+
+        Args:
+            event_bus: Event bus for level transition events
+            random_seed: Optional seed for reproducible generation
+        """
+        self.event_bus = event_bus
+        self.current_level = 1
+        self.level_configs = load_level_config()
+        self.random_seed = random_seed
+
+    def generate_level(
+        self, level_number: int
+    ) -> Tuple[GameMap, List[Room]]:
+        """Generate a dungeon level with appropriate difficulty.
+
+        Args:
+            level_number: Level number to generate (1-5)
+
+        Returns:
+            Tuple of (game map, list of rooms)
+        """
+        if level_number not in self.level_configs:
+            raise ValueError(
+                f"Invalid level number: {level_number}. "
+                f"Must be between 1 and {len(self.level_configs)}"
+            )
+
+        config = self.level_configs[level_number]
+
+        # Generate dungeon layout
+        game_map, rooms = generate_dungeon(
+            width=config.width,
+            height=config.height,
+            max_rooms=config.max_rooms,
+            min_room_size=config.min_room_size,
+            max_room_size=config.max_room_size,
+            random_seed=self.random_seed,
+        )
+
+        return game_map, rooms

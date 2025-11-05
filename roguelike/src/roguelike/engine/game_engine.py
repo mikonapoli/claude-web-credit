@@ -10,6 +10,7 @@ from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai import MonsterAI
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.movement_system import MovementSystem
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
@@ -39,9 +40,10 @@ class GameEngine:
         self.running = False
         self.message_log: List[str] = []
 
-        # Create event bus and combat system
+        # Create event bus and systems
         self.event_bus = EventBus()
         self.combat_system = CombatSystem(self.event_bus)
+        self.movement_system = MovementSystem(game_map)
 
         # Subscribe to events for message logging
         self._setup_event_subscribers()
@@ -136,31 +138,31 @@ class GameEngine:
             self.player.position.y + dy
         )
 
-        # Check if destination is walkable
-        if not self.game_map.is_walkable(new_pos):
+        # Check for blocking entity at destination
+        blocking_entity = self.movement_system.get_blocking_entity(new_pos, self.entities)
+
+        if blocking_entity:
+            # If it's a living monster, attack it
+            if isinstance(blocking_entity, Monster) and blocking_entity.is_alive:
+                # Use combat system to resolve attack
+                defender_died = self.combat_system.resolve_attack(self.player, blocking_entity)
+
+                if defender_died:
+                    # Handle death and award XP
+                    self.combat_system.handle_death(blocking_entity, killed_by_player=True)
+                    self.combat_system.award_xp(self.player, blocking_entity.xp_value)
+
+                return True  # Attack consumes turn
+            # Other blocking entity (not attackable)
             return False
 
-        # Check if any entity blocks movement at destination
-        for entity in self.entities:
-            if entity.position == new_pos and entity.blocks_movement:
-                # If it's a monster, attack it
-                if isinstance(entity, Monster) and entity.is_alive:
-                    # Use combat system to resolve attack
-                    defender_died = self.combat_system.resolve_attack(self.player, entity)
+        # Try to move player
+        if self.movement_system.move_entity(self.player, dx, dy, self.entities):
+            # Update FOV after successful movement
+            self.movement_system.update_fov(self.fov_map, self.player.position, self.fov_radius)
+            return True
 
-                    if defender_died:
-                        # Handle death and award XP
-                        self.combat_system.handle_death(entity, killed_by_player=True)
-                        self.combat_system.award_xp(self.player, entity.xp_value)
-
-                    return True  # Attack consumes turn
-                return False
-
-        # Move is valid
-        self.player.move(dx, dy)
-        # Recompute FOV after movement
-        self.fov_map.compute_fov(self.player.position, self.fov_radius)
-        return True
+        return False
 
     def process_enemy_turns(self) -> None:
         """Process all enemy turns."""

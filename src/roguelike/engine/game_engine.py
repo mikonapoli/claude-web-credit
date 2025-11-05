@@ -58,7 +58,9 @@ class GameEngine:
         self.combat_system = CombatSystem(self.event_bus)
         self.movement_system = MovementSystem(game_map)
         self.status_effects_system = StatusEffectsSystem(self.event_bus)
-        self.ai_system = AISystem(self.combat_system, self.movement_system, game_map)
+        self.ai_system = AISystem(
+            self.combat_system, self.movement_system, game_map, self.status_effects_system
+        )
         self.turn_manager = TurnManager(
             self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
         )

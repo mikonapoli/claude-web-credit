@@ -1,7 +1,12 @@
 """Crafting system for recipe-based item creation."""
 
 from dataclasses import dataclass
-from typing import List, Optional, Set
+from typing import TYPE_CHECKING, List, Optional, Set
+
+if TYPE_CHECKING:
+    from roguelike.components.entity import ComponentEntity
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.engine.events import EventBus
 
 
 @dataclass
@@ -65,3 +70,83 @@ class Recipe:
     def __repr__(self) -> str:
         """Return string representation."""
         return f"Recipe(id={self.id!r}, name={self.name!r}, result={self.result_type!r})"
+
+
+class CraftingSystem:
+    """Manages crafting operations and recipe matching.
+
+    This system handles crafting logic, finding matching recipes,
+    and creating result items via the event bus.
+    """
+
+    def __init__(
+        self,
+        recipe_loader: "RecipeLoader",
+        event_bus: Optional["EventBus"] = None,
+    ):
+        """Initialize crafting system.
+
+        Args:
+            recipe_loader: Loader for crafting recipes
+            event_bus: Event bus for crafting events (optional)
+        """
+        self.recipe_loader = recipe_loader
+        self.event_bus = event_bus
+
+    def find_matching_recipe(
+        self, ingredients: List["ComponentEntity"]
+    ) -> Optional[Recipe]:
+        """Find a recipe that matches the given ingredients.
+
+        Args:
+            ingredients: List of ingredient entities with CraftingComponents
+
+        Returns:
+            Matching recipe or None if no match found
+        """
+        from roguelike.components.crafting import CraftingComponent
+
+        # Extract tags from ingredients
+        ingredient_tags = []
+        for ingredient in ingredients:
+            crafting_comp = ingredient.get_component(CraftingComponent)
+            if crafting_comp is None:
+                return None  # All ingredients must have CraftingComponent
+            ingredient_tags.append(crafting_comp.tags)
+
+        # Check all recipes for a match
+        for recipe in self.recipe_loader.get_all_recipes():
+            if recipe.matches_ingredients(ingredient_tags):
+                return recipe
+
+        return None
+
+    def can_craft(self, ingredients: List["ComponentEntity"]) -> bool:
+        """Check if ingredients can be crafted into something.
+
+        Args:
+            ingredients: List of ingredient entities
+
+        Returns:
+            True if a matching recipe exists
+        """
+        return self.find_matching_recipe(ingredients) is not None
+
+    def get_all_recipes(self) -> List[Recipe]:
+        """Get all available recipes.
+
+        Returns:
+            List of all recipes
+        """
+        return self.recipe_loader.get_all_recipes()
+
+    def get_recipe_by_id(self, recipe_id: str) -> Optional[Recipe]:
+        """Get a specific recipe by ID.
+
+        Args:
+            recipe_id: Recipe identifier
+
+        Returns:
+            Recipe or None if not found
+        """
+        return self.recipe_loader.get_recipe(recipe_id)

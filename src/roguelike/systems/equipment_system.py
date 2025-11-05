@@ -57,6 +57,14 @@ class EquipmentSystem:
         previous_item = equipment_comp.get_equipped(equipment_stats.slot)
         if previous_item:
             self._unapply_bonuses(entity, previous_item)
+            # Emit unequip event for the swapped item
+            self.event_bus.emit(
+                UnequipEvent(
+                    entity_name=entity.name,
+                    item_name=previous_item.name,
+                    slot=equipment_stats.slot.value,
+                )
+            )
 
         # Equip the new item
         previous_item = equipment_comp.equip(item)

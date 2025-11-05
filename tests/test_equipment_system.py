@@ -502,3 +502,80 @@ def test_dead_entity_stays_dead(equipment_system, player_entity, steel_helmet):
     assert health.max_hp == 30
     assert health.hp == 0
     assert not health.is_alive
+
+
+def test_swap_equipment_emits_both_events(equipment_system, event_bus, player_entity, iron_sword, steel_sword):
+    """Swapping equipment emits both UnequipEvent and EquipEvent."""
+    equip_events = []
+    unequip_events = []
+    event_bus.subscribe("equip", lambda e: equip_events.append(e))
+    event_bus.subscribe("unequip", lambda e: unequip_events.append(e))
+
+    # Equip iron sword (first equip - no unequip event)
+    equipment_system.equip_item(player_entity, iron_sword)
+    assert len(equip_events) == 1
+    assert len(unequip_events) == 0
+
+    # Swap to steel sword (should emit both events)
+    equipment_system.equip_item(player_entity, steel_sword)
+    assert len(equip_events) == 2
+    assert len(unequip_events) == 1
+
+
+def test_swap_equipment_unequip_event_has_correct_details(
+    equipment_system, event_bus, player_entity, iron_sword, steel_sword
+):
+    """Swapping equipment emits UnequipEvent with correct old item details."""
+    unequip_events = []
+    event_bus.subscribe("unequip", lambda e: unequip_events.append(e))
+
+    # Equip iron sword then swap to steel sword
+    equipment_system.equip_item(player_entity, iron_sword)
+    equipment_system.equip_item(player_entity, steel_sword)
+
+    # Check the unequip event for iron sword
+    assert len(unequip_events) == 1
+    event = unequip_events[0]
+    assert isinstance(event, UnequipEvent)
+    assert event.entity_name == "Player"
+    assert event.item_name == "Iron Sword"  # Old item
+    assert event.slot == "weapon"
+
+
+def test_swap_equipment_events_in_correct_order(
+    equipment_system, event_bus, player_entity, iron_sword, steel_sword
+):
+    """Swapping equipment emits UnequipEvent before EquipEvent."""
+    all_events = []
+    event_bus.subscribe("equip", lambda e: all_events.append(("equip", e)))
+    event_bus.subscribe("unequip", lambda e: all_events.append(("unequip", e)))
+
+    # Equip iron sword then swap to steel sword
+    equipment_system.equip_item(player_entity, iron_sword)
+    all_events.clear()  # Clear the first equip event
+
+    equipment_system.equip_item(player_entity, steel_sword)
+
+    # Should have unequip event first, then equip event
+    assert len(all_events) == 2
+    assert all_events[0][0] == "unequip"
+    assert all_events[0][1].item_name == "Iron Sword"
+    assert all_events[1][0] == "equip"
+    assert all_events[1][1].item_name == "Steel Sword"
+
+
+def test_equip_to_empty_slot_only_emits_equip_event(
+    equipment_system, event_bus, player_entity, iron_sword
+):
+    """Equipping to empty slot only emits EquipEvent, not UnequipEvent."""
+    equip_events = []
+    unequip_events = []
+    event_bus.subscribe("equip", lambda e: equip_events.append(e))
+    event_bus.subscribe("unequip", lambda e: unequip_events.append(e))
+
+    # Equip to empty slot
+    equipment_system.equip_item(player_entity, iron_sword)
+
+    # Should only have equip event
+    assert len(equip_events) == 1
+    assert len(unequip_events) == 0

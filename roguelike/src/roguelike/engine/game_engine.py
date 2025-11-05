@@ -12,6 +12,7 @@ from roguelike.systems.combat import attack
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
+from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
 
 
@@ -37,11 +38,18 @@ class GameEngine:
         self.running = False
         self.message_log: List[str] = []
 
+        # Create FOV map
+        self.fov_map = FOVMap(game_map)
+        self.fov_radius = 8
+
         # Create AI for monsters
         self.monster_ais: dict[Monster, MonsterAI] = {}
         for entity in self.entities:
             if isinstance(entity, Monster):
                 self.monster_ais[entity] = MonsterAI(entity)
+
+        # Compute initial FOV
+        self.fov_map.compute_fov(self.player.position, self.fov_radius)
 
     def handle_action(self, action: Action) -> bool:
         """Handle a player action.
@@ -113,6 +121,8 @@ class GameEngine:
 
         # Move is valid
         self.player.move(dx, dy)
+        # Recompute FOV after movement
+        self.fov_map.compute_fov(self.player.position, self.fov_radius)
         return True
 
     def process_enemy_turns(self) -> None:
@@ -158,11 +168,11 @@ class GameEngine:
         while self.running:
             # Render
             renderer.clear()
-            renderer.render_map(self.game_map)
+            renderer.render_map(self.game_map, self.fov_map)
             # Only render living monsters
             living_entities = [e for e in self.entities if not isinstance(e, Monster) or e.is_alive]
-            renderer.render_entities(living_entities)
-            renderer.render_entity(self.player)
+            renderer.render_entities(living_entities, self.fov_map)
+            renderer.render_entity(self.player, self.fov_map)
             renderer.present()
 
             # Handle input

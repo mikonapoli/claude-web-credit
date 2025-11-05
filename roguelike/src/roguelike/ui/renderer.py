@@ -1,8 +1,12 @@
 """Rendering system using tcod."""
 
+from typing import Optional
+
 import tcod
 
 from roguelike.entities.entity import Entity
+from roguelike.utils.position import Position
+from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
 
 
@@ -41,24 +45,46 @@ class Renderer:
         """Clear the console."""
         self.console.clear()
 
-    def render_map(self, game_map: GameMap) -> None:
+    def render_map(self, game_map: GameMap, fov_map: Optional[FOVMap] = None) -> None:
         """Render the game map.
 
         Args:
             game_map: Map to render
+            fov_map: Optional FOV map for visibility
         """
         for y in range(game_map.height):
             for x in range(game_map.width):
-                from roguelike.utils.position import Position
-                tile = game_map.get_tile(Position(x, y))
-                self.console.print(x, y, tile.char, fg=(255, 255, 255))
+                pos = Position(x, y)
+                tile = game_map.get_tile(pos)
 
-    def render_entity(self, entity: Entity) -> None:
+                # Determine color based on visibility
+                if fov_map:
+                    if fov_map.is_visible(pos):
+                        # Visible tiles are bright
+                        fg = (255, 255, 255)
+                    elif fov_map.is_explored(pos):
+                        # Explored but not visible tiles are dim
+                        fg = (128, 128, 128)
+                    else:
+                        # Unexplored tiles are not rendered
+                        continue
+                else:
+                    # No FOV, render everything bright
+                    fg = (255, 255, 255)
+
+                self.console.print(x, y, tile.char, fg=fg)
+
+    def render_entity(self, entity: Entity, fov_map: Optional[FOVMap] = None) -> None:
         """Render a single entity.
 
         Args:
             entity: Entity to render
+            fov_map: Optional FOV map for visibility
         """
+        # Only render if visible (or if no FOV map)
+        if fov_map and not fov_map.is_visible(entity.position):
+            return
+
         self.console.print(
             entity.position.x,
             entity.position.y,
@@ -66,14 +92,15 @@ class Renderer:
             fg=(255, 255, 255)
         )
 
-    def render_entities(self, entities: list[Entity]) -> None:
+    def render_entities(self, entities: list[Entity], fov_map: Optional[FOVMap] = None) -> None:
         """Render multiple entities.
 
         Args:
             entities: List of entities to render
+            fov_map: Optional FOV map for visibility
         """
         for entity in entities:
-            self.render_entity(entity)
+            self.render_entity(entity, fov_map)
 
     def present(self) -> None:
         """Present the console to the screen."""

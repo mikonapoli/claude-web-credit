@@ -4,12 +4,12 @@ from typing import List
 
 import tcod.event
 
+from roguelike.engine.events import EventBus, CombatEvent, DeathEvent, LevelUpEvent, XPGainEvent
 from roguelike.entities.entity import Entity
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai import MonsterAI
-from roguelike.systems.combat import attack
-from roguelike.systems.experience import apply_level_up, check_level_up
+from roguelike.systems.combat_system import CombatSystem
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
@@ -39,6 +39,13 @@ class GameEngine:
         self.running = False
         self.message_log: List[str] = []
 
+        # Create event bus and combat system
+        self.event_bus = EventBus()
+        self.combat_system = CombatSystem(self.event_bus)
+
+        # Subscribe to events for message logging
+        self._setup_event_subscribers()
+
         # Create FOV map
         self.fov_map = FOVMap(game_map)
         self.fov_radius = 8
@@ -51,6 +58,34 @@ class GameEngine:
 
         # Compute initial FOV
         self.fov_map.compute_fov(self.player.position, self.fov_radius)
+
+    def _setup_event_subscribers(self) -> None:
+        """Set up event subscribers for message logging."""
+        self.event_bus.subscribe("combat", self._on_combat_event)
+        self.event_bus.subscribe("death", self._on_death_event)
+        self.event_bus.subscribe("xp_gain", self._on_xp_gain_event)
+        self.event_bus.subscribe("level_up", self._on_level_up_event)
+
+    def _on_combat_event(self, event: CombatEvent) -> None:
+        """Handle combat event."""
+        self.message_log.append(
+            f"{event.attacker_name} attacks {event.defender_name} "
+            f"for {event.damage} damage!"
+        )
+
+    def _on_death_event(self, event: DeathEvent) -> None:
+        """Handle death event."""
+        self.message_log.append(f"{event.entity_name} dies!")
+
+    def _on_xp_gain_event(self, event: XPGainEvent) -> None:
+        """Handle XP gain event."""
+        self.message_log.append(f"You gain {event.xp_gained} XP!")
+
+    def _on_level_up_event(self, event: LevelUpEvent) -> None:
+        """Handle level up event."""
+        self.message_log.append(
+            f"You advance to level {event.new_level}!"
+        )
 
     def handle_action(self, action: Action) -> bool:
         """Handle a player action.
@@ -110,25 +145,14 @@ class GameEngine:
             if entity.position == new_pos and entity.blocks_movement:
                 # If it's a monster, attack it
                 if isinstance(entity, Monster) and entity.is_alive:
-                    result = attack(self.player, entity)
-                    self.message_log.append(
-                        f"{result.attacker_name} attacks {result.defender_name} "
-                        f"for {result.damage} damage!"
-                    )
-                    if result.defender_died:
-                        self.message_log.append(f"{result.defender_name} dies!")
-                        # Award XP
-                        self.player.xp += entity.xp_value
-                        self.message_log.append(f"You gain {entity.xp_value} XP!")
-                        # Check for level up
-                        if check_level_up(self.player.xp, self.player.level):
-                            level_result = apply_level_up(
-                                self.player,
-                                {"hp": 20, "power": 1, "defense": 1}
-                            )
-                            self.message_log.append(
-                                f"You advance to level {level_result.new_level}!"
-                            )
+                    # Use combat system to resolve attack
+                    defender_died = self.combat_system.resolve_attack(self.player, entity)
+
+                    if defender_died:
+                        # Handle death and award XP
+                        self.combat_system.handle_death(entity, killed_by_player=True)
+                        self.combat_system.award_xp(self.player, entity.xp_value)
+
                     return True  # Attack consumes turn
                 return False
 

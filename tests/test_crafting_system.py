@@ -186,8 +186,8 @@ def test_crafting_system_craft_creates_result():
     moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
     crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
 
-    # Craft
-    result = crafting_system.craft([moonleaf, crystal])
+    # Craft with explicit position
+    result = crafting_system.craft([moonleaf, crystal], position=Position(5, 5))
 
     assert result is not None
     assert result.name == "Healing Potion"
@@ -236,8 +236,8 @@ def test_crafting_system_craft_emits_success_event():
     moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
     crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
 
-    # Craft
-    result = crafting_system.craft([moonleaf, crystal])
+    # Craft with explicit position
+    result = crafting_system.craft([moonleaf, crystal], position=Position(5, 5))
 
     assert len(received_events) == 1
     assert received_events[0].success is True
@@ -306,3 +306,100 @@ def test_crafting_system_craft_with_crafter():
 
     assert len(received_events) == 1
     assert received_events[0].crafter_name == "Player"
+
+
+def test_crafting_uses_crafter_position():
+    """Crafted item spawns at crafter's position, not ingredient position."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create player at position (10, 10)
+    player = entity_loader.create_entity("player", Position(10, 10))
+
+    # Create ingredients at different positions (simulating picked up items)
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
+
+    # Craft - result should spawn at player position (10, 10)
+    result = crafting_system.craft([moonleaf, crystal], crafter=player)
+
+    assert result is not None
+    assert result.position == Position(10, 10)  # Crafter's position
+    assert result.position != Position(1, 1)  # Not first ingredient's position
+
+
+def test_crafting_with_explicit_position():
+    """Explicit position parameter overrides crafter position."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create player at position (10, 10)
+    player = entity_loader.create_entity("player", Position(10, 10))
+
+    # Create ingredients
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
+
+    # Craft with explicit position (15, 15)
+    target_pos = Position(15, 15)
+    result = crafting_system.craft([moonleaf, crystal], crafter=player, position=target_pos)
+
+    assert result is not None
+    assert result.position == Position(15, 15)  # Explicit position
+    assert result.position != Position(10, 10)  # Not crafter's position
+
+
+def test_crafting_without_crafter_or_position_fails():
+    """Crafting without crafter or explicit position returns None."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create ingredients (no crafter provided)
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
+
+    # Craft without crafter or position - should fail
+    result = crafting_system.craft([moonleaf, crystal])
+
+    assert result is None
+
+
+def test_crafting_with_only_position_succeeds():
+    """Crafting with only explicit position (no crafter) succeeds."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+    from roguelike.utils.position import Position
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create ingredients
+    moonleaf = entity_loader.create_entity("moonleaf", Position(1, 1))
+    crystal = entity_loader.create_entity("mana_crystal", Position(2, 2))
+
+    # Craft with explicit position but no crafter
+    target_pos = Position(20, 20)
+    result = crafting_system.craft([moonleaf, crystal], position=target_pos)
+
+    assert result is not None
+    assert result.position == Position(20, 20)

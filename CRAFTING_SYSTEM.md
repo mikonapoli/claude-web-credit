@@ -38,7 +38,15 @@ Recipes match ingredients in **any order** and support **multiple tags per ingre
 Main crafting logic:
 - `find_matching_recipe()`: Finds recipe matching given ingredients
 - `can_craft()`: Checks if ingredients can be crafted
-- `craft()`: Performs crafting, creates result, emits events
+- `craft(ingredients, crafter, position)`: Performs crafting, creates result, emits events
+
+**Position Handling**:
+The `craft()` method requires a spawn position for the crafted item. Position is determined by priority:
+1. **Explicit `position` parameter** - If provided, always used
+2. **Crafter's position** - If crafter is provided, uses their current position
+3. **Fails** - Returns None if neither is available
+
+**Important**: Items that have been picked up retain their map coordinates from when they were on the floor. Therefore, **never use ingredient positions** - always provide either a crafter or explicit position to ensure crafted items spawn at the correct location (typically where the player is).
 
 #### RecipeLoader (`src/roguelike/data/recipe_loader.py`)
 
@@ -159,11 +167,22 @@ entity_loader = EntityLoader()
 moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
 crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
 
+# Create player (at position 10, 10)
+player = entity_loader.create_entity("player", Position(10, 10))
+
 # Check if craftable
 if crafting_system.can_craft([moonleaf, crystal]):
-    # Perform crafting
+    # Perform crafting - result spawns at player's position
     result = crafting_system.craft([moonleaf, crystal], crafter=player)
     print(f"Crafted: {result.name}")  # "Crafted: Healing Potion"
+    print(f"Position: {result.position}")  # "Position: Position(10, 10)"
+
+# Alternative: Specify explicit position
+result = crafting_system.craft(
+    [moonleaf, crystal],
+    crafter=player,
+    position=Position(15, 15)  # Spawn at specific location
+)
 ```
 
 ## Design Philosophy

@@ -155,19 +155,27 @@ class CraftingSystem:
         self,
         ingredients: List["ComponentEntity"],
         crafter: Optional["ComponentEntity"] = None,
+        position: Optional["Position"] = None,
     ) -> Optional["ComponentEntity"]:
         """Attempt to craft items together.
 
         Args:
             ingredients: List of ingredient entities to combine
-            crafter: Entity performing the crafting (for events)
+            crafter: Entity performing the crafting (for events and position)
+            position: Explicit position for crafted item (overrides crafter position)
 
         Returns:
             Resulting item entity or None if crafting failed
+
+        Note:
+            Position priority: explicit position > crafter position > fail
+            Ingredients that have been picked up retain their map coordinates,
+            so we must use crafter's current position, not ingredient positions.
         """
         from roguelike.components.crafting import CraftingComponent
         from roguelike.data.entity_loader import EntityLoader
         from roguelike.engine.events import CraftingAttemptEvent
+        from roguelike.utils.position import Position
 
         # Find matching recipe
         recipe = self.find_matching_recipe(ingredients)
@@ -187,15 +195,19 @@ class CraftingSystem:
                 self.event_bus.emit(event)
             return None
 
-        # Create result item from recipe
-        # We need to get the position from one of the ingredients
-        position = ingredients[0].position if ingredients else None
-        if position is None:
+        # Determine spawn position for crafted item
+        # Priority: explicit position > crafter position > None
+        spawn_position = position
+        if spawn_position is None and crafter is not None:
+            spawn_position = crafter.position
+
+        if spawn_position is None:
+            # Cannot craft without a position
             return None
 
         # Load the result entity
         entity_loader = EntityLoader()
-        result = entity_loader.create_entity(recipe.result_type, position)
+        result = entity_loader.create_entity(recipe.result_type, spawn_position)
 
         # Emit success event
         if self.event_bus:

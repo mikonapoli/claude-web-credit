@@ -12,6 +12,18 @@ def main():
     # Game configuration
     screen_width = 80
     screen_height = 50
+    message_log_height = 7
+    map_height = screen_height - message_log_height
+    max_monsters_per_room = 2
+
+    # Generate the dungeon
+    game_map, rooms = generate_dungeon(
+        width=screen_width,
+        height=map_height,
+        max_rooms=30,
+        min_room_size=6,
+        max_room_size=10,
+    )
 
     # Create event bus and dungeon level system
     event_bus = EventBus()

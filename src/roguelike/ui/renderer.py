@@ -5,6 +5,7 @@ from typing import Optional
 import tcod
 
 from roguelike.entities.entity import Entity
+from roguelike.ui.message_log import MessageLog
 from roguelike.ui.health_bar_renderer import HealthBarRenderer
 from roguelike.utils.position import Position
 from roguelike.utils.protocols import HealthBarRenderable
@@ -50,14 +51,22 @@ class Renderer:
         """Clear the console."""
         self.console.clear()
 
-    def render_map(self, game_map: GameMap, fov_map: Optional[FOVMap] = None) -> None:
+    def render_map(
+        self,
+        game_map: GameMap,
+        fov_map: Optional[FOVMap] = None,
+        max_height: Optional[int] = None
+    ) -> None:
         """Render the game map.
 
         Args:
             game_map: Map to render
             fov_map: Optional FOV map for visibility
+            max_height: Maximum height to render (for viewport clipping)
         """
-        for y in range(game_map.height):
+        render_height = min(max_height, game_map.height) if max_height else game_map.height
+
+        for y in range(render_height):
             for x in range(game_map.width):
                 pos = Position(x, y)
                 tile = game_map.get_tile(pos)
@@ -79,15 +88,25 @@ class Renderer:
 
                 self.console.print(x, y, tile.char, fg=fg)
 
-    def render_entity(self, entity: Entity, fov_map: Optional[FOVMap] = None) -> None:
+    def render_entity(
+        self,
+        entity: Entity,
+        fov_map: Optional[FOVMap] = None,
+        max_height: Optional[int] = None
+    ) -> None:
         """Render a single entity.
 
         Args:
             entity: Entity to render
             fov_map: Optional FOV map for visibility
+            max_height: Maximum height to render (for viewport clipping)
         """
         # Only render if visible (or if no FOV map)
         if fov_map and not fov_map.is_visible(entity.position):
+            return
+
+        # Skip rendering if entity is below viewport
+        if max_height and entity.position.y >= max_height:
             return
 
         self.console.print(
@@ -97,15 +116,52 @@ class Renderer:
             fg=(255, 255, 255)
         )
 
-    def render_entities(self, entities: list[Entity], fov_map: Optional[FOVMap] = None) -> None:
+    def render_entities(
+        self,
+        entities: list[Entity],
+        fov_map: Optional[FOVMap] = None,
+        max_height: Optional[int] = None
+    ) -> None:
         """Render multiple entities.
 
         Args:
             entities: List of entities to render
             fov_map: Optional FOV map for visibility
+            max_height: Maximum height to render (for viewport clipping)
         """
         for entity in entities:
-            self.render_entity(entity, fov_map)
+            self.render_entity(entity, fov_map, max_height)
+
+    def render_message_log(
+        self,
+        message_log: MessageLog,
+        x: int,
+        y: int,
+        width: int,
+        height: int
+    ) -> None:
+        """Render the message log in a specified area.
+
+        Args:
+            message_log: The message log to render
+            x: X position of message area
+            y: Y position of message area (top-left)
+            width: Width of message area
+            height: Height of message area (number of lines)
+        """
+        # Get the most recent messages that fit in the area
+        messages = message_log.get_messages(count=height)
+
+        # Reverse so oldest is at top, newest at bottom
+        messages = list(reversed(messages))
+
+        # Render each message
+        for i, message in enumerate(messages):
+            # Truncate message if too long
+            if len(message) > width:
+                message = message[:width-3] + "..."
+
+            self.console.print(x, y + i, message, fg=(255, 255, 255))
 
     def render_health_bar(
         self,

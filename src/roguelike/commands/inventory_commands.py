@@ -4,9 +4,10 @@ from typing import List
 
 from roguelike.commands.command import Command, CommandResult
 from roguelike.components.entity import ComponentEntity
+from roguelike.components.health import HealthComponent
 from roguelike.components.inventory import InventoryComponent
 from roguelike.entities.entity import Entity
-from roguelike.entities.item import Item
+from roguelike.entities.item import Item, ItemType
 
 
 class PickupItemCommand(Command):
@@ -92,5 +93,49 @@ class DropItemCommand(Command):
         # Place item at player's position
         self.item.move_to(self.player.position)
         self.entities.append(self.item)
+
+        return CommandResult(success=True, turn_consumed=True)
+
+
+class UseItemCommand(Command):
+    """Command to use/consume an item."""
+
+    def __init__(self, player: ComponentEntity, item: Item):
+        """Initialize use item command.
+
+        Args:
+            player: Player entity
+            item: Item to use
+        """
+        self.player = player
+        self.item = item
+
+    def execute(self) -> CommandResult:
+        """Execute the use item command.
+
+        Returns:
+            CommandResult indicating success/failure
+        """
+        # Check if player has inventory component
+        inventory = self.player.get_component(InventoryComponent)
+        if inventory is None:
+            return CommandResult(success=False, turn_consumed=False)
+
+        # Check if item is in inventory
+        if self.item not in inventory.get_items():
+            return CommandResult(success=False, turn_consumed=False)
+
+        # Apply item effect based on item type
+        if self.item.item_type == ItemType.HEALING_POTION:
+            # Check if player has health component
+            health = self.player.get_component(HealthComponent)
+            if health is None:
+                return CommandResult(success=False, turn_consumed=False)
+
+            # Heal the player
+            health.heal(self.item.value)
+
+        # Remove item from inventory
+        inventory.remove_item(self.item)
 
         return CommandResult(success=True, turn_consumed=True)

@@ -5,6 +5,7 @@ from typing import Optional
 import tcod
 
 from roguelike.entities.entity import Entity
+from roguelike.ui.message_log import MessageLog
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
@@ -101,6 +102,37 @@ class Renderer:
         """
         for entity in entities:
             self.render_entity(entity, fov_map)
+
+    def render_message_log(
+        self,
+        message_log: MessageLog,
+        x: int,
+        y: int,
+        width: int,
+        height: int
+    ) -> None:
+        """Render the message log in a specified area.
+
+        Args:
+            message_log: The message log to render
+            x: X position of message area
+            y: Y position of message area (top-left)
+            width: Width of message area
+            height: Height of message area (number of lines)
+        """
+        # Get the most recent messages that fit in the area
+        messages = message_log.get_messages(count=height)
+
+        # Reverse so oldest is at top, newest at bottom
+        messages = list(reversed(messages))
+
+        # Render each message
+        for i, message in enumerate(messages):
+            # Truncate message if too long
+            if len(message) > width:
+                message = message[:width-3] + "..."
+
+            self.console.print(x, y + i, message, fg=(255, 255, 255))
 
     def present(self) -> None:
         """Present the console to the screen."""

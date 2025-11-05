@@ -102,6 +102,10 @@ class GameEngine:
         self.running = True
         input_handler = InputHandler()
 
+        # Message log display configuration
+        message_log_height = 7
+        message_log_y = renderer.height - message_log_height
+
         while self.running:
             # Render
             renderer.clear()
@@ -110,6 +114,14 @@ class GameEngine:
             living_entities = [e for e in self.entities if not isinstance(e, Monster) or e.is_alive]
             renderer.render_entities(living_entities, self.fov_map)
             renderer.render_entity(self.player, self.fov_map)
+            # Render message log at bottom of screen
+            renderer.render_message_log(
+                self.message_log,
+                x=0,
+                y=message_log_y,
+                width=renderer.width,
+                height=message_log_height
+            )
             renderer.present()
 
             # Handle input

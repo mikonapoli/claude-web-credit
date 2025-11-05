@@ -257,3 +257,47 @@ def test_process_turn_no_enemy_turns_on_invalid_action():
     assert player.position == Position(10, 10)
     # Player shouldn't have taken damage because turn wasn't consumed
     assert player.hp == original_hp
+
+
+def test_player_can_move_through_dead_monster():
+    """Player can move onto tile where monster died (corpses don't block)."""
+    game_map = GameMap(20, 20)
+    for y in range(20):
+        for x in range(20):
+            game_map.set_tile(Position(x, y), Tiles.FLOOR)
+
+    event_bus = EventBus()
+    combat_system = CombatSystem(event_bus)
+    movement_system = MovementSystem(game_map)
+    ai_system = AISystem(combat_system, movement_system, game_map)
+    turn_manager = TurnManager(combat_system, movement_system, ai_system)
+
+    player = Player(Position(10, 10))
+    # Create orc with low HP so player can kill it in one hit
+    orc = create_orc(Position(10, 11))
+    orc.hp = 1  # Player power (5) - orc defense (0) = 5 damage, kills it
+
+    fov_map = FOVMap(game_map)
+    entities = [player, orc]
+
+    # Player attacks and kills orc by trying to move into its tile
+    turn_consumed, should_quit = turn_manager.handle_player_action(
+        Action.MOVE_DOWN, player, entities, game_map, fov_map, 8
+    )
+
+    # Attack should have consumed turn
+    assert turn_consumed
+    assert not should_quit
+    # Player should still be at original position (attacked, didn't move)
+    assert player.position == Position(10, 10)
+    # Orc should be dead
+    assert not orc.is_alive
+
+    # Now player should be able to move onto the tile where orc died
+    turn_consumed, should_quit = turn_manager.handle_player_action(
+        Action.MOVE_DOWN, player, entities, game_map, fov_map, 8
+    )
+
+    # Move should succeed - corpses shouldn't block movement
+    assert turn_consumed
+    assert player.position == Position(10, 11)

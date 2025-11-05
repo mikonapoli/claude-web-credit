@@ -93,6 +93,8 @@ class AISystem:
                     self.combat_system.handle_death(
                         player, killed_by_player=False
                     )
+                    # Corpses don't block movement
+                    player.blocks_movement = False
                     player_died = True
             else:
                 # Let AI decide on movement

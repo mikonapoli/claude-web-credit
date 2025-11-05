@@ -131,6 +131,8 @@ class TurnManager:
                     self.combat_system.award_xp(
                         player, blocking_entity.xp_value
                     )
+                    # Corpses don't block movement
+                    blocking_entity.blocks_movement = False
 
                 return True  # Attack consumes turn
             # Other blocking entity (not attackable)

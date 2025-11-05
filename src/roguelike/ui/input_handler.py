@@ -19,6 +19,8 @@ class Action(Enum):
     MOVE_DOWN_RIGHT = "move_down_right"
     WAIT = "wait"
     DESCEND_STAIRS = "descend_stairs"
+    PICKUP = "pickup"
+    INVENTORY = "inventory"
     QUIT = "quit"
 
 
@@ -72,6 +74,13 @@ class InputHandler(tcod.event.EventDispatch):
         # Descend stairs (> key, which is shift + period)
         elif key == tcod.event.KeySym.PERIOD and event.mod & tcod.event.KMOD_SHIFT:
             self.last_action = Action.DESCEND_STAIRS
+        # Pickup item
+        elif key == tcod.event.KeySym.g:
+            self.last_action = Action.PICKUP
+
+        # Inventory
+        elif key == tcod.event.KeySym.i:
+            self.last_action = Action.INVENTORY
 
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:

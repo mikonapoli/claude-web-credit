@@ -83,15 +83,25 @@ class Renderer:
 
                 self.console.print(x, y, tile.char, fg=fg)
 
-    def render_entity(self, entity: Entity, fov_map: Optional[FOVMap] = None) -> None:
+    def render_entity(
+        self,
+        entity: Entity,
+        fov_map: Optional[FOVMap] = None,
+        max_height: Optional[int] = None
+    ) -> None:
         """Render a single entity.
 
         Args:
             entity: Entity to render
             fov_map: Optional FOV map for visibility
+            max_height: Maximum height to render (for viewport clipping)
         """
         # Only render if visible (or if no FOV map)
         if fov_map and not fov_map.is_visible(entity.position):
+            return
+
+        # Skip rendering if entity is below viewport
+        if max_height and entity.position.y >= max_height:
             return
 
         self.console.print(
@@ -101,15 +111,21 @@ class Renderer:
             fg=(255, 255, 255)
         )
 
-    def render_entities(self, entities: list[Entity], fov_map: Optional[FOVMap] = None) -> None:
+    def render_entities(
+        self,
+        entities: list[Entity],
+        fov_map: Optional[FOVMap] = None,
+        max_height: Optional[int] = None
+    ) -> None:
         """Render multiple entities.
 
         Args:
             entities: List of entities to render
             fov_map: Optional FOV map for visibility
+            max_height: Maximum height to render (for viewport clipping)
         """
         for entity in entities:
-            self.render_entity(entity, fov_map)
+            self.render_entity(entity, fov_map, max_height)
 
     def render_message_log(
         self,

@@ -105,15 +105,16 @@ class GameEngine:
         # Message log display configuration
         message_log_height = 7
         message_log_y = renderer.height - message_log_height
+        map_viewport_height = message_log_y
 
         while self.running:
             # Render
             renderer.clear()
-            renderer.render_map(self.game_map, self.fov_map)
+            renderer.render_map(self.game_map, self.fov_map, max_height=map_viewport_height)
             # Only render living monsters
             living_entities = [e for e in self.entities if not isinstance(e, Monster) or e.is_alive]
-            renderer.render_entities(living_entities, self.fov_map)
-            renderer.render_entity(self.player, self.fov_map)
+            renderer.render_entities(living_entities, self.fov_map, max_height=map_viewport_height)
+            renderer.render_entity(self.player, self.fov_map, max_height=map_viewport_height)
             # Render message log at bottom of screen
             renderer.render_message_log(
                 self.message_log,

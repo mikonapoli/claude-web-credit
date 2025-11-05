@@ -86,6 +86,53 @@ class XPGainEvent(Event):
         }
 
 
+@dataclass
+class SpellCastEvent(Event):
+    """Spell cast event."""
+
+    def __init__(
+        self,
+        caster_name: str,
+        spell_name: str,
+        target_name: str,
+        mana_cost: int,
+        effect_message: str,
+    ):
+        """Initialize spell cast event."""
+        self.type = "spell_cast"
+        self.caster_name = caster_name
+        self.spell_name = spell_name
+        self.target_name = target_name
+        self.mana_cost = mana_cost
+        self.effect_message = effect_message
+        self.data = {
+            "caster_name": caster_name,
+            "spell_name": spell_name,
+            "target_name": target_name,
+            "mana_cost": mana_cost,
+            "effect_message": effect_message,
+        }
+
+
+@dataclass
+class ManaChangedEvent(Event):
+    """Mana changed event."""
+
+    def __init__(self, entity_name: str, old_mp: int, new_mp: int, max_mp: int):
+        """Initialize mana changed event."""
+        self.type = "mana_changed"
+        self.entity_name = entity_name
+        self.old_mp = old_mp
+        self.new_mp = new_mp
+        self.max_mp = max_mp
+        self.data = {
+            "entity_name": entity_name,
+            "old_mp": old_mp,
+            "new_mp": new_mp,
+            "max_mp": max_mp,
+        }
+
+
 class EventBus:
     """Simple event bus for pub/sub pattern."""
 

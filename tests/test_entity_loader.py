@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from roguelike.components.combat import CombatComponent
+from roguelike.components.crafting import CraftingComponent
 from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
 from roguelike.data.entity_loader import EntityLoader
@@ -208,3 +209,64 @@ def test_entity_independence():
 
     assert health1.hp == 5
     assert health2.hp == 10  # Should be unaffected
+
+
+def test_create_crafting_item_from_template():
+    """Can create crafting item from template."""
+    loader = EntityLoader()
+    moonleaf = loader.create_entity("moonleaf", Position(5, 5))
+
+    assert moonleaf.name == "Moonleaf"
+    assert moonleaf.char == "%"
+    assert not moonleaf.blocks_movement
+
+
+def test_crafting_item_has_crafting_component():
+    """Crafting item has CraftingComponent."""
+    loader = EntityLoader()
+    moonleaf = loader.create_entity("moonleaf", Position(5, 5))
+
+    assert moonleaf.has_component(CraftingComponent)
+
+
+def test_crafting_component_has_correct_tags():
+    """CraftingComponent has tags from template."""
+    loader = EntityLoader()
+    moonleaf = loader.create_entity("moonleaf", Position(5, 5))
+
+    crafting = moonleaf.get_component(CraftingComponent)
+    assert crafting.has_tag("herbal")
+    assert crafting.has_tag("verdant")
+
+
+def test_crafting_item_consumable_flag():
+    """Crafting item has correct consumable flag."""
+    loader = EntityLoader()
+    moonleaf = loader.create_entity("moonleaf", Position(5, 5))
+
+    crafting = moonleaf.get_component(CraftingComponent)
+    assert crafting.consumable is True
+
+
+def test_crafting_item_craftable_flag():
+    """Crafting item has correct craftable flag."""
+    loader = EntityLoader()
+    moonleaf = loader.create_entity("moonleaf", Position(5, 5))
+
+    crafting = moonleaf.get_component(CraftingComponent)
+    assert crafting.craftable is False
+
+
+def test_multiple_crafting_items_with_different_tags():
+    """Different crafting items have different tags."""
+    loader = EntityLoader()
+    moonleaf = loader.create_entity("moonleaf", Position(5, 5))
+    crystal = loader.create_entity("mana_crystal", Position(6, 6))
+
+    moonleaf_crafting = moonleaf.get_component(CraftingComponent)
+    crystal_crafting = crystal.get_component(CraftingComponent)
+
+    assert moonleaf_crafting.has_tag("herbal")
+    assert not moonleaf_crafting.has_tag("magical")
+    assert crystal_crafting.has_tag("magical")
+    assert not crystal_crafting.has_tag("herbal")

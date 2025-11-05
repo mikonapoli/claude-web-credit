@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from roguelike.components.combat import CombatComponent
+from roguelike.components.crafting import CraftingComponent
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
@@ -87,6 +88,16 @@ class EntityLoader:
                     level=level_data.get("level", 1),
                     xp=level_data.get("xp", 0),
                     xp_value=level_data.get("xp_value", 0),
+                )
+            )
+
+        if "crafting" in components:
+            crafting_data = components["crafting"]
+            entity.add_component(
+                CraftingComponent(
+                    tags=set(crafting_data["tags"]),
+                    consumable=crafting_data.get("consumable", True),
+                    craftable=crafting_data.get("craftable", False),
                 )
             )
 

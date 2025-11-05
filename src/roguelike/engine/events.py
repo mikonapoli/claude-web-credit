@@ -200,6 +200,61 @@ class HealingEvent(Event):
         }
 
 
+@dataclass
+class CraftingAttemptEvent(Event):
+    """Event emitted when crafting is attempted."""
+
+    def __init__(
+        self,
+        crafter_name: str,
+        ingredient_names: list[str],
+        success: bool,
+        result_name: str | None = None,
+    ):
+        """Initialize crafting attempt event.
+
+        Args:
+            crafter_name: Name of entity performing crafting
+            ingredient_names: Names of ingredients used
+            success: Whether crafting succeeded
+            result_name: Name of resulting item (if successful)
+        """
+        self.type = "crafting_attempt"
+        self.crafter_name = crafter_name
+        self.ingredient_names = ingredient_names
+        self.success = success
+        self.result_name = result_name
+        self.data = {
+            "crafter_name": crafter_name,
+            "ingredient_names": ingredient_names,
+            "success": success,
+            "result_name": result_name,
+        }
+
+
+@dataclass
+class RecipeDiscoveredEvent(Event):
+    """Event emitted when a new recipe is discovered."""
+
+    def __init__(self, recipe_id: str, recipe_name: str, discoverer_name: str):
+        """Initialize recipe discovered event.
+
+        Args:
+            recipe_id: ID of discovered recipe
+            recipe_name: Name of discovered recipe
+            discoverer_name: Name of entity who discovered it
+        """
+        self.type = "recipe_discovered"
+        self.recipe_id = recipe_id
+        self.recipe_name = recipe_name
+        self.discoverer_name = discoverer_name
+        self.data = {
+            "recipe_id": recipe_id,
+            "recipe_name": recipe_name,
+            "discoverer_name": discoverer_name,
+        }
+
+
 class EventBus:
     """Simple event bus for pub/sub pattern."""
 

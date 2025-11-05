@@ -141,9 +141,13 @@ Summoning and creation (extensible for future).
 
 ## Data Files
 
+### Spell Data Location
+
+Spell data is packaged inside the module at `src/roguelike/data/spells.json`. This ensures spells are available when the package is installed via pip or wheel.
+
 ### Adding New Spells
 
-Edit `data/spells.json`:
+Edit `src/roguelike/data/spells.json`:
 
 ```json
 {
@@ -162,10 +166,23 @@ Edit `data/spells.json`:
 }
 ```
 
+The `SpellLoader` uses `importlib.resources` to load spells from the package, so they work correctly in both development and installed environments.
+
 Then register its effect in your game initialization:
 
 ```python
 magic_system.register_spell_effect("new_spell", DamageEffect())
+```
+
+### Custom Spell Files
+
+You can also load spells from a custom location:
+
+```python
+from pathlib import Path
+
+# Load from custom path
+loader = SpellLoader(data_path=Path("/path/to/custom_spells.json"))
 ```
 
 ## Events

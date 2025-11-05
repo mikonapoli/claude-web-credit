@@ -38,6 +38,7 @@ A classic ASCII roguelike game built with Python and python-tcod, featuring proc
 - **36 Craftable Items**: 17 crafting materials + 19 craftable results
 - **22 Crafting Recipes**: Create powerful items from materials found in dungeons
 - **Tag-Based System**: Items matched by abstract qualities (herbal, magical, rare, etc.)
+- **Recipe Discovery**: Track which recipes you've successfully crafted
 - **Spell Crafting**: Create magical scrolls from parchment, runic essence, and elements
 - **Categories**:
   - Basic potions (healing, mana, antidote)
@@ -143,7 +144,7 @@ Or with the virtual environment activated:
 uv run pytest tests/ -v
 ```
 
-**464 passing tests** covering all major systems!
+**565 passing tests** covering all major systems!
 
 ### Running Specific Test Suites
 ```bash
@@ -178,7 +179,7 @@ claude-web-credit/
 ```
 
 ### Code Quality
-- **464 passing tests** covering all major systems
+- **565 passing tests** covering all major systems
 - **Clean architecture** with component-based design
 - **Event-driven** systems for decoupling
 - **Data-driven** content (items, recipes, levels in JSON)
@@ -201,12 +202,13 @@ claude-web-credit/
 #### Component-Based Design
 - **ComponentEntity**: Flexible entity system using composition
 - **CraftingComponent**: Tag-based crafting metadata
+- **RecipeDiscoveryComponent**: Tracks discovered recipes
 - **InventoryComponent**: Item storage and management
 - **HealthComponent, CombatComponent, LevelComponent**: Core RPG stats
 
 #### Event-Driven Architecture
 - **EventBus**: Pub/sub pattern for system decoupling
-- **Events**: Combat, Death, LevelUp, XP, Crafting, ItemPickup, ItemUse, Healing, etc.
+- **Events**: Combat, Death, LevelUp, XP, Crafting, RecipeDiscovery, ItemPickup, ItemUse, Healing, etc.
 - **Message Log**: Subscribes to events for player feedback
 
 #### Data-Driven Content
@@ -250,7 +252,14 @@ See [CRAFTING_SYSTEM.md](CRAFTING_SYSTEM.md) for complete documentation, all rec
 
 ## Recent Updates
 
-### Crafting System (Latest)
+### Recipe Discovery System (Latest)
+- Track which recipes player has successfully crafted
+- RecipeDiscoveryComponent integrated with player entity
+- RecipeDiscoveredEvent for UI feedback
+- Automatic discovery on successful crafting
+- 24 new tests for recipe discovery functionality
+
+### Crafting System
 - Complete tag-based crafting with 36 items and 22 recipes
 - Integration with existing item and spell systems
 - Ingredient consumption and position handling
@@ -277,7 +286,7 @@ Potential additions:
 - **More Monster Types**: Unique abilities and behaviors
 - **Traps**: Environmental hazards
 - **Procedural Item Generation**: Random magical properties
-- **Recipe Discovery**: Track which recipes player has found
+- **Recipe Hints**: Display ingredients for discovered recipes
 - **Crafting Quality**: Varying results based on ingredients
 - **LLM-based NPCs**: Procedurally generated characters with AI dialogue
 

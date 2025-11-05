@@ -7,6 +7,7 @@ from typing import Any, Dict
 from roguelike.components.combat import CombatComponent
 from roguelike.components.crafting import CraftingComponent
 from roguelike.components.entity import ComponentEntity
+from roguelike.components.equipment import EquipmentComponent, EquipmentSlot, EquipmentStats
 from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
 from roguelike.components.recipe_discovery import RecipeDiscoveryComponent
@@ -104,6 +105,25 @@ class EntityLoader:
 
         if "recipe_discovery" in components:
             entity.add_component(RecipeDiscoveryComponent())
+
+        if "equipment" in components:
+            equipment_data = components["equipment"]
+            # Check if this defines EquipmentStats (has "slot") or EquipmentComponent (empty)
+            if "slot" in equipment_data:
+                # This is an equippable item - create EquipmentStats
+                slot_str = equipment_data["slot"]
+                slot = EquipmentSlot(slot_str)
+                entity.add_component(
+                    EquipmentStats(
+                        slot=slot,
+                        power_bonus=equipment_data.get("power_bonus", 0),
+                        defense_bonus=equipment_data.get("defense_bonus", 0),
+                        max_hp_bonus=equipment_data.get("max_hp_bonus", 0),
+                    )
+                )
+            else:
+                # This is an entity that can equip items - create EquipmentComponent
+                entity.add_component(EquipmentComponent())
 
         return entity
 

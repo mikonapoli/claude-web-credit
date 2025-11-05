@@ -16,6 +16,7 @@
         "xp": 0,
         "xp_value": 0
       },
+      "equipment": {},
       "recipe_discovery": {}
     }
   },
@@ -534,6 +535,305 @@
         "tags": ["cursed", "metallic", "sinister"],
         "consumable": false,
         "craftable": true
+      }
+    }
+  },
+  "iron_sword": {
+    "char": "/",
+    "name": "Iron Sword",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "weapon",
+        "power_bonus": 3,
+        "defense_bonus": 0,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "steel_sword": {
+    "char": "/",
+    "name": "Steel Sword",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "weapon",
+        "power_bonus": 5,
+        "defense_bonus": 0,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "enchanted_blade": {
+    "char": "/",
+    "name": "Enchanted Blade",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "weapon",
+        "power_bonus": 7,
+        "defense_bonus": 1,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "wooden_club": {
+    "char": "\\",
+    "name": "Wooden Club",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "weapon",
+        "power_bonus": 2,
+        "defense_bonus": 0,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "battle_axe": {
+    "char": "/",
+    "name": "Battle Axe",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "weapon",
+        "power_bonus": 8,
+        "defense_bonus": -1,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "leather_armor": {
+    "char": "[",
+    "name": "Leather Armor",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "armor",
+        "power_bonus": 0,
+        "defense_bonus": 2,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "chainmail": {
+    "char": "[",
+    "name": "Chainmail",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "armor",
+        "power_bonus": 0,
+        "defense_bonus": 4,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "plate_armor": {
+    "char": "[",
+    "name": "Plate Armor",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "armor",
+        "power_bonus": 0,
+        "defense_bonus": 6,
+        "max_hp_bonus": 5
+      }
+    }
+  },
+  "dragon_scale_armor": {
+    "char": "[",
+    "name": "Dragon Scale Armor",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "armor",
+        "power_bonus": 1,
+        "defense_bonus": 8,
+        "max_hp_bonus": 10
+      }
+    }
+  },
+  "leather_helmet": {
+    "char": "^",
+    "name": "Leather Helmet",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "helmet",
+        "power_bonus": 0,
+        "defense_bonus": 1,
+        "max_hp_bonus": 2
+      }
+    }
+  },
+  "steel_helmet": {
+    "char": "^",
+    "name": "Steel Helmet",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "helmet",
+        "power_bonus": 0,
+        "defense_bonus": 2,
+        "max_hp_bonus": 5
+      }
+    }
+  },
+  "crown_of_kings": {
+    "char": "^",
+    "name": "Crown of Kings",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "helmet",
+        "power_bonus": 2,
+        "defense_bonus": 3,
+        "max_hp_bonus": 10
+      }
+    }
+  },
+  "leather_boots": {
+    "char": "]",
+    "name": "Leather Boots",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "boots",
+        "power_bonus": 0,
+        "defense_bonus": 1,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "steel_boots": {
+    "char": "]",
+    "name": "Steel Boots",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "boots",
+        "power_bonus": 1,
+        "defense_bonus": 2,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "boots_of_speed": {
+    "char": "]",
+    "name": "Boots of Speed",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "boots",
+        "power_bonus": 0,
+        "defense_bonus": 1,
+        "max_hp_bonus": 5
+      }
+    }
+  },
+  "leather_gloves": {
+    "char": ")",
+    "name": "Leather Gloves",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "gloves",
+        "power_bonus": 1,
+        "defense_bonus": 0,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "gauntlets": {
+    "char": ")",
+    "name": "Gauntlets",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "gloves",
+        "power_bonus": 2,
+        "defense_bonus": 1,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "ring_of_power": {
+    "char": "=",
+    "name": "Ring of Power",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "ring",
+        "power_bonus": 3,
+        "defense_bonus": 0,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "ring_of_protection": {
+    "char": "=",
+    "name": "Ring of Protection",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "ring",
+        "power_bonus": 0,
+        "defense_bonus": 3,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "ring_of_vitality": {
+    "char": "=",
+    "name": "Ring of Vitality",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "ring",
+        "power_bonus": 0,
+        "defense_bonus": 0,
+        "max_hp_bonus": 15
+      }
+    }
+  },
+  "amulet_of_strength": {
+    "char": "\"",
+    "name": "Amulet of Strength",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "amulet",
+        "power_bonus": 4,
+        "defense_bonus": 0,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "amulet_of_defense": {
+    "char": "\"",
+    "name": "Amulet of Defense",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "amulet",
+        "power_bonus": 0,
+        "defense_bonus": 4,
+        "max_hp_bonus": 0
+      }
+    }
+  },
+  "amulet_of_life": {
+    "char": "\"",
+    "name": "Amulet of Life",
+    "blocks_movement": false,
+    "components": {
+      "equipment": {
+        "slot": "amulet",
+        "power_bonus": 0,
+        "defense_bonus": 0,
+        "max_hp_bonus": 20
       }
     }
   }

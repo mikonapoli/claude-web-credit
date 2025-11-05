@@ -15,6 +15,22 @@ A classic ASCII roguelike game built with Python and python-tcod, featuring proc
 
 ### Game Systems
 
+#### Equipment System
+- **24 Equipment Items**: Weapons, armor, helmets, boots, gloves, rings, and amulets
+- **7 Equipment Slots**: Weapon, armor, helmet, boots, gloves, ring, amulet
+- **Stat Bonuses**: Power, defense, and max HP bonuses from equipment
+- **Equipment Management**: Equip/unequip items from inventory
+- **Automatic Slot Management**: Equipping new item automatically returns old item to inventory
+- **Persistent Bonuses**: Equipment stats directly modify combat effectiveness
+- **Diverse Options**:
+  - **Weapons**: Wooden Club (+2 power), Iron Sword (+3), Steel Sword (+5), Enchanted Blade (+7/+1), Battle Axe (+8/-1)
+  - **Armor**: Leather (+2 def), Chainmail (+4), Plate (+6 def, +5 HP), Dragon Scale (+1 pow, +8 def, +10 HP)
+  - **Helmets**: Leather (+1 def, +2 HP), Steel (+2 def, +5 HP), Crown of Kings (+2 pow, +3 def, +10 HP)
+  - **Boots**: Leather (+1 def), Steel (+1 pow, +2 def), Boots of Speed (+1 def, +5 HP)
+  - **Gloves**: Leather (+1 pow), Gauntlets (+2 pow, +1 def)
+  - **Rings**: Power (+3 pow), Protection (+3 def), Vitality (+15 HP)
+  - **Amulets**: Strength (+4 pow), Defense (+4 def), Life (+20 HP)
+
 #### Combat & Progression
 - **Multiple Monster Types**:
   - Orcs (o): Weak but common
@@ -97,6 +113,8 @@ Or with the virtual environment activated:
 #### Actions
 - **g**: Pick up item from floor
 - **i**: Open inventory to use items
+- **e**: Equip item from inventory
+- **u**: Unequip item to inventory
 - **d**: Drop item from inventory
 - **>**: Descend stairs to next level
 - **ESC**: Quit game
@@ -131,7 +149,13 @@ Or with the virtual environment activated:
 - `?`: Scroll
 - `%`: Food/Herb
 - `*`: Crystal/Powder
+- `/`: Weapon (sword, axe)
+- `[`: Armor (leather, chainmail, plate)
+- `^`: Helmet (leather, steel, crown)
+- `]`: Boots
+- `)`: Gloves
 - `=`: Ring
+- `"`: Amulet
 - `$`: Coin
 - Dark areas: Unexplored
 - Gray areas: Explored but not currently visible
@@ -144,7 +168,7 @@ Or with the virtual environment activated:
 uv run pytest tests/ -v
 ```
 
-**565 passing tests** covering all major systems!
+**660 passing tests** covering all major systems!
 
 ### Running Specific Test Suites
 ```bash
@@ -281,7 +305,6 @@ See [CRAFTING_SYSTEM.md](CRAFTING_SYSTEM.md) for complete documentation, all rec
 ## Future Enhancements
 
 Potential additions:
-- **Equipment System**: Weapons and armor with stats
 - **Status Effects**: Poison, confusion, invisibility implementation
 - **More Monster Types**: Unique abilities and behaviors
 - **Traps**: Environmental hazards

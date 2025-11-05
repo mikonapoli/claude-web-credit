@@ -255,6 +255,74 @@ class RecipeDiscoveredEvent(Event):
         }
 
 
+@dataclass
+class EquipEvent(Event):
+    """Event emitted when an item is equipped."""
+
+    def __init__(
+        self,
+        entity_name: str,
+        item_name: str,
+        slot: str,
+        power_bonus: int = 0,
+        defense_bonus: int = 0,
+        max_hp_bonus: int = 0,
+    ):
+        """Initialize equip event.
+
+        Args:
+            entity_name: Name of entity equipping item
+            item_name: Name of item being equipped
+            slot: Equipment slot (weapon, armor, etc.)
+            power_bonus: Power bonus from item
+            defense_bonus: Defense bonus from item
+            max_hp_bonus: Max HP bonus from item
+        """
+        self.type = "equip"
+        self.entity_name = entity_name
+        self.item_name = item_name
+        self.slot = slot
+        self.power_bonus = power_bonus
+        self.defense_bonus = defense_bonus
+        self.max_hp_bonus = max_hp_bonus
+        self.data = {
+            "entity_name": entity_name,
+            "item_name": item_name,
+            "slot": slot,
+            "power_bonus": power_bonus,
+            "defense_bonus": defense_bonus,
+            "max_hp_bonus": max_hp_bonus,
+        }
+
+
+@dataclass
+class UnequipEvent(Event):
+    """Event emitted when an item is unequipped."""
+
+    def __init__(
+        self,
+        entity_name: str,
+        item_name: str,
+        slot: str,
+    ):
+        """Initialize unequip event.
+
+        Args:
+            entity_name: Name of entity unequipping item
+            item_name: Name of item being unequipped
+            slot: Equipment slot (weapon, armor, etc.)
+        """
+        self.type = "unequip"
+        self.entity_name = entity_name
+        self.item_name = item_name
+        self.slot = slot
+        self.data = {
+            "entity_name": entity_name,
+            "item_name": item_name,
+            "slot": slot,
+        }
+
+
 class EventBus:
     """Simple event bus for pub/sub pattern."""
 

@@ -8,7 +8,7 @@ import pytest
 
 from roguelike.components.combat import CombatComponent
 from roguelike.components.crafting import CraftingComponent
-from roguelike.components.equipment import EquipmentSlot, EquipmentStats
+from roguelike.components.equipment import EquipmentComponent, EquipmentSlot, EquipmentStats
 from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
 from roguelike.components.recipe_discovery import RecipeDiscoveryComponent
@@ -51,6 +51,7 @@ def test_player_has_components():
     assert player.has_component(HealthComponent)
     assert player.has_component(CombatComponent)
     assert player.has_component(LevelComponent)
+    assert player.has_component(EquipmentComponent)
 
 
 def test_player_health_component():
@@ -82,6 +83,26 @@ def test_player_level_component():
     assert level.level == 1
     assert level.xp == 0
     assert level.xp_value == 0
+
+
+def test_player_has_equipment_component():
+    """Player created from template has EquipmentComponent."""
+    loader = EntityLoader()
+    player = loader.create_entity("player", Position(10, 10))
+
+    assert player.has_component(EquipmentComponent)
+
+
+def test_player_equipment_component_starts_empty():
+    """Player's EquipmentComponent starts with all slots empty."""
+    loader = EntityLoader()
+    player = loader.create_entity("player", Position(10, 10))
+
+    equipment = player.get_component(EquipmentComponent)
+    assert len(equipment.get_all_equipped()) == 0
+    assert equipment.is_slot_empty(EquipmentSlot.WEAPON)
+    assert equipment.is_slot_empty(EquipmentSlot.ARMOR)
+    assert equipment.is_slot_empty(EquipmentSlot.HELMET)
 
 
 def test_create_orc_from_template():
@@ -514,5 +535,52 @@ def test_equipment_loader_with_custom_template():
         assert equipment_stats.power_bonus == 99
         assert equipment_stats.defense_bonus == 10
         assert equipment_stats.max_hp_bonus == 50
+    finally:
+        temp_path.unlink()
+
+
+def test_equipment_component_vs_equipment_stats():
+    """EntityLoader distinguishes between EquipmentComponent and EquipmentStats."""
+    custom_data = {
+        "equipper": {
+            "char": "@",
+            "name": "Equipper",
+            "blocks_movement": True,
+            "components": {
+                "equipment": {}  # Empty dict = EquipmentComponent
+            },
+        },
+        "equippable": {
+            "char": "/",
+            "name": "Equippable",
+            "blocks_movement": False,
+            "components": {
+                "equipment": {  # Has "slot" = EquipmentStats
+                    "slot": "weapon",
+                    "power_bonus": 5,
+                    "defense_bonus": 0,
+                    "max_hp_bonus": 0,
+                }
+            },
+        }
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(custom_data, f)
+        temp_path = Path(f.name)
+
+    try:
+        loader = EntityLoader(temp_path)
+
+        equipper = loader.create_entity("equipper", Position(0, 0))
+        equippable = loader.create_entity("equippable", Position(0, 0))
+
+        # Equipper should have EquipmentComponent, not EquipmentStats
+        assert equipper.has_component(EquipmentComponent)
+        assert not equipper.has_component(EquipmentStats)
+
+        # Equippable should have EquipmentStats, not EquipmentComponent
+        assert equippable.has_component(EquipmentStats)
+        assert not equippable.has_component(EquipmentComponent)
     finally:
         temp_path.unlink()

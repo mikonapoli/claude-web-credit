@@ -1,0 +1,66 @@
+{
+  "healing_potion": {
+    "name": "Healing Potion",
+    "required_tags": [
+      ["herbal"],
+      ["magical"]
+    ],
+    "result_type": "healing_potion",
+    "description": "Combines herbs and magic to create a healing elixir"
+  },
+  "mana_potion": {
+    "name": "Mana Potion",
+    "required_tags": [
+      ["magical"],
+      ["crystalline"]
+    ],
+    "result_type": "mana_potion",
+    "description": "Infuses crystals with magic to restore mana"
+  },
+  "antidote": {
+    "name": "Antidote",
+    "required_tags": [
+      ["herbal"],
+      ["purifying"]
+    ],
+    "result_type": "antidote",
+    "description": "Purifying herbs neutralize toxins"
+  },
+  "strength_elixir": {
+    "name": "Strength Elixir",
+    "required_tags": [
+      ["herbal"],
+      ["magical"],
+      ["rare"]
+    ],
+    "result_type": "strength_elixir",
+    "description": "A rare combination that enhances physical power"
+  },
+  "spark_powder": {
+    "name": "Spark Powder",
+    "required_tags": [
+      ["volcanic"],
+      ["sulfuric"]
+    ],
+    "result_type": "spark_powder",
+    "description": "Volatile mixture that ignites on impact"
+  },
+  "ice_shard": {
+    "name": "Ice Shard",
+    "required_tags": [
+      ["crystalline"],
+      ["boreal"]
+    ],
+    "result_type": "ice_shard",
+    "description": "Frozen crystal weapon"
+  },
+  "poison_blade": {
+    "name": "Poison Blade",
+    "required_tags": [
+      ["metallic"],
+      ["sinister"]
+    ],
+    "result_type": "poison_blade",
+    "description": "A blade coated with dark toxins"
+  }
+}

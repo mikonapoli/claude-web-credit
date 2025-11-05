@@ -86,6 +86,26 @@ class XPGainEvent(Event):
         }
 
 
+@dataclass
+class LevelTransitionEvent(Event):
+    """Level transition event."""
+
+    def __init__(self, new_level: int, level_name: str):
+        """Initialize level transition event.
+
+        Args:
+            new_level: The level number being transitioned to
+            level_name: The name of the new level
+        """
+        self.type = "level_transition"
+        self.new_level = new_level
+        self.level_name = level_name
+        self.data = {
+            "new_level": new_level,
+            "level_name": level_name,
+        }
+
+
 class EventBus:
     """Simple event bus for pub/sub pattern."""
 

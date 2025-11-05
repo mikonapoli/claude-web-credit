@@ -8,10 +8,10 @@ import random
 
 from roguelike.entities.monster import Monster
 from roguelike.world.game_map import GameMap
-from roguelike.world.procgen import generate_dungeon
+from roguelike.world.procgen import generate_dungeon, place_stairs
 from roguelike.world.room import Room
 from roguelike.utils.position import Position
-from roguelike.engine.events import EventBus
+from roguelike.engine.events import EventBus, LevelTransitionEvent
 
 
 @dataclass
@@ -217,3 +217,52 @@ class DungeonLevelSystem:
         )
 
         return game_map, rooms
+
+    def generate_level_with_monsters(
+        self, level_number: int
+    ) -> Tuple[GameMap, List[Room], List[Monster], Position]:
+        """Generate a complete level with monsters and stairs.
+
+        Args:
+            level_number: Level number to generate (1-5)
+
+        Returns:
+            Tuple of (game map, list of rooms, list of monsters, stairs position)
+        """
+        config = self.level_configs[level_number]
+        game_map, rooms = self.generate_level(level_number)
+
+        # Place monsters in all rooms except the first (player spawn)
+        monsters: List[Monster] = []
+        for room in rooms[1:]:
+            room_monsters = place_monsters_scaled(room, config)
+            monsters.extend(room_monsters)
+
+        # Place stairs down in the last room (unless it's the final level)
+        stairs_pos = None
+        if level_number < len(self.level_configs):
+            stairs_pos = place_stairs(game_map, rooms[-1], "down")
+
+        return game_map, rooms, monsters, stairs_pos
+
+    def transition_to_level(self, level_number: int) -> None:
+        """Transition to a new level and emit event.
+
+        Args:
+            level_number: Level number to transition to
+        """
+        if level_number not in self.level_configs:
+            raise ValueError(
+                f"Cannot transition to level {level_number}. "
+                f"Valid levels: 1-{len(self.level_configs)}"
+            )
+
+        self.current_level = level_number
+        config = self.level_configs[level_number]
+
+        # Emit level transition event
+        self.event_bus.emit(
+            LevelTransitionEvent(
+                new_level=level_number, level_name=config.name
+            )
+        )

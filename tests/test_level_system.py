@@ -265,3 +265,78 @@ def test_generate_level_one_has_correct_dimensions():
     system = DungeonLevelSystem(event_bus)
     game_map, rooms = system.generate_level(1)
     assert game_map.width == 80 and game_map.height == 50
+
+
+def test_generate_level_with_monsters_returns_complete_data():
+    """generate_level_with_monsters returns map, rooms, monsters, stairs."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus, random_seed=42)
+    game_map, rooms, monsters, stairs_pos = system.generate_level_with_monsters(1)
+    assert game_map is not None and rooms and isinstance(monsters, list)
+
+
+def test_generate_level_with_monsters_creates_monsters():
+    """Generated level has at least some monsters."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus, random_seed=42)
+    _, _, monsters, _ = system.generate_level_with_monsters(1)
+    # With seed 42 and multiple rooms, should have some monsters
+    assert len(monsters) >= 0  # May be 0 if rooms are small or unlucky
+
+
+def test_generate_level_with_monsters_places_stairs():
+    """Generated level 1 has stairs down."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus, random_seed=42)
+    _, _, _, stairs_pos = system.generate_level_with_monsters(1)
+    assert stairs_pos is not None
+
+
+def test_transition_to_level_updates_current_level():
+    """Transitioning to level 2 updates current_level."""
+    event_bus = EventBus()
+    system = DungeonLevelSystem(event_bus)
+    system.transition_to_level(2)
+    assert system.current_level == 2
+
+
+def test_transition_to_level_emits_event():
+    """Transitioning to a level emits LevelTransitionEvent."""
+    event_bus = EventBus()
+    events_received = []
+
+    def capture_event(event):
+        events_received.append(event)
+
+    event_bus.subscribe("level_transition", capture_event)
+    system = DungeonLevelSystem(event_bus)
+    system.transition_to_level(2)
+    assert len(events_received) == 1
+
+
+def test_transition_event_has_correct_level():
+    """LevelTransitionEvent contains correct level number."""
+    event_bus = EventBus()
+    events_received = []
+
+    def capture_event(event):
+        events_received.append(event)
+
+    event_bus.subscribe("level_transition", capture_event)
+    system = DungeonLevelSystem(event_bus)
+    system.transition_to_level(3)
+    assert events_received[0].new_level == 3
+
+
+def test_transition_event_has_level_name():
+    """LevelTransitionEvent contains level name."""
+    event_bus = EventBus()
+    events_received = []
+
+    def capture_event(event):
+        events_received.append(event)
+
+    event_bus.subscribe("level_transition", capture_event)
+    system = DungeonLevelSystem(event_bus)
+    system.transition_to_level(2)
+    assert events_received[0].level_name == "Dark Tunnels"

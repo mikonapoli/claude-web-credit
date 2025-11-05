@@ -1,7 +1,7 @@
 """Procedural generation for dungeons."""
 
 import random
-from typing import List
+from typing import List, Optional
 
 from roguelike.entities.monster import Monster, create_orc, create_troll
 from roguelike.utils.position import Position
@@ -83,6 +83,29 @@ def place_monsters(room: Room, max_monsters: int) -> List[Monster]:
             monsters.append(create_troll(pos))
 
     return monsters
+
+
+def place_stairs(
+    game_map: GameMap, room: Room, stairs_type: str = "down"
+) -> Position:
+    """Place stairs in the center of a room.
+
+    Args:
+        game_map: Map to modify
+        room: Room to place stairs in
+        stairs_type: Type of stairs ("down" or "up")
+
+    Returns:
+        Position where stairs were placed
+    """
+    stairs_pos = room.center
+
+    if stairs_type == "down":
+        game_map.set_tile(stairs_pos, Tiles.STAIRS_DOWN)
+    else:
+        game_map.set_tile(stairs_pos, Tiles.STAIRS_UP)
+
+    return stairs_pos
 
 
 def generate_dungeon(

@@ -86,6 +86,69 @@ class XPGainEvent(Event):
         }
 
 
+@dataclass
+class LevelTransitionEvent(Event):
+    """Level transition event."""
+
+    def __init__(self, new_level: int, level_name: str):
+        """Initialize level transition event.
+
+        Args:
+            new_level: The level number being transitioned to
+            level_name: The name of the new level
+        """
+        self.type = "level_transition"
+        self.new_level = new_level
+        self.level_name = level_name
+        self.data = {
+            "new_level": new_level,
+            "level_name": level_name,
+class ItemPickupEvent(Event):
+    """Item pickup event."""
+
+    def __init__(self, entity_name: str, item_name: str):
+        """Initialize item pickup event."""
+        self.type = "item_pickup"
+        self.entity_name = entity_name
+        self.item_name = item_name
+        self.data = {
+            "entity_name": entity_name,
+            "item_name": item_name,
+        }
+
+
+@dataclass
+class ItemUseEvent(Event):
+    """Item use event."""
+
+    def __init__(self, entity_name: str, item_name: str, item_type: str):
+        """Initialize item use event."""
+        self.type = "item_use"
+        self.entity_name = entity_name
+        self.item_name = item_name
+        self.item_type = item_type
+        self.data = {
+            "entity_name": entity_name,
+            "item_name": item_name,
+            "item_type": item_type,
+        }
+
+
+@dataclass
+class HealingEvent(Event):
+    """Healing event."""
+
+    def __init__(self, entity_name: str, amount_healed: int):
+        """Initialize healing event."""
+        self.type = "healing"
+        self.entity_name = entity_name
+        self.amount_healed = amount_healed
+        self.data = {
+            "entity_name": entity_name,
+            "amount_healed": amount_healed,
+        }
+
+
 class EventBus:
     """Simple event bus for pub/sub pattern."""
 

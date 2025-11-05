@@ -111,6 +111,10 @@ class SpellCastEvent(Event):
             "target_name": target_name,
             "mana_cost": mana_cost,
             "effect_message": effect_message,
+        }
+
+
+@dataclass
 class LevelTransitionEvent(Event):
     """Level transition event."""
 
@@ -127,6 +131,10 @@ class LevelTransitionEvent(Event):
         self.data = {
             "new_level": new_level,
             "level_name": level_name,
+        }
+
+
+@dataclass
 class ItemPickupEvent(Event):
     """Item pickup event."""
 
@@ -174,6 +182,10 @@ class ManaChangedEvent(Event):
             "old_mp": old_mp,
             "new_mp": new_mp,
             "max_mp": max_mp,
+        }
+
+
+@dataclass
 class HealingEvent(Event):
     """Healing event."""
 

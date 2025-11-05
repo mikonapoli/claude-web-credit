@@ -144,8 +144,8 @@ def test_equip_helmet_maintains_hp_percentage(equipment_system, player_entity, s
     initial_hp = health.hp
 
     equipment_system.equip_item(player_entity, steel_helmet)
-    # Max HP should be 35 now, HP should be ~17 (50%)
-    expected_hp = int(35 * 0.5)
+    # Max HP should be 35 now, HP should be 18 (50%, rounded)
+    expected_hp = round(35 * 0.5)
     assert health.hp == expected_hp
 
 
@@ -357,10 +357,10 @@ def test_unequip_maintains_hp_percentage_after_damage(equipment_system, player_e
     assert health.max_hp == 35
 
     # Unequip helmet: should maintain ~69% HP
-    # 30 * (24/35) = 30 * 0.6857 = 20.57 -> 20 HP (not 24 HP!)
+    # 30 * (24/35) = 30 * 0.6857 = 20.57 -> rounds to 21 HP (not 24 HP!)
     equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
     assert health.max_hp == 30
-    assert health.hp == int(30 * (24 / 35))  # Maintains percentage: 20 HP
+    assert health.hp == round(30 * (24 / 35))  # Maintains percentage: 21 HP
 
 
 def test_equipment_toggling_does_not_heal(equipment_system, player_entity, steel_helmet):
@@ -370,27 +370,27 @@ def test_equipment_toggling_does_not_heal(equipment_system, player_entity, steel
     # Start at 50% HP
     health.hp = 15  # 15/30 = 50%
 
-    # Equip helmet: 30 -> 35 max HP, HP becomes 17 (50% of 35)
+    # Equip helmet: 30 -> 35 max HP, HP becomes 18 (50% of 35, rounded)
     equipment_system.equip_item(player_entity, steel_helmet)
     assert health.max_hp == 35
-    assert health.hp == int(35 * 0.5)  # 17 HP
+    assert health.hp == round(35 * 0.5)  # 18 HP
 
-    # Unequip helmet: 35 -> 30 max HP, HP becomes 15 (50% of 30)
+    # Unequip helmet: 35 -> 30 max HP, HP becomes 15 (rounds to 15)
     equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
     assert health.max_hp == 30
-    assert health.hp == int(30 * (17 / 35))  # 14 HP (maintains percentage)
+    assert health.hp == round(30 * (18 / 35))  # 15 HP (maintains percentage)
 
-    # Re-equip helmet: 30 -> 35 max HP, HP becomes ~16 (14/30 = 46.67% -> 16 HP)
+    # Re-equip helmet: 30 -> 35 max HP, HP becomes 18 (15/30 = 50% -> 18 HP)
     equipment_system.equip_item(player_entity, steel_helmet)
     assert health.max_hp == 35
     hp_after_reequip = health.hp
-    expected_hp = int(35 * (14 / 30))  # 16 HP
+    expected_hp = round(35 * (15 / 30))  # 18 HP
     assert hp_after_reequip == expected_hp
 
     # Unequip again: HP should decrease proportionally, not stay at higher value
     equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
     assert health.max_hp == 30
-    assert health.hp == int(30 * (hp_after_reequip / 35))  # Maintains percentage
+    assert health.hp == round(30 * (hp_after_reequip / 35))  # Maintains percentage
 
 
 def test_unequip_very_low_hp_maintains_percentage(equipment_system, player_entity, steel_helmet):
@@ -401,12 +401,104 @@ def test_unequip_very_low_hp_maintains_percentage(equipment_system, player_entit
     equipment_system.equip_item(player_entity, steel_helmet)
     assert health.max_hp == 35
 
-    # Take damage to 10% HP: 3.5 -> 3 HP
+    # Take damage to ~8.6% HP: 3/35
     health.hp = 3
     hp_percentage = 3 / 35  # ~8.57%
 
-    # Unequip: should maintain percentage (but at least 1 HP due to int rounding)
+    # Unequip: should maintain percentage with rounding
+    # 30 * 0.0857 = 2.57 -> rounds to 3 HP
     equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
     assert health.max_hp == 30
-    expected_hp = int(30 * hp_percentage)  # 2 HP
+    expected_hp = round(30 * hp_percentage)  # 3 HP (rounded)
     assert health.hp == expected_hp
+
+
+def test_unequip_extremely_low_hp_does_not_kill_player(equipment_system, player_entity):
+    """Unequipping large HP bonus at 1 HP does not kill player (bug fix test)."""
+    health = player_entity.get_component(HealthComponent)
+
+    # Create item with large HP bonus
+    large_hp_item = ComponentEntity(Position(0, 0), "^", "Legendary Helmet", False)
+    large_hp_item.add_component(
+        EquipmentStats(slot=EquipmentSlot.HELMET, max_hp_bonus=100)
+    )
+
+    # Equip: 30 -> 130 max HP, HP becomes 130
+    equipment_system.equip_item(player_entity, large_hp_item)
+    assert health.max_hp == 130
+    assert health.hp == 130
+
+    # Take massive damage to 1 HP (0.77% of max)
+    health.hp = 1
+    hp_percentage = 1 / 130  # ~0.77%
+
+    # Unequip: 130 -> 30 max HP
+    # Without fix: int(30 * 0.0077) = int(0.23) = 0 HP (DEAD!)
+    # With fix: round(30 * 0.0077) = round(0.23) = 0, but clamped to 1 HP
+    equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
+    assert health.max_hp == 30
+    assert health.hp == 1  # Player survives!
+    assert health.is_alive
+
+
+def test_equip_extremely_low_hp_does_not_kill_player(equipment_system, player_entity):
+    """Equipping large HP bonus at 1 HP does not kill player."""
+    health = player_entity.get_component(HealthComponent)
+
+    # Damage to 1 HP
+    health.hp = 1
+    hp_percentage = 1 / 30  # ~3.33%
+
+    # Create item with large HP bonus
+    large_hp_item = ComponentEntity(Position(0, 0), "^", "Legendary Helmet", False)
+    large_hp_item.add_component(
+        EquipmentStats(slot=EquipmentSlot.HELMET, max_hp_bonus=100)
+    )
+
+    # Equip: 30 -> 130 max HP
+    # round(130 * 0.0333) = round(4.33) = 4 HP
+    equipment_system.equip_item(player_entity, large_hp_item)
+    assert health.max_hp == 130
+    expected_hp = round(130 * hp_percentage)  # 4 HP
+    assert health.hp == expected_hp
+    assert health.is_alive
+
+
+def test_rounding_favors_player_survival(equipment_system, player_entity, steel_helmet):
+    """Rounding uses round() not int() truncation."""
+    health = player_entity.get_component(HealthComponent)
+
+    # Equip helmet: 30 -> 35 max HP
+    equipment_system.equip_item(player_entity, steel_helmet)
+    assert health.max_hp == 35
+
+    # Set HP to value where rounding matters: 2/35 = 5.71%
+    health.hp = 2
+    hp_percentage = 2 / 35
+
+    # Unequip: 35 -> 30 max HP
+    # With int(): int(30 * 0.0571) = int(1.71) = 1 HP
+    # With round(): round(30 * 0.0571) = round(1.71) = 2 HP
+    equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
+    assert health.max_hp == 30
+    expected_hp = round(30 * hp_percentage)  # 2 HP
+    assert health.hp == expected_hp
+
+
+def test_dead_entity_stays_dead(equipment_system, player_entity, steel_helmet):
+    """Entity that dies stays at 0 HP when equipment changes."""
+    health = player_entity.get_component(HealthComponent)
+
+    # Equip helmet
+    equipment_system.equip_item(player_entity, steel_helmet)
+    assert health.max_hp == 35
+
+    # Entity dies (0 HP)
+    health.hp = 0
+    assert not health.is_alive
+
+    # Unequip: should stay at 0 HP
+    equipment_system.unequip_item(player_entity, EquipmentSlot.HELMET)
+    assert health.max_hp == 30
+    assert health.hp == 0
+    assert not health.is_alive

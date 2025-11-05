@@ -161,7 +161,11 @@ class EquipmentSystem:
                 health_comp.max_hp += equipment_stats.max_hp_bonus
 
                 # Restore same HP percentage (so player doesn't lose HP when equipping)
-                health_comp.hp = int(health_comp.max_hp * hp_percent)
+                new_hp = round(health_comp.max_hp * hp_percent)
+                # If entity was alive (hp_percent > 0), ensure they have at least 1 HP
+                if new_hp == 0 and hp_percent > 0:
+                    new_hp = 1
+                health_comp.hp = new_hp
 
     def _unapply_bonuses(self, entity: ComponentEntity, item: ComponentEntity) -> None:
         """Remove stat bonuses from an item from an entity.
@@ -197,7 +201,11 @@ class EquipmentSystem:
                 health_comp.max_hp -= equipment_stats.max_hp_bonus
 
                 # Restore same HP percentage (mirrors the equip path)
-                health_comp.hp = int(health_comp.max_hp * hp_percent)
+                new_hp = round(health_comp.max_hp * hp_percent)
+                # If entity was alive (hp_percent > 0), ensure they have at least 1 HP
+                if new_hp == 0 and hp_percent > 0:
+                    new_hp = 1
+                health_comp.hp = new_hp
 
     def get_effective_power(self, entity: ComponentEntity) -> int:
         """Get entity's effective power including equipment bonuses.

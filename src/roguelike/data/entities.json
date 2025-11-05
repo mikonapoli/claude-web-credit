@@ -1,0 +1,59 @@
+{
+  "player": {
+    "char": "@",
+    "name": "Player",
+    "blocks_movement": true,
+    "components": {
+      "health": {
+        "max_hp": 30
+      },
+      "combat": {
+        "power": 5,
+        "defense": 2
+      },
+      "level": {
+        "level": 1,
+        "xp": 0,
+        "xp_value": 0
+      }
+    }
+  },
+  "orc": {
+    "char": "o",
+    "name": "Orc",
+    "blocks_movement": true,
+    "components": {
+      "health": {
+        "max_hp": 10
+      },
+      "combat": {
+        "power": 3,
+        "defense": 0
+      },
+      "level": {
+        "level": 1,
+        "xp": 0,
+        "xp_value": 35
+      }
+    }
+  },
+  "troll": {
+    "char": "T",
+    "name": "Troll",
+    "blocks_movement": true,
+    "components": {
+      "health": {
+        "max_hp": 16
+      },
+      "combat": {
+        "power": 4,
+        "defense": 1
+      },
+      "level": {
+        "level": 2,
+        "xp": 0,
+        "xp_value": 100
+      }
+    }
+  }
+}

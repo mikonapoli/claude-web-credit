@@ -15,6 +15,22 @@ A classic ASCII roguelike game built with Python and python-tcod, featuring proc
 
 ### Game Systems
 
+#### Equipment System
+- **24 Equipment Items**: Weapons, armor, helmets, boots, gloves, rings, and amulets
+- **7 Equipment Slots**: Weapon, armor, helmet, boots, gloves, ring, amulet
+- **Stat Bonuses**: Power, defense, and max HP bonuses from equipment
+- **Equipment Management**: Equip/unequip items from inventory
+- **Automatic Slot Management**: Equipping new item automatically returns old item to inventory
+- **Persistent Bonuses**: Equipment stats directly modify combat effectiveness
+- **Diverse Options**:
+  - **Weapons**: Wooden Club (+2 power), Iron Sword (+3), Steel Sword (+5), Enchanted Blade (+7/+1), Battle Axe (+8/-1)
+  - **Armor**: Leather (+2 def), Chainmail (+4), Plate (+6 def, +5 HP), Dragon Scale (+1 pow, +8 def, +10 HP)
+  - **Helmets**: Leather (+1 def, +2 HP), Steel (+2 def, +5 HP), Crown of Kings (+2 pow, +3 def, +10 HP)
+  - **Boots**: Leather (+1 def), Steel (+1 pow, +2 def), Boots of Speed (+1 def, +5 HP)
+  - **Gloves**: Leather (+1 pow), Gauntlets (+2 pow, +1 def)
+  - **Rings**: Power (+3 pow), Protection (+3 def), Vitality (+15 HP)
+  - **Amulets**: Strength (+4 pow), Defense (+4 def), Life (+20 HP)
+
 #### Combat & Progression
 - **Multiple Monster Types**:
   - Orcs (o): Weak but common
@@ -38,6 +54,7 @@ A classic ASCII roguelike game built with Python and python-tcod, featuring proc
 - **36 Craftable Items**: 17 crafting materials + 19 craftable results
 - **22 Crafting Recipes**: Create powerful items from materials found in dungeons
 - **Tag-Based System**: Items matched by abstract qualities (herbal, magical, rare, etc.)
+- **Recipe Discovery**: Track which recipes you've successfully crafted
 - **Spell Crafting**: Create magical scrolls from parchment, runic essence, and elements
 - **Categories**:
   - Basic potions (healing, mana, antidote)
@@ -96,6 +113,8 @@ Or with the virtual environment activated:
 #### Actions
 - **g**: Pick up item from floor
 - **i**: Open inventory to use items
+- **e**: Equip item from inventory
+- **u**: Unequip item to inventory
 - **d**: Drop item from inventory
 - **>**: Descend stairs to next level
 - **ESC**: Quit game
@@ -130,7 +149,13 @@ Or with the virtual environment activated:
 - `?`: Scroll
 - `%`: Food/Herb
 - `*`: Crystal/Powder
+- `/`: Weapon (sword, axe)
+- `[`: Armor (leather, chainmail, plate)
+- `^`: Helmet (leather, steel, crown)
+- `]`: Boots
+- `)`: Gloves
 - `=`: Ring
+- `"`: Amulet
 - `$`: Coin
 - Dark areas: Unexplored
 - Gray areas: Explored but not currently visible
@@ -143,7 +168,7 @@ Or with the virtual environment activated:
 uv run pytest tests/ -v
 ```
 
-**464 passing tests** covering all major systems!
+**660 passing tests** covering all major systems!
 
 ### Running Specific Test Suites
 ```bash
@@ -178,7 +203,7 @@ claude-web-credit/
 ```
 
 ### Code Quality
-- **464 passing tests** covering all major systems
+- **565 passing tests** covering all major systems
 - **Clean architecture** with component-based design
 - **Event-driven** systems for decoupling
 - **Data-driven** content (items, recipes, levels in JSON)
@@ -201,12 +226,13 @@ claude-web-credit/
 #### Component-Based Design
 - **ComponentEntity**: Flexible entity system using composition
 - **CraftingComponent**: Tag-based crafting metadata
+- **RecipeDiscoveryComponent**: Tracks discovered recipes
 - **InventoryComponent**: Item storage and management
 - **HealthComponent, CombatComponent, LevelComponent**: Core RPG stats
 
 #### Event-Driven Architecture
 - **EventBus**: Pub/sub pattern for system decoupling
-- **Events**: Combat, Death, LevelUp, XP, Crafting, ItemPickup, ItemUse, Healing, etc.
+- **Events**: Combat, Death, LevelUp, XP, Crafting, RecipeDiscovery, ItemPickup, ItemUse, Healing, etc.
 - **Message Log**: Subscribes to events for player feedback
 
 #### Data-Driven Content
@@ -250,7 +276,14 @@ See [CRAFTING_SYSTEM.md](CRAFTING_SYSTEM.md) for complete documentation, all rec
 
 ## Recent Updates
 
-### Crafting System (Latest)
+### Recipe Discovery System (Latest)
+- Track which recipes player has successfully crafted
+- RecipeDiscoveryComponent integrated with player entity
+- RecipeDiscoveredEvent for UI feedback
+- Automatic discovery on successful crafting
+- 24 new tests for recipe discovery functionality
+
+### Crafting System
 - Complete tag-based crafting with 36 items and 22 recipes
 - Integration with existing item and spell systems
 - Ingredient consumption and position handling
@@ -272,12 +305,11 @@ See [CRAFTING_SYSTEM.md](CRAFTING_SYSTEM.md) for complete documentation, all rec
 ## Future Enhancements
 
 Potential additions:
-- **Equipment System**: Weapons and armor with stats
 - **Status Effects**: Poison, confusion, invisibility implementation
 - **More Monster Types**: Unique abilities and behaviors
 - **Traps**: Environmental hazards
 - **Procedural Item Generation**: Random magical properties
-- **Recipe Discovery**: Track which recipes player has found
+- **Recipe Hints**: Display ingredients for discovered recipes
 - **Crafting Quality**: Varying results based on ingredients
 - **LLM-based NPCs**: Procedurally generated characters with AI dialogue
 

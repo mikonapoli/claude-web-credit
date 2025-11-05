@@ -224,6 +224,24 @@ class CraftingSystem:
         entity_loader = EntityLoader()
         result = entity_loader.create_entity(recipe.result_type, spawn_position)
 
+        # Handle recipe discovery
+        if crafter is not None:
+            from roguelike.components.recipe_discovery import RecipeDiscoveryComponent
+            from roguelike.engine.events import RecipeDiscoveredEvent
+
+            discovery_comp = crafter.get_component(RecipeDiscoveryComponent)
+            if discovery_comp is not None:
+                # Try to discover the recipe
+                newly_discovered = discovery_comp.discover_recipe(recipe.id)
+                if newly_discovered and self.event_bus:
+                    # Emit recipe discovered event
+                    discovery_event = RecipeDiscoveredEvent(
+                        recipe_id=recipe.id,
+                        recipe_name=recipe.name,
+                        discoverer_name=crafter_name,
+                    )
+                    self.event_bus.emit(discovery_event)
+
         # Emit success event
         if self.event_bus:
             event = CraftingAttemptEvent(

@@ -6,7 +6,9 @@ import tcod
 
 from roguelike.entities.entity import Entity
 from roguelike.ui.message_log import MessageLog
+from roguelike.ui.health_bar_renderer import HealthBarRenderer
 from roguelike.utils.position import Position
+from roguelike.utils.protocols import HealthBarRenderable
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
 
@@ -41,6 +43,9 @@ class Renderer:
             title=title,
             vsync=True,
         )
+
+        # Create health bar renderer
+        self.health_bar_renderer = HealthBarRenderer(bar_width=10)
 
     def clear(self) -> None:
         """Clear the console."""
@@ -157,6 +162,58 @@ class Renderer:
                 message = message[:width-3] + "..."
 
             self.console.print(x, y + i, message, fg=(255, 255, 255))
+
+    def render_health_bar(
+        self,
+        entity: HealthBarRenderable,
+        fov_map: Optional[FOVMap] = None,
+        y_offset: int = -1,
+    ) -> None:
+        """Render a health bar above an entity.
+
+        Args:
+            entity: Entity with health to render
+            fov_map: Optional FOV map for visibility
+            y_offset: Vertical offset from entity position (negative = above)
+        """
+        # Only render if entity is visible and alive
+        if fov_map and not fov_map.is_visible(entity.position):
+            return
+        if not entity.is_alive:
+            return
+
+        # Calculate health bar position (centered above entity)
+        bar_y = entity.position.y + y_offset
+        bar_x = entity.position.x - self.health_bar_renderer.bar_width // 2
+
+        # Clamp to screen bounds
+        bar_x = max(0, min(bar_x, self.width - self.health_bar_renderer.bar_width))
+        bar_y = max(0, min(bar_y, self.height - 1))
+
+        # Render the health bar
+        self.health_bar_renderer.render(
+            self.console,
+            x=bar_x,
+            y=bar_y,
+            hp=entity.hp,
+            max_hp=entity.max_hp,
+        )
+
+    def render_health_bars(
+        self,
+        entities: list[HealthBarRenderable],
+        fov_map: Optional[FOVMap] = None,
+        y_offset: int = -1,
+    ) -> None:
+        """Render health bars for multiple entities.
+
+        Args:
+            entities: List of entities to render health bars for
+            fov_map: Optional FOV map for visibility
+            y_offset: Vertical offset from entity position (negative = above)
+        """
+        for entity in entities:
+            self.render_health_bar(entity, fov_map, y_offset)
 
     def present(self) -> None:
         """Present the console to the screen."""

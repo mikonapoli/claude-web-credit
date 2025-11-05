@@ -150,3 +150,61 @@ class CraftingSystem:
             Recipe or None if not found
         """
         return self.recipe_loader.get_recipe(recipe_id)
+
+    def craft(
+        self,
+        ingredients: List["ComponentEntity"],
+        crafter: Optional["ComponentEntity"] = None,
+    ) -> Optional["ComponentEntity"]:
+        """Attempt to craft items together.
+
+        Args:
+            ingredients: List of ingredient entities to combine
+            crafter: Entity performing the crafting (for events)
+
+        Returns:
+            Resulting item entity or None if crafting failed
+        """
+        from roguelike.components.crafting import CraftingComponent
+        from roguelike.data.entity_loader import EntityLoader
+        from roguelike.engine.events import CraftingAttemptEvent
+
+        # Find matching recipe
+        recipe = self.find_matching_recipe(ingredients)
+
+        crafter_name = crafter.name if crafter else "Unknown"
+        ingredient_names = [ing.name for ing in ingredients]
+
+        if recipe is None:
+            # Crafting failed - no matching recipe
+            if self.event_bus:
+                event = CraftingAttemptEvent(
+                    crafter_name=crafter_name,
+                    ingredient_names=ingredient_names,
+                    success=False,
+                    result_name=None,
+                )
+                self.event_bus.emit(event)
+            return None
+
+        # Create result item from recipe
+        # We need to get the position from one of the ingredients
+        position = ingredients[0].position if ingredients else None
+        if position is None:
+            return None
+
+        # Load the result entity
+        entity_loader = EntityLoader()
+        result = entity_loader.create_entity(recipe.result_type, position)
+
+        # Emit success event
+        if self.event_bus:
+            event = CraftingAttemptEvent(
+                crafter_name=crafter_name,
+                ingredient_names=ingredient_names,
+                success=True,
+                result_name=result.name,
+            )
+            self.event_bus.emit(event)
+
+        return result

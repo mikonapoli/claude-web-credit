@@ -163,5 +163,89 @@
         "craftable": false
       }
     }
+  },
+  "healing_potion": {
+    "char": "!",
+    "name": "Healing Potion",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "healing"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "mana_potion": {
+    "char": "!",
+    "name": "Mana Potion",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "mana"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "antidote": {
+    "char": "!",
+    "name": "Antidote",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["potion", "antidote"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "strength_elixir": {
+    "char": "!",
+    "name": "Strength Elixir",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["elixir", "strength"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "spark_powder": {
+    "char": "*",
+    "name": "Spark Powder",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["powder", "fire"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "ice_shard": {
+    "char": "/",
+    "name": "Ice Shard",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["shard", "ice"],
+        "consumable": true,
+        "craftable": true
+      }
+    }
+  },
+  "poison_blade": {
+    "char": "/",
+    "name": "Poison Blade",
+    "blocks_movement": false,
+    "components": {
+      "crafting": {
+        "tags": ["weapon", "poison"],
+        "consumable": false,
+        "craftable": true
+      }
+    }
   }
 }

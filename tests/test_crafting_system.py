@@ -169,3 +169,140 @@ def test_crafting_system_matches_ingredients_with_extra_tags(crafting_system):
     recipe = crafting_system.find_matching_recipe([herb, crystal])
     assert recipe is not None
     assert recipe.id == "test_potion"
+
+
+def test_crafting_system_craft_creates_result():
+    """CraftingSystem craft() creates result item."""
+    # Use actual recipe loader for this test
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create ingredients
+    moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
+    crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
+
+    # Craft
+    result = crafting_system.craft([moonleaf, crystal])
+
+    assert result is not None
+    assert result.name == "Healing Potion"
+
+
+def test_crafting_system_craft_returns_none_for_no_match():
+    """CraftingSystem craft() returns None when no recipe matches."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.systems.crafting import CraftingSystem
+
+    recipe_loader = RecipeLoader()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader)
+    entity_loader = EntityLoader()
+
+    # Create ingredients that don't match any recipe
+    moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
+    iron = entity_loader.create_entity("iron_ore", Position(5, 5))
+
+    # Craft
+    result = crafting_system.craft([moonleaf, iron])
+
+    assert result is None
+
+
+def test_crafting_system_craft_emits_success_event():
+    """CraftingSystem craft() emits success event."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.engine.events import EventBus
+    from roguelike.systems.crafting import CraftingSystem
+
+    recipe_loader = RecipeLoader()
+    event_bus = EventBus()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader, event_bus=event_bus)
+    entity_loader = EntityLoader()
+
+    received_events = []
+
+    def handler(event):
+        received_events.append(event)
+
+    event_bus.subscribe("crafting_attempt", handler)
+
+    # Create ingredients
+    moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
+    crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
+
+    # Craft
+    result = crafting_system.craft([moonleaf, crystal])
+
+    assert len(received_events) == 1
+    assert received_events[0].success is True
+    assert received_events[0].result_name == "Healing Potion"
+
+
+def test_crafting_system_craft_emits_failure_event():
+    """CraftingSystem craft() emits failure event."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.engine.events import EventBus
+    from roguelike.systems.crafting import CraftingSystem
+
+    recipe_loader = RecipeLoader()
+    event_bus = EventBus()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader, event_bus=event_bus)
+    entity_loader = EntityLoader()
+
+    received_events = []
+
+    def handler(event):
+        received_events.append(event)
+
+    event_bus.subscribe("crafting_attempt", handler)
+
+    # Create ingredients that don't match
+    moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
+    iron = entity_loader.create_entity("iron_ore", Position(5, 5))
+
+    # Craft
+    result = crafting_system.craft([moonleaf, iron])
+
+    assert len(received_events) == 1
+    assert received_events[0].success is False
+    assert received_events[0].result_name is None
+
+
+def test_crafting_system_craft_with_crafter():
+    """CraftingSystem craft() includes crafter name in event."""
+    from roguelike.data.entity_loader import EntityLoader
+    from roguelike.data.recipe_loader import RecipeLoader
+    from roguelike.engine.events import EventBus
+    from roguelike.systems.crafting import CraftingSystem
+
+    recipe_loader = RecipeLoader()
+    event_bus = EventBus()
+    crafting_system = CraftingSystem(recipe_loader=recipe_loader, event_bus=event_bus)
+    entity_loader = EntityLoader()
+
+    received_events = []
+
+    def handler(event):
+        received_events.append(event)
+
+    event_bus.subscribe("crafting_attempt", handler)
+
+    # Create player as crafter
+    player = entity_loader.create_entity("player", Position(0, 0))
+
+    # Create ingredients
+    moonleaf = entity_loader.create_entity("moonleaf", Position(5, 5))
+    crystal = entity_loader.create_entity("mana_crystal", Position(5, 5))
+
+    # Craft
+    result = crafting_system.craft([moonleaf, crystal], crafter=player)
+
+    assert len(received_events) == 1
+    assert received_events[0].crafter_name == "Player"

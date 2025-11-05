@@ -8,6 +8,7 @@ import pytest
 
 from roguelike.components.combat import CombatComponent
 from roguelike.components.crafting import CraftingComponent
+from roguelike.components.equipment import EquipmentSlot, EquipmentStats
 from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
 from roguelike.components.recipe_discovery import RecipeDiscoveryComponent
@@ -338,3 +339,180 @@ def test_player_recipe_discovery_starts_empty():
 
     discovery = player.get_component(RecipeDiscoveryComponent)
     assert discovery.get_discovery_count() == 0
+
+
+def test_create_equipment_item_from_template():
+    """Can create equipment item from template."""
+    loader = EntityLoader()
+    sword = loader.create_entity("iron_sword", Position(5, 5))
+
+    assert sword.name == "Iron Sword"
+    assert sword.char == "/"
+    assert not sword.blocks_movement
+
+
+def test_equipment_item_has_equipment_stats():
+    """Equipment item has EquipmentStats component."""
+    loader = EntityLoader()
+    sword = loader.create_entity("iron_sword", Position(5, 5))
+
+    assert sword.has_component(EquipmentStats)
+
+
+def test_equipment_stats_has_correct_slot():
+    """EquipmentStats has correct slot from template."""
+    loader = EntityLoader()
+    sword = loader.create_entity("iron_sword", Position(5, 5))
+
+    equipment_stats = sword.get_component(EquipmentStats)
+    assert equipment_stats.slot == EquipmentSlot.WEAPON
+
+
+def test_equipment_stats_has_correct_bonuses():
+    """EquipmentStats has correct bonuses from template."""
+    loader = EntityLoader()
+    sword = loader.create_entity("iron_sword", Position(5, 5))
+
+    equipment_stats = sword.get_component(EquipmentStats)
+    assert equipment_stats.power_bonus == 3
+    assert equipment_stats.defense_bonus == 0
+    assert equipment_stats.max_hp_bonus == 0
+
+
+def test_create_armor_from_template():
+    """Can create armor from template."""
+    loader = EntityLoader()
+    armor = loader.create_entity("leather_armor", Position(5, 5))
+
+    assert armor.name == "Leather Armor"
+    assert armor.char == "["
+
+
+def test_armor_has_correct_stats():
+    """Armor has correct stats from template."""
+    loader = EntityLoader()
+    armor = loader.create_entity("leather_armor", Position(5, 5))
+
+    equipment_stats = armor.get_component(EquipmentStats)
+    assert equipment_stats.slot == EquipmentSlot.ARMOR
+    assert equipment_stats.power_bonus == 0
+    assert equipment_stats.defense_bonus == 2
+    assert equipment_stats.max_hp_bonus == 0
+
+
+def test_create_helmet_from_template():
+    """Can create helmet from template."""
+    loader = EntityLoader()
+    helmet = loader.create_entity("steel_helmet", Position(5, 5))
+
+    assert helmet.name == "Steel Helmet"
+    assert helmet.char == "^"
+
+
+def test_helmet_has_multiple_bonuses():
+    """Helmet can have multiple stat bonuses."""
+    loader = EntityLoader()
+    helmet = loader.create_entity("steel_helmet", Position(5, 5))
+
+    equipment_stats = helmet.get_component(EquipmentStats)
+    assert equipment_stats.slot == EquipmentSlot.HELMET
+    assert equipment_stats.power_bonus == 0
+    assert equipment_stats.defense_bonus == 2
+    assert equipment_stats.max_hp_bonus == 5
+
+
+def test_create_ring_from_template():
+    """Can create ring from template."""
+    loader = EntityLoader()
+    ring = loader.create_entity("ring_of_power", Position(5, 5))
+
+    assert ring.name == "Ring of Power"
+    assert ring.char == "="
+
+
+def test_ring_stats():
+    """Ring has correct stats from template."""
+    loader = EntityLoader()
+    ring = loader.create_entity("ring_of_power", Position(5, 5))
+
+    equipment_stats = ring.get_component(EquipmentStats)
+    assert equipment_stats.slot == EquipmentSlot.RING
+    assert equipment_stats.power_bonus == 3
+    assert equipment_stats.defense_bonus == 0
+    assert equipment_stats.max_hp_bonus == 0
+
+
+def test_equipment_with_negative_bonus():
+    """Equipment can have negative bonuses."""
+    loader = EntityLoader()
+    axe = loader.create_entity("battle_axe", Position(5, 5))
+
+    equipment_stats = axe.get_component(EquipmentStats)
+    assert equipment_stats.power_bonus == 8
+    assert equipment_stats.defense_bonus == -1  # Negative defense!
+
+
+def test_multiple_equipment_items_are_independent():
+    """Multiple equipment items from same template are independent."""
+    loader = EntityLoader()
+    sword1 = loader.create_entity("iron_sword", Position(1, 1))
+    sword2 = loader.create_entity("iron_sword", Position(2, 2))
+
+    assert sword1 is not sword2
+    assert sword1.position != sword2.position
+
+
+def test_entity_loader_handles_all_equipment_slots():
+    """EntityLoader can create items for all equipment slots."""
+    loader = EntityLoader()
+
+    # Test each slot type
+    weapon = loader.create_entity("iron_sword", Position(0, 0))
+    armor = loader.create_entity("leather_armor", Position(0, 0))
+    helmet = loader.create_entity("leather_helmet", Position(0, 0))
+    boots = loader.create_entity("leather_boots", Position(0, 0))
+    gloves = loader.create_entity("leather_gloves", Position(0, 0))
+    ring = loader.create_entity("ring_of_power", Position(0, 0))
+    amulet = loader.create_entity("amulet_of_strength", Position(0, 0))
+
+    assert weapon.get_component(EquipmentStats).slot == EquipmentSlot.WEAPON
+    assert armor.get_component(EquipmentStats).slot == EquipmentSlot.ARMOR
+    assert helmet.get_component(EquipmentStats).slot == EquipmentSlot.HELMET
+    assert boots.get_component(EquipmentStats).slot == EquipmentSlot.BOOTS
+    assert gloves.get_component(EquipmentStats).slot == EquipmentSlot.GLOVES
+    assert ring.get_component(EquipmentStats).slot == EquipmentSlot.RING
+    assert amulet.get_component(EquipmentStats).slot == EquipmentSlot.AMULET
+
+
+def test_equipment_loader_with_custom_template():
+    """EntityLoader can load custom equipment from JSON."""
+    custom_data = {
+        "custom_weapon": {
+            "char": "!",
+            "name": "Custom Weapon",
+            "blocks_movement": False,
+            "components": {
+                "equipment": {
+                    "slot": "weapon",
+                    "power_bonus": 99,
+                    "defense_bonus": 10,
+                    "max_hp_bonus": 50,
+                }
+            },
+        }
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(custom_data, f)
+        temp_path = Path(f.name)
+
+    try:
+        loader = EntityLoader(temp_path)
+        weapon = loader.create_entity("custom_weapon", Position(0, 0))
+
+        equipment_stats = weapon.get_component(EquipmentStats)
+        assert equipment_stats.power_bonus == 99
+        assert equipment_stats.defense_bonus == 10
+        assert equipment_stats.max_hp_bonus == 50
+    finally:
+        temp_path.unlink()

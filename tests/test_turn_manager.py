@@ -301,3 +301,30 @@ def test_player_can_move_through_dead_monster():
     # Move should succeed - corpses shouldn't block movement
     assert turn_consumed
     assert player.position == Position(10, 11)
+
+
+def test_diagonal_down_left_movement():
+    """MOVE_DOWN_LEFT action moves player down and left (not up-left)."""
+    game_map = GameMap(20, 20)
+    for y in range(20):
+        for x in range(20):
+            game_map.set_tile(Position(x, y), Tiles.FLOOR)
+
+    event_bus = EventBus()
+    combat_system = CombatSystem(event_bus)
+    movement_system = MovementSystem(game_map)
+    ai_system = AISystem(combat_system, movement_system, game_map)
+    turn_manager = TurnManager(combat_system, movement_system, ai_system)
+
+    player = Player(Position(10, 10))
+    fov_map = FOVMap(game_map)
+
+    # Move down-left should move to (9, 11) not (9, 9)
+    turn_consumed, should_quit = turn_manager.handle_player_action(
+        Action.MOVE_DOWN_LEFT, player, [player], game_map, fov_map, 8
+    )
+
+    assert turn_consumed
+    assert not should_quit
+    # Down-left means x decreases (left), y increases (down)
+    assert player.position == Position(9, 11), f"Expected Position(9, 11), got {player.position}"

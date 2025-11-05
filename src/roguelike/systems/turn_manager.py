@@ -70,7 +70,7 @@ class TurnManager:
             Action.MOVE_RIGHT: (1, 0),
             Action.MOVE_UP_LEFT: (-1, -1),
             Action.MOVE_UP_RIGHT: (1, -1),
-            Action.MOVE_DOWN_LEFT: (-1, -1),
+            Action.MOVE_DOWN_LEFT: (-1, 1),
             Action.MOVE_DOWN_RIGHT: (1, 1),
         }
 

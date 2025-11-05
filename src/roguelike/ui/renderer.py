@@ -46,14 +46,22 @@ class Renderer:
         """Clear the console."""
         self.console.clear()
 
-    def render_map(self, game_map: GameMap, fov_map: Optional[FOVMap] = None) -> None:
+    def render_map(
+        self,
+        game_map: GameMap,
+        fov_map: Optional[FOVMap] = None,
+        max_height: Optional[int] = None
+    ) -> None:
         """Render the game map.
 
         Args:
             game_map: Map to render
             fov_map: Optional FOV map for visibility
+            max_height: Maximum height to render (for viewport clipping)
         """
-        for y in range(game_map.height):
+        render_height = min(max_height, game_map.height) if max_height else game_map.height
+
+        for y in range(render_height):
             for x in range(game_map.width):
                 pos = Position(x, y)
                 tile = game_map.get_tile(pos)

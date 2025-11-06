@@ -225,6 +225,29 @@ class Renderer:
         for entity in entities:
             self.render_health_bar(entity, fov_map, y_offset)
 
+    def render_targeting_cursor(self, position: Position, target_name: Optional[str] = None) -> None:
+        """Render the targeting cursor at a position.
+
+        Args:
+            position: Position to render cursor
+            target_name: Optional name of target at cursor position
+        """
+        # Render cursor as a highlighted X with a distinct color
+        self.console.print(
+            position.x,
+            position.y,
+            "X",
+            fg=(255, 255, 0),  # Yellow cursor
+            bg=(64, 0, 0)  # Dark red background
+        )
+
+        # If there's a target, show its name nearby
+        if target_name:
+            # Show name above the cursor if possible
+            name_y = max(0, position.y - 1)
+            name_x = max(0, min(position.x, self.width - len(target_name)))
+            self.console.print(name_x, name_y, target_name, fg=(255, 255, 0))
+
     def present(self) -> None:
         """Present the console to the screen."""
         self.context.present(self.console)

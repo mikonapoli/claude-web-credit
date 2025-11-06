@@ -300,6 +300,10 @@ class StatusEffectExpiredEvent(Event):
         self.data = {
             "entity_name": entity_name,
             "effect_type": effect_type,
+        }
+
+
+@dataclass
 class EquipEvent(Event):
     """Event emitted when an item is equipped."""
 
@@ -342,8 +346,6 @@ class EquipEvent(Event):
 @dataclass
 class StatusEffectTickEvent(Event):
     """Event emitted when a status effect processes each turn."""
-class UnequipEvent(Event):
-    """Event emitted when an item is unequipped."""
 
     def __init__(
         self,
@@ -351,8 +353,6 @@ class UnequipEvent(Event):
         effect_type: str,
         power: int,
         remaining_duration: int,
-        item_name: str,
-        slot: str,
     ):
         """Initialize status effect tick event.
 
@@ -361,21 +361,43 @@ class UnequipEvent(Event):
             effect_type: Type of status effect
             power: Effect strength/magnitude
             remaining_duration: Turns remaining after this tick
-            item_name: Name of item being unequipped
-            slot: Equipment slot (weapon, armor, etc.)
         """
         self.type = "status_effect_tick"
         self.entity_name = entity_name
         self.effect_type = effect_type
         self.power = power
         self.remaining_duration = remaining_duration
-        self.item_name = item_name
-        self.slot = slot
         self.data = {
             "entity_name": entity_name,
             "effect_type": effect_type,
             "power": power,
             "remaining_duration": remaining_duration,
+        }
+
+
+@dataclass
+class UnequipEvent(Event):
+    """Event emitted when an item is unequipped."""
+
+    def __init__(
+        self,
+        entity_name: str,
+        item_name: str,
+        slot: str,
+    ):
+        """Initialize unequip event.
+
+        Args:
+            entity_name: Name of entity unequipping item
+            item_name: Name of item being unequipped
+            slot: Equipment slot (weapon, armor, etc.)
+        """
+        self.type = "unequip"
+        self.entity_name = entity_name
+        self.item_name = item_name
+        self.slot = slot
+        self.data = {
+            "entity_name": entity_name,
             "item_name": item_name,
             "slot": slot,
         }

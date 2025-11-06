@@ -1,13 +1,15 @@
 """Turn management system."""
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
+from roguelike.entities.actor import Actor
 from roguelike.entities.entity import Entity
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
+from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.ui.input_handler import Action
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
@@ -22,6 +24,7 @@ class TurnManager:
         combat_system: CombatSystem,
         movement_system: MovementSystem,
         ai_system: AISystem,
+        status_effects_system: Optional[StatusEffectsSystem] = None,
     ):
         """Initialize turn manager.
 
@@ -29,10 +32,12 @@ class TurnManager:
             combat_system: Combat system for resolving attacks
             movement_system: Movement system for entity movement
             ai_system: AI system for enemy behavior
+            status_effects_system: Status effects system for managing effects
         """
         self.combat_system = combat_system
         self.movement_system = movement_system
         self.ai_system = ai_system
+        self.status_effects_system = status_effects_system
 
     def handle_player_action(
         self,
@@ -176,10 +181,34 @@ class TurnManager:
         if should_quit:
             return False
 
-        # If turn was consumed and player is alive, process enemy turns
+        # If turn was consumed and player is alive, process turn effects
         if turn_consumed and player.is_alive:
+            # Process status effects on player
+            if self.status_effects_system:
+                player_died_from_poison = self.status_effects_system.process_effects(player)
+
+                # Check if player died from status effects
+                if player_died_from_poison:
+                    # Handle death from poison
+                    self.combat_system.handle_death(player, killed_by_player=False)
+                    # Corpses don't block movement
+                    player.blocks_movement = False
+                    return False  # Game over
+
+            # Process enemy turns
             player_died = self.ai_system.process_turns(player, entities)
             if player_died:
                 return False  # Game over
+
+            # Process status effects on monsters only (player already processed above)
+            if self.status_effects_system:
+                for entity in entities:
+                    if isinstance(entity, Monster) and entity.is_alive:
+                        died_from_poison = self.status_effects_system.process_effects(entity)
+                        if died_from_poison:
+                            # Handle death from poison
+                            self.combat_system.handle_death(entity, killed_by_player=False)
+                            # Corpses don't block movement
+                            entity.blocks_movement = False
 
         return True

@@ -256,6 +256,54 @@ class RecipeDiscoveredEvent(Event):
 
 
 @dataclass
+class StatusEffectAppliedEvent(Event):
+    """Event emitted when a status effect is applied to an entity."""
+
+    def __init__(
+        self, entity_name: str, effect_type: str, duration: int, power: int = 0
+    ):
+        """Initialize status effect applied event.
+
+        Args:
+            entity_name: Name of entity receiving the effect
+            effect_type: Type of status effect (poison, confusion, etc.)
+            duration: Number of turns the effect will last
+            power: Effect strength/magnitude
+        """
+        self.type = "status_effect_applied"
+        self.entity_name = entity_name
+        self.effect_type = effect_type
+        self.duration = duration
+        self.power = power
+        self.data = {
+            "entity_name": entity_name,
+            "effect_type": effect_type,
+            "duration": duration,
+            "power": power,
+        }
+
+
+@dataclass
+class StatusEffectExpiredEvent(Event):
+    """Event emitted when a status effect expires."""
+
+    def __init__(self, entity_name: str, effect_type: str):
+        """Initialize status effect expired event.
+
+        Args:
+            entity_name: Name of entity losing the effect
+            effect_type: Type of status effect that expired
+        """
+        self.type = "status_effect_expired"
+        self.entity_name = entity_name
+        self.effect_type = effect_type
+        self.data = {
+            "entity_name": entity_name,
+            "effect_type": effect_type,
+        }
+
+
+@dataclass
 class EquipEvent(Event):
     """Event emitted when an item is equipped."""
 
@@ -292,6 +340,38 @@ class EquipEvent(Event):
             "power_bonus": power_bonus,
             "defense_bonus": defense_bonus,
             "max_hp_bonus": max_hp_bonus,
+        }
+
+
+@dataclass
+class StatusEffectTickEvent(Event):
+    """Event emitted when a status effect processes each turn."""
+
+    def __init__(
+        self,
+        entity_name: str,
+        effect_type: str,
+        power: int,
+        remaining_duration: int,
+    ):
+        """Initialize status effect tick event.
+
+        Args:
+            entity_name: Name of entity with the effect
+            effect_type: Type of status effect
+            power: Effect strength/magnitude
+            remaining_duration: Turns remaining after this tick
+        """
+        self.type = "status_effect_tick"
+        self.entity_name = entity_name
+        self.effect_type = effect_type
+        self.power = power
+        self.remaining_duration = remaining_duration
+        self.data = {
+            "entity_name": entity_name,
+            "effect_type": effect_type,
+            "power": power,
+            "remaining_duration": remaining_duration,
         }
 
 

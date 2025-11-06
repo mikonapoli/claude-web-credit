@@ -1,23 +1,28 @@
 """Item system for handling item effects."""
 
-from typing import List
+from typing import List, Optional
 
 from roguelike.engine.events import EventBus, HealingEvent, ItemUseEvent
 from roguelike.entities.actor import Actor
 from roguelike.entities.item import Item, ItemType
 from roguelike.systems.inventory import Inventory
+from roguelike.systems.status_effects import StatusEffectsSystem
 
 
 class ItemSystem:
     """Manages item usage and effects."""
 
-    def __init__(self, event_bus: EventBus):
+    def __init__(
+        self, event_bus: EventBus, status_effects_system: Optional[StatusEffectsSystem] = None
+    ):
         """Initialize item system.
 
         Args:
             event_bus: Event bus for publishing item events
+            status_effects_system: Status effects system for applying effects
         """
         self.event_bus = event_bus
+        self.status_effects_system = status_effects_system
 
     def use_item(self, item: Item, user: Actor, inventory: Inventory) -> bool:
         """Use an item and apply its effects.
@@ -179,8 +184,11 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # TODO: Implement invisibility system
-        return True
+        if self.status_effects_system:
+            return self.status_effects_system.apply_effect(
+                user, "invisibility", duration=item.value, power=0
+            )
+        return False
 
     def _apply_gigantism(self, item: Item, user: Actor) -> bool:
         """Apply gigantism effect.
@@ -246,8 +254,13 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # TODO: Implement confusion status effect
-        return True
+        # TODO: Implement targeting system to confuse enemies instead of self
+        # For now, applying to user for testing purposes
+        if self.status_effects_system:
+            return self.status_effects_system.apply_effect(
+                user, "confusion", duration=item.value, power=0
+            )
+        return False
 
     def _apply_teleport(self, item: Item, user: Actor) -> bool:
         """Apply teleport effect.
@@ -337,5 +350,21 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # TODO: Implement random effect (good or bad)
+        import random
+
+        # Random effect (50% chance good, 50% chance bad)
+        effects = [
+            ("good", "healing", lambda: user.heal(20)),
+            ("good", "strength", lambda: setattr(user, "power", user.power + 2)),
+            ("bad", "poison", lambda: self.status_effects_system.apply_effect(
+                user, "poison", duration=5, power=2
+            ) if self.status_effects_system else False),
+            ("bad", "confusion", lambda: self.status_effects_system.apply_effect(
+                user, "confusion", duration=3, power=0
+            ) if self.status_effects_system else False),
+            ("bad", "damage", lambda: user.take_damage(10)),
+        ]
+
+        effect_type, effect_name, effect_func = random.choice(effects)
+        effect_func()
         return True

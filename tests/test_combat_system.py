@@ -4,6 +4,7 @@ from roguelike.engine.events import EventBus
 from roguelike.entities.monster import create_orc
 from roguelike.entities.player import Player
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.utils.position import Position
 
 
@@ -153,3 +154,61 @@ def test_award_xp_without_level_up_returns_none():
     new_level = system.award_xp(player, 50)
 
     assert new_level is None
+
+
+def test_resolve_attack_with_strength_buff_increases_damage():
+    """Strength buff increases attack damage."""
+    event_bus = EventBus()
+    status_system = StatusEffectsSystem(event_bus)
+    combat_system = CombatSystem(event_bus, status_system)
+
+    player = Player(Position(0, 0))
+    orc = create_orc(Position(1, 1))
+    initial_hp = orc.hp
+
+    # Apply strength buff to player
+    status_system.apply_effect(player, "strength", duration=5, power=3)
+
+    combat_system.resolve_attack(player, orc)
+
+    # Damage should be greater than without buff
+    damage_dealt = initial_hp - orc.hp
+    assert damage_dealt > player.power - orc.defense
+
+
+def test_resolve_attack_with_defense_buff_reduces_damage():
+    """Defense buff reduces damage taken."""
+    event_bus = EventBus()
+    status_system = StatusEffectsSystem(event_bus)
+    combat_system = CombatSystem(event_bus, status_system)
+
+    player = Player(Position(0, 0))
+    orc = create_orc(Position(1, 1))
+    initial_player_hp = player.hp
+
+    # Apply defense buff to player
+    status_system.apply_effect(player, "defense", duration=5, power=2)
+
+    combat_system.resolve_attack(orc, player)
+
+    # Damage should be less than without buff
+    damage_taken = initial_player_hp - player.hp
+    expected_damage = max(0, orc.power - player.defense)
+    assert damage_taken < expected_damage
+
+
+def test_resolve_attack_with_gigantism_increases_power_and_defense():
+    """Gigantism buff increases both power and defense."""
+    event_bus = EventBus()
+    status_system = StatusEffectsSystem(event_bus)
+    combat_system = CombatSystem(event_bus, status_system)
+
+    player = Player(Position(0, 0))
+    orc = create_orc(Position(1, 1))
+
+    # Apply gigantism buff to player
+    status_system.apply_effect(player, "gigantism", duration=5, power=4)
+
+    modifiers = status_system.get_stat_modifiers(player)
+    assert modifiers["power"] == 4
+    assert modifiers["defense"] == 2

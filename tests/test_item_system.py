@@ -25,7 +25,9 @@ def event_bus():
 @pytest.fixture
 def item_system(event_bus):
     """Create an item system for testing."""
-    return ItemSystem(event_bus)
+    from roguelike.systems.status_effects import StatusEffectsSystem
+    status_effects_system = StatusEffectsSystem(event_bus)
+    return ItemSystem(event_bus, status_effects_system)
 
 
 @pytest.fixture
@@ -162,14 +164,14 @@ def test_healing_capped_at_max_hp(item_system, player, inventory):
 
 
 def test_strength_potion_increases_power(item_system, player, inventory):
-    """Strength potion increases power."""
-    initial_power = player.power
+    """Strength potion applies strength status effect."""
     potion = create_strength_potion(Position(5, 5))
     inventory.add(potion)
 
     item_system.use_item(potion, player, inventory)
 
-    assert player.power == initial_power + 3
+    # Check that strength effect is applied
+    assert item_system.status_effects_system.has_effect(player, "strength")
 
 
 def test_strength_potion_removed_after_use(item_system, player, inventory):
@@ -177,8 +179,10 @@ def test_strength_potion_removed_after_use(item_system, player, inventory):
     potion = create_strength_potion(Position(5, 5))
     inventory.add(potion)
 
-    item_system.use_item(potion, player, inventory)
+    result = item_system.use_item(potion, player, inventory)
 
+    # Should succeed and be removed from inventory
+    assert result is True
     assert len(inventory) == 0
 
 

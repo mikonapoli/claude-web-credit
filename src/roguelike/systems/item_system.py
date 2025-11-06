@@ -144,10 +144,12 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # TODO: Implement temporary buff system
-        # For now, just apply permanent boost
-        user.power += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary strength buff (value = power bonus, duration in turns)
+            return self.status_effects_system.apply_effect(
+                user, "strength", duration=10, power=item.value
+            )
+        return False
 
     def _apply_defense_buff(self, item: Item, user: Actor) -> bool:
         """Apply defense buff.
@@ -159,9 +161,12 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # TODO: Implement temporary buff system
-        user.defense += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary defense buff (value = defense bonus, duration in turns)
+            return self.status_effects_system.apply_effect(
+                user, "defense", duration=10, power=item.value
+            )
+        return False
 
     def _apply_speed_buff(self, item: Item, user: Actor) -> bool:
         """Apply speed buff.
@@ -173,8 +178,12 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # TODO: Implement speed/turn system
-        return True
+        if self.status_effects_system:
+            # Apply temporary speed buff (allows extra actions)
+            return self.status_effects_system.apply_effect(
+                user, "speed", duration=5, power=1
+            )
+        return False
 
     def _apply_invisibility(self, item: Item, user: Actor) -> bool:
         """Apply invisibility effect.
@@ -202,9 +211,12 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # TODO: Implement temporary buff system
-        user.power += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary gigantism buff (increases power and defense)
+            return self.status_effects_system.apply_effect(
+                user, "gigantism", duration=8, power=item.value
+            )
+        return False
 
     def _apply_shrinking(self, item: Item, user: Actor) -> bool:
         """Apply shrinking effect.
@@ -216,9 +228,12 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # TODO: Implement temporary buff system
-        user.defense += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary shrinking effect (increases defense/evasion)
+            return self.status_effects_system.apply_effect(
+                user, "shrinking", duration=8, power=item.value
+            )
+        return False
 
     def _apply_fireball(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
         """Apply fireball effect.

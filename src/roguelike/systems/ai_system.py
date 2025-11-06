@@ -163,11 +163,8 @@ class AISystem:
                 entity.position.y + dy
             )
 
-            # Check if move is valid
-            if not self.game_map.in_bounds(new_pos.x, new_pos.y):
-                continue
-
-            if self.game_map.tiles[new_pos.x, new_pos.y].blocks_movement:
+            # Check if move is valid (bounds and walkability)
+            if not self.game_map.is_walkable(new_pos):
                 continue
 
             # Check for blocking entities

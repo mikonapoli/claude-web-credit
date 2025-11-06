@@ -4,6 +4,8 @@ from typing import Optional
 
 import tcod
 
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.equipment import EquipmentComponent, EquipmentSlot
 from roguelike.entities.entity import Entity
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.health_bar_renderer import HealthBarRenderer
@@ -274,6 +276,50 @@ class Renderer:
     def present(self) -> None:
         """Present the console to the screen."""
         self.context.present(self.console)
+
+    def render_equipped_items(
+        self,
+        player: Entity,
+        x: int,
+        y: int,
+    ) -> None:
+        """Render equipped items list.
+
+        Args:
+            player: Player entity with equipment
+            x: X position for equipment display
+            y: Y position for equipment display
+        """
+        if not isinstance(player, ComponentEntity):
+            return
+
+        equipment_comp = player.get_component(EquipmentComponent)
+        if not equipment_comp:
+            return
+
+        # Title
+        self.console.print(x, y, "Equipment:", fg=(255, 255, 255))
+
+        # List all equipment slots and what's equipped
+        slots = [
+            ("Weapon", EquipmentSlot.WEAPON),
+            ("Armor", EquipmentSlot.ARMOR),
+            ("Helmet", EquipmentSlot.HELMET),
+            ("Boots", EquipmentSlot.BOOTS),
+            ("Gloves", EquipmentSlot.GLOVES),
+            ("Ring", EquipmentSlot.RING),
+            ("Amulet", EquipmentSlot.AMULET),
+        ]
+
+        current_y = y + 1
+        for slot_name, slot in slots:
+            item = equipment_comp.get_equipped(slot)
+            if item:
+                text = f"{slot_name}: {item.name}"
+            else:
+                text = f"{slot_name}: -"
+            self.console.print(x, current_y, text, fg=(200, 200, 200))
+            current_y += 1
 
     def close(self) -> None:
         """Close the rendering context."""

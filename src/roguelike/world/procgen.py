@@ -1,8 +1,34 @@
 """Procedural generation for dungeons."""
 
 import random
-from typing import List, Optional
+from typing import Callable, List, Optional
 
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.factories import (
+    create_amulet_of_defense,
+    create_amulet_of_life,
+    create_amulet_of_strength,
+    create_battle_axe,
+    create_boots_of_speed,
+    create_chainmail,
+    create_crown_of_kings,
+    create_dragon_scale_armor,
+    create_enchanted_blade,
+    create_gauntlets,
+    create_iron_sword,
+    create_leather_armor,
+    create_leather_boots,
+    create_leather_gloves,
+    create_leather_helmet,
+    create_plate_armor,
+    create_ring_of_power,
+    create_ring_of_protection,
+    create_ring_of_vitality,
+    create_steel_boots,
+    create_steel_helmet,
+    create_steel_sword,
+    create_wooden_club,
+)
 from roguelike.entities.item import (
     Item,
     create_banana_peel,
@@ -128,7 +154,7 @@ def place_stairs(
         game_map.set_tile(stairs_pos, Tiles.STAIRS_UP)
 
     return stairs_pos
-def place_items(room: Room, max_items: int) -> List[Item]:
+def place_items(room: Room, max_items: int) -> List[Item | ComponentEntity]:
     """Place items randomly in a room.
 
     Args:
@@ -139,13 +165,14 @@ def place_items(room: Room, max_items: int) -> List[Item]:
         List of spawned items
     """
     num_items = random.randint(0, max_items)
-    items: List[Item] = []
+    items: List[Item | ComponentEntity] = []
 
     # Get all inner tile positions
     inner_positions = list(room.inner_tiles())
 
     # Item spawn chances with weights
-    item_spawners = [
+    item_spawners: List[tuple[Callable[[Position], Item | ComponentEntity], int]] = [
+        # Potions and scrolls
         (create_healing_potion, 30),  # Common
         (create_greater_healing_potion, 15),  # Uncommon
         (create_strength_potion, 10),  # Uncommon
@@ -165,6 +192,36 @@ def place_items(room: Room, max_items: int) -> List[Item]:
         (create_gigantism_potion, 2),  # Very rare
         (create_shrinking_potion, 2),  # Very rare
         (create_cursed_ring, 1),  # Ultra rare
+        # Weapons
+        (create_wooden_club, 8),  # Common
+        (create_iron_sword, 6),  # Uncommon
+        (create_steel_sword, 4),  # Rare
+        (create_enchanted_blade, 2),  # Very rare
+        (create_battle_axe, 3),  # Rare
+        # Armor
+        (create_leather_armor, 8),  # Common
+        (create_chainmail, 5),  # Uncommon
+        (create_plate_armor, 3),  # Rare
+        (create_dragon_scale_armor, 1),  # Ultra rare
+        # Helmets
+        (create_leather_helmet, 6),  # Uncommon
+        (create_steel_helmet, 4),  # Rare
+        (create_crown_of_kings, 1),  # Ultra rare
+        # Boots
+        (create_leather_boots, 6),  # Uncommon
+        (create_steel_boots, 4),  # Rare
+        (create_boots_of_speed, 2),  # Very rare
+        # Gloves
+        (create_leather_gloves, 6),  # Uncommon
+        (create_gauntlets, 3),  # Rare
+        # Rings
+        (create_ring_of_power, 2),  # Very rare
+        (create_ring_of_protection, 2),  # Very rare
+        (create_ring_of_vitality, 2),  # Very rare
+        # Amulets
+        (create_amulet_of_strength, 2),  # Very rare
+        (create_amulet_of_defense, 2),  # Very rare
+        (create_amulet_of_life, 1),  # Ultra rare
     ]
 
     # Calculate total weight for proper weighted selection

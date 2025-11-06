@@ -21,6 +21,8 @@ class Action(Enum):
     DESCEND_STAIRS = "descend_stairs"
     PICKUP = "pickup"
     INVENTORY = "inventory"
+    EQUIP = "equip"
+    UNEQUIP = "unequip"
     QUIT = "quit"
     TARGETING_SELECT = "targeting_select"
     TARGETING_CANCEL = "targeting_cancel"
@@ -92,6 +94,14 @@ class InputHandler(tcod.event.EventDispatch):
         # Inventory
         elif key == tcod.event.KeySym.I:
             self.last_action = Action.INVENTORY
+
+        # Equip
+        elif key == tcod.event.KeySym.E:
+            self.last_action = Action.EQUIP
+
+        # Unequip
+        elif key == tcod.event.KeySym.U:
+            self.last_action = Action.UNEQUIP
 
         # Test: Confusion scroll targeting (C key)
         elif key == tcod.event.KeySym.C:

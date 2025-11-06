@@ -4,11 +4,16 @@ from typing import List, Optional
 
 import tcod.event
 
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.equipment import EquipmentComponent, EquipmentSlot, EquipmentStats
+from roguelike.components.inventory import InventoryComponent
 from roguelike.engine.events import (
     EventBus,
     CombatEvent,
     DeathEvent,
+    EquipEvent,
     LevelUpEvent,
+    UnequipEvent,
     XPGainEvent,
     StatusEffectAppliedEvent,
     StatusEffectExpiredEvent,
@@ -21,6 +26,7 @@ from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.equipment_system import EquipmentSystem
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
@@ -56,12 +62,15 @@ class GameEngine:
         self.running = False
         self.message_log = MessageLog()
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.equipment_menu_active = False  # Track if equipment menu is shown
+        self.unequip_menu_active = False  # Track if unequip menu is shown
 
         # Create event bus and systems
         self.event_bus = EventBus()
         self.combat_system = CombatSystem(self.event_bus)
         self.movement_system = MovementSystem(game_map)
         self.status_effects_system = StatusEffectsSystem(self.event_bus)
+        self.equipment_system = EquipmentSystem(self.event_bus)
         self.item_system = ItemSystem(self.event_bus, self.status_effects_system)
         self.targeting_system = TargetingSystem()
         self.ai_system = AISystem(
@@ -95,6 +104,8 @@ class GameEngine:
         self.event_bus.subscribe("status_effect_applied", self._on_status_effect_applied)
         self.event_bus.subscribe("status_effect_expired", self._on_status_effect_expired)
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
+        self.event_bus.subscribe("equip", self._on_equip_event)
+        self.event_bus.subscribe("unequip", self._on_unequip_event)
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
@@ -138,6 +149,27 @@ class GameEngine:
             self.message_log.add_message(
                 f"{event.entity_name} takes {event.power} poison damage!"
             )
+
+    def _on_equip_event(self, event: EquipEvent) -> None:
+        """Handle equip event."""
+        bonuses = []
+        if event.power_bonus != 0:
+            bonuses.append(f"+{event.power_bonus} power" if event.power_bonus > 0 else f"{event.power_bonus} power")
+        if event.defense_bonus != 0:
+            bonuses.append(f"+{event.defense_bonus} defense" if event.defense_bonus > 0 else f"{event.defense_bonus} defense")
+        if event.max_hp_bonus != 0:
+            bonuses.append(f"+{event.max_hp_bonus} HP" if event.max_hp_bonus > 0 else f"{event.max_hp_bonus} HP")
+
+        bonus_text = f" ({', '.join(bonuses)})" if bonuses else ""
+        self.message_log.add_message(
+            f"{event.entity_name} equipped {event.item_name}{bonus_text}"
+        )
+
+    def _on_unequip_event(self, event: UnequipEvent) -> None:
+        """Handle unequip event."""
+        self.message_log.add_message(
+            f"{event.entity_name} unequipped {event.item_name}"
+        )
 
     def _process_turn_after_action(self) -> None:
         """Process turn effects after an action that consumes a turn.
@@ -280,6 +312,118 @@ class GameEngine:
             self.active_targeted_item = None
             self.message_log.add_message("Targeting cancelled.")
 
+    def _show_equipment_menu(self) -> None:
+        """Show equipment menu with items that can be equipped."""
+        # Check if player has component-based equipment
+        if not isinstance(self.player, ComponentEntity):
+            self.message_log.add_message("Equipment system not available for this player type.")
+            return
+
+        inventory = self.player.get_component(InventoryComponent)
+        if not inventory:
+            self.message_log.add_message("No inventory available.")
+            return
+
+        # Get equipment items from inventory
+        equippable_items = [
+            item for item in inventory.get_items()
+            if isinstance(item, ComponentEntity) and item.get_component(EquipmentStats)
+        ]
+
+        if not equippable_items:
+            self.message_log.add_message("No equipment items in inventory.")
+            return
+
+        # Show first item as example (in a real implementation, you'd have a menu UI)
+        item = equippable_items[0]
+        stats = item.get_component(EquipmentStats)
+        if stats:
+            self._equip_item(item)
+
+    def _equip_item(self, item: ComponentEntity) -> None:
+        """Equip an item from inventory.
+
+        Args:
+            item: Item to equip
+        """
+        if not isinstance(self.player, ComponentEntity):
+            return
+
+        equipment_comp = self.player.get_component(EquipmentComponent)
+        inventory = self.player.get_component(InventoryComponent)
+
+        if not equipment_comp or not inventory:
+            self.message_log.add_message("Cannot equip item.")
+            return
+
+        # Check if item is in inventory
+        if item not in inventory.get_items():
+            self.message_log.add_message("Item not in inventory.")
+            return
+
+        # Remove item from inventory
+        inventory.remove_item(item)
+
+        # Equip the item (this handles replacing previous equipment)
+        previous_item = self.equipment_system.equip_item(self.player, item)
+
+        # If there was a previously equipped item, put it back in inventory
+        if previous_item:
+            inventory.add_item(previous_item)
+
+    def _show_unequip_menu(self) -> None:
+        """Show unequip menu with currently equipped items."""
+        if not isinstance(self.player, ComponentEntity):
+            self.message_log.add_message("Equipment system not available for this player type.")
+            return
+
+        equipment_comp = self.player.get_component(EquipmentComponent)
+        if not equipment_comp:
+            self.message_log.add_message("No equipment component.")
+            return
+
+        equipped_items = equipment_comp.get_all_equipped()
+        if not equipped_items:
+            self.message_log.add_message("No items equipped.")
+            return
+
+        # Unequip first equipped item as example
+        first_slot = next(iter(equipped_items.keys()))
+        self._unequip_item(first_slot)
+
+    def _unequip_item(self, slot: EquipmentSlot) -> None:
+        """Unequip an item to inventory.
+
+        Args:
+            slot: Equipment slot to unequip from
+        """
+        if not isinstance(self.player, ComponentEntity):
+            return
+
+        equipment_comp = self.player.get_component(EquipmentComponent)
+        inventory = self.player.get_component(InventoryComponent)
+
+        if not equipment_comp or not inventory:
+            self.message_log.add_message("Cannot unequip item.")
+            return
+
+        # Check if slot has an item
+        if equipment_comp.is_slot_empty(slot):
+            self.message_log.add_message("No item in that slot.")
+            return
+
+        # Check if inventory has space
+        if inventory.is_full():
+            self.message_log.add_message("Inventory is full!")
+            return
+
+        # Unequip the item
+        item = self.equipment_system.unequip_item(self.player, slot)
+
+        if item:
+            # Add unequipped item to inventory
+            inventory.add_item(item)
+
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
 
@@ -323,6 +467,13 @@ class GameEngine:
                 y=0,
             )
 
+            # Render equipped items below player stats
+            renderer.render_equipped_items(
+                self.player,
+                x=renderer.width - 20,
+                y=2,
+            )
+
             # Render targeting cursor if in targeting mode
             if self.targeting_system.is_active:
                 cursor_pos = self.targeting_system.get_cursor_position()
@@ -342,6 +493,11 @@ class GameEngine:
                 # Handle targeting mode actions
                 if self.targeting_system.is_active:
                     self._handle_targeting_action(action, input_handler)
+                # Handle equipment actions
+                elif action == Action.EQUIP:
+                    self._show_equipment_menu()
+                elif action == Action.UNEQUIP:
+                    self._show_unequip_menu()
                 # Handle TEST_CONFUSION action to start targeting
                 elif action == Action.TEST_CONFUSION:
                     self._start_confusion_targeting(input_handler)

@@ -126,10 +126,16 @@ class GameEngine:
                 height=message_log_height
             )
 
-            # Render health bars only for Actors (entities with health)
+            # Render health bars only for Actors (entities with health, excluding player)
             actors_to_render = [e for e in living_entities if isinstance(e, Actor)]
             renderer.render_health_bars(actors_to_render, self.fov_map)
-            renderer.render_health_bar(self.player, self.fov_map)
+
+            # Render player stats as text in the top-right area of the map viewport
+            renderer.render_player_stats(
+                self.player,
+                x=renderer.width - 20,  # Position in top-right
+                y=0,
+            )
 
             renderer.present()
 

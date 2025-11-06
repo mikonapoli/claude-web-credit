@@ -44,9 +44,10 @@ class FOVMap:
         self.visible[:] = False
 
         # Compute FOV using tcod (using default algorithm)
+        # Note: pov expects (y, x) order to match numpy array indexing
         self.visible[:] = tcod.map.compute_fov(
             transparency=self.transparency,
-            pov=(position.x, position.y),
+            pov=(position.y, position.x),
             radius=radius,
         )
 

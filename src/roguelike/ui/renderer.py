@@ -29,11 +29,21 @@ class Renderer:
         self.title = title
 
         # Create the console
-        tileset = tcod.tileset.load_tilesheet(
-            tcod.tileset.FONT_DEJAVU_SANS_MONO,
-            32, 8,  # Font dimensions
-            tcod.tileset.CHARMAP_TCOD
-        )
+        # Load a monospace font - use Courier or fallback to any available font
+        try:
+            tileset = tcod.tileset.load_truetype_font(
+                "/System/Library/Fonts/Courier.dfont", 16, 16
+            )
+        except Exception:
+            # Fallback to a simple tileset if Courier isn't available
+            try:
+                tileset = tcod.tileset.load_truetype_font(
+                    "/System/Library/Fonts/Monaco.dfont", 16, 16
+                )
+            except Exception:
+                # Last resort: use default tileset (may fail)
+                tileset = None
+
         self.console = tcod.console.Console(width, height)
         self.context = tcod.context.new(
             console=self.console,

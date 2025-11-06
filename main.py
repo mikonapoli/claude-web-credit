@@ -5,6 +5,7 @@ from roguelike.engine.events import EventBus
 from roguelike.entities.player import Player
 from roguelike.systems.level_system import DungeonLevelSystem
 from roguelike.ui.renderer import Renderer
+from roguelike.world.procgen import generate_dungeon
 
 
 def main():

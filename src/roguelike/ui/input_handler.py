@@ -48,23 +48,23 @@ class InputHandler(tcod.event.EventDispatch):
         key = event.sym
 
         # Movement keys (vi keys and arrow keys)
-        if key in (tcod.event.KeySym.UP, tcod.event.KeySym.k):
+        if key in (tcod.event.KeySym.UP, tcod.event.KeySym.K):
             self.last_action = Action.MOVE_UP
-        elif key in (tcod.event.KeySym.DOWN, tcod.event.KeySym.j):
+        elif key in (tcod.event.KeySym.DOWN, tcod.event.KeySym.J):
             self.last_action = Action.MOVE_DOWN
-        elif key in (tcod.event.KeySym.LEFT, tcod.event.KeySym.h):
+        elif key in (tcod.event.KeySym.LEFT, tcod.event.KeySym.H):
             self.last_action = Action.MOVE_LEFT
-        elif key in (tcod.event.KeySym.RIGHT, tcod.event.KeySym.l):
+        elif key in (tcod.event.KeySym.RIGHT, tcod.event.KeySym.L):
             self.last_action = Action.MOVE_RIGHT
 
         # Diagonal movement (vi keys)
-        elif key == tcod.event.KeySym.y:
+        elif key == tcod.event.KeySym.Y:
             self.last_action = Action.MOVE_UP_LEFT
-        elif key == tcod.event.KeySym.u:
+        elif key == tcod.event.KeySym.U:
             self.last_action = Action.MOVE_UP_RIGHT
-        elif key == tcod.event.KeySym.b:
+        elif key == tcod.event.KeySym.B:
             self.last_action = Action.MOVE_DOWN_LEFT
-        elif key == tcod.event.KeySym.n:
+        elif key == tcod.event.KeySym.N:
             self.last_action = Action.MOVE_DOWN_RIGHT
 
         # Wait/skip turn
@@ -75,11 +75,11 @@ class InputHandler(tcod.event.EventDispatch):
         elif key == tcod.event.KeySym.PERIOD and event.mod & tcod.event.KMOD_SHIFT:
             self.last_action = Action.DESCEND_STAIRS
         # Pickup item
-        elif key == tcod.event.KeySym.g:
+        elif key == tcod.event.KeySym.G:
             self.last_action = Action.PICKUP
 
         # Inventory
-        elif key == tcod.event.KeySym.i:
+        elif key == tcod.event.KeySym.I:
             self.last_action = Action.INVENTORY
 
         # Quit

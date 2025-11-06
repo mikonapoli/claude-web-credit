@@ -188,7 +188,8 @@ class GameEngine:
         # Start targeting with max range of 10
         max_range = 10
         if self.targeting_system.start_targeting(
-            self.player.position, max_range, monsters
+            self.player.position, max_range, monsters,
+            self.game_map.width, self.game_map.height
         ):
             input_handler.set_targeting_mode(True)
             self.message_log.add_message(

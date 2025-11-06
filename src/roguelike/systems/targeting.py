@@ -17,9 +17,12 @@ class TargetingSystem:
         self.max_range: int = 0
         self.valid_targets: List[Actor] = []
         self.current_target_index: int = 0
+        self.map_width: int = 0
+        self.map_height: int = 0
 
     def start_targeting(
-        self, origin: Position, max_range: int, valid_targets: List[Actor]
+        self, origin: Position, max_range: int, valid_targets: List[Actor],
+        map_width: int, map_height: int
     ) -> bool:
         """Start targeting mode.
 
@@ -27,6 +30,8 @@ class TargetingSystem:
             origin: Starting position (usually player position)
             max_range: Maximum targeting range
             valid_targets: List of valid target actors
+            map_width: Width of the game map
+            map_height: Height of the game map
 
         Returns:
             True if there are valid targets, False otherwise
@@ -45,6 +50,8 @@ class TargetingSystem:
         self.is_active = True
         self.origin = origin
         self.max_range = max_range
+        self.map_width = map_width
+        self.map_height = map_height
         self.valid_targets = targets_in_range
         self.current_target_index = 0
         self.cursor_position = targets_in_range[0].position
@@ -109,6 +116,12 @@ class TargetingSystem:
         new_position = Position(
             self.cursor_position.x + dx, self.cursor_position.y + dy
         )
+
+        # Check if new position is within map bounds
+        if new_position.x < 0 or new_position.x >= self.map_width:
+            return
+        if new_position.y < 0 or new_position.y >= self.map_height:
+            return
 
         # Check if new position is within range
         if self.origin.manhattan_distance_to(new_position) <= self.max_range:

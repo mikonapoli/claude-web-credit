@@ -24,13 +24,14 @@ class ItemSystem:
         self.event_bus = event_bus
         self.status_effects_system = status_effects_system
 
-    def use_item(self, item: Item, user: Actor, inventory: Inventory) -> bool:
+    def use_item(self, item: Item, user: Actor, inventory: Inventory, target: Optional[Actor] = None) -> bool:
         """Use an item and apply its effects.
 
         Args:
             item: Item to use
             user: Actor using the item
             inventory: User's inventory
+            target: Optional target actor for targeted items
 
         Returns:
             True if item was used successfully
@@ -45,7 +46,7 @@ class ItemSystem:
         )
 
         # Apply item effect based on type
-        success = self._apply_item_effect(item, user)
+        success = self._apply_item_effect(item, user, target)
 
         # Remove item from inventory if used successfully
         if success:
@@ -53,12 +54,13 @@ class ItemSystem:
 
         return success
 
-    def _apply_item_effect(self, item: Item, user: Actor) -> bool:
+    def _apply_item_effect(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
         """Apply the effect of an item.
 
         Args:
             item: Item being used
             user: Actor using the item
+            target: Optional target actor for targeted items
 
         Returns:
             True if effect was applied successfully
@@ -89,11 +91,11 @@ class ItemSystem:
 
         # Combat scrolls
         elif item_type == ItemType.SCROLL_FIREBALL:
-            return self._apply_fireball(item, user)
+            return self._apply_fireball(item, user, target)
         elif item_type == ItemType.SCROLL_LIGHTNING:
-            return self._apply_lightning(item, user)
+            return self._apply_lightning(item, user, target)
         elif item_type == ItemType.SCROLL_CONFUSION:
-            return self._apply_confusion(item, user)
+            return self._apply_confusion(item, user, target)
 
         # Utility scrolls
         elif item_type == ItemType.SCROLL_TELEPORT:
@@ -218,47 +220,55 @@ class ItemSystem:
         user.defense += item.value
         return True
 
-    def _apply_fireball(self, item: Item, user: Actor) -> bool:
+    def _apply_fireball(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
         """Apply fireball effect.
 
         Args:
             item: Fireball scroll
             user: Actor casting fireball
+            target: Target actor (required)
 
         Returns:
             True if effect was applied
         """
-        # TODO: Implement targeting and AoE damage
+        # TODO: Implement AoE damage around target
+        if not target or not target.is_alive:
+            return False
         return True
 
-    def _apply_lightning(self, item: Item, user: Actor) -> bool:
+    def _apply_lightning(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
         """Apply lightning effect.
 
         Args:
             item: Lightning scroll
             user: Actor casting lightning
+            target: Target actor (required)
 
         Returns:
             True if effect was applied
         """
-        # TODO: Implement targeting and single-target damage
+        # TODO: Implement single-target damage
+        if not target or not target.is_alive:
+            return False
         return True
 
-    def _apply_confusion(self, item: Item, user: Actor) -> bool:
+    def _apply_confusion(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
         """Apply confusion effect.
 
         Args:
             item: Confusion scroll
             user: Actor casting confusion
+            target: Target actor (required for targeted use)
 
         Returns:
             True if effect was applied
         """
-        # TODO: Implement targeting system to confuse enemies instead of self
-        # For now, applying to user for testing purposes
+        if not target or not target.is_alive:
+            return False
+
         if self.status_effects_system:
             return self.status_effects_system.apply_effect(
-                user, "confusion", duration=item.value, power=0
+                target, "confusion", duration=item.value, power=0
             )
         return False
 

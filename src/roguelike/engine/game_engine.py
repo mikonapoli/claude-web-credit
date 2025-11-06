@@ -1,6 +1,6 @@
 """Main game engine."""
 
-from typing import List
+from typing import List, Optional
 
 import tcod.event
 
@@ -16,12 +16,15 @@ from roguelike.engine.events import (
 )
 from roguelike.entities.actor import Actor
 from roguelike.entities.entity import Entity
+from roguelike.entities.item import Item, ItemType
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
+from roguelike.systems.targeting import TargetingSystem
 from roguelike.systems.turn_manager import TurnManager
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.message_log import MessageLog
@@ -52,12 +55,15 @@ class GameEngine:
         self.entities = entities or []
         self.running = False
         self.message_log = MessageLog()
+        self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
 
         # Create event bus and systems
         self.event_bus = EventBus()
         self.combat_system = CombatSystem(self.event_bus)
         self.movement_system = MovementSystem(game_map)
         self.status_effects_system = StatusEffectsSystem(self.event_bus)
+        self.item_system = ItemSystem(self.event_bus, self.status_effects_system)
+        self.targeting_system = TargetingSystem()
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
@@ -133,6 +139,147 @@ class GameEngine:
                 f"{event.entity_name} takes {event.power} poison damage!"
             )
 
+    def _process_turn_after_action(self) -> None:
+        """Process turn effects after an action that consumes a turn.
+
+        This handles status effects and AI turns without requiring
+        the full turn manager flow.
+        """
+        # Process status effects on player
+        if self.status_effects_system:
+            player_died = self.status_effects_system.process_effects(self.player)
+
+            if player_died:
+                # Handle death from status effects
+                self.combat_system.handle_death(self.player, killed_by_player=False)
+                self.player.blocks_movement = False
+                self.running = False  # Game over
+                return
+
+        # Process enemy turns
+        player_died = self.ai_system.process_turns(self.player, self.entities)
+        if player_died:
+            self.running = False  # Game over
+            return
+
+        # Process status effects on monsters
+        if self.status_effects_system:
+            for entity in self.entities:
+                if isinstance(entity, Monster) and entity.is_alive:
+                    died_from_effects = self.status_effects_system.process_effects(entity)
+                    if died_from_effects:
+                        self.combat_system.handle_death(entity, killed_by_player=False)
+                        entity.blocks_movement = False
+
+    def _start_confusion_targeting(self, input_handler: InputHandler) -> None:
+        """Start targeting mode for confusion scroll.
+
+        Args:
+            input_handler: Input handler to set targeting mode
+        """
+        # Check if player has a confusion scroll in inventory
+        confusion_scroll = None
+        for item in self.player.inventory.items:
+            if item.item_type == ItemType.SCROLL_CONFUSION:
+                confusion_scroll = item
+                break
+
+        if not confusion_scroll:
+            self.message_log.add_message("No confusion scroll in inventory!")
+            return
+
+        # Get all living monsters that are visible
+        monsters = [
+            e for e in self.entities
+            if isinstance(e, Monster) and e.is_alive and self.fov_map.is_visible(e.position)
+        ]
+
+        if not monsters:
+            self.message_log.add_message("No visible targets!")
+            return
+
+        # Start targeting with max range of 10
+        max_range = 10
+        if self.targeting_system.start_targeting(
+            self.player.position, max_range, monsters,
+            self.game_map.width, self.game_map.height
+        ):
+            self.active_targeted_item = confusion_scroll
+            input_handler.set_targeting_mode(True)
+            self.message_log.add_message(
+                "Select a target (Tab to cycle, Enter to select, Escape to cancel)"
+            )
+        else:
+            self.message_log.add_message("No targets in range!")
+
+    def _handle_targeting_action(self, action: Action, input_handler: InputHandler) -> None:
+        """Handle actions while in targeting mode.
+
+        Args:
+            action: The action to handle
+            input_handler: Input handler to control targeting mode
+        """
+        # Map movement directions
+        movement_map = {
+            Action.MOVE_UP: (0, -1),
+            Action.MOVE_DOWN: (0, 1),
+            Action.MOVE_LEFT: (-1, 0),
+            Action.MOVE_RIGHT: (1, 0),
+            Action.MOVE_UP_LEFT: (-1, -1),
+            Action.MOVE_UP_RIGHT: (1, -1),
+            Action.MOVE_DOWN_LEFT: (-1, 1),
+            Action.MOVE_DOWN_RIGHT: (1, 1),
+        }
+
+        if action in movement_map:
+            # Move cursor
+            dx, dy = movement_map[action]
+            self.targeting_system.move_cursor(dx, dy)
+
+        elif action == Action.TARGETING_CYCLE_NEXT:
+            # Cycle to next target
+            self.targeting_system.cycle_target(1)
+
+        elif action == Action.TARGETING_CYCLE_PREV:
+            # Cycle to previous target
+            self.targeting_system.cycle_target(-1)
+
+        elif action == Action.TARGETING_SELECT:
+            # Select target and use stored targeted item
+            target = self.targeting_system.select_target()
+            input_handler.set_targeting_mode(False)
+
+            if target and self.active_targeted_item:
+                # Use the stored item on the target
+                success = self.item_system.use_item(
+                    self.active_targeted_item, self.player, self.player.inventory, target=target
+                )
+
+                if success:
+                    self.message_log.add_message(
+                        f"You confuse the {target.name} for 10 turns!"
+                    )
+                    # Item use consumes a turn - process turn effects
+                    self._process_turn_after_action()
+                else:
+                    self.message_log.add_message("Failed to confuse target!")
+
+                # Clear the active item reference
+                self.active_targeted_item = None
+            elif not target:
+                self.message_log.add_message("No target selected!")
+                self.active_targeted_item = None
+            else:
+                self.message_log.add_message("No item to use!")
+                self.active_targeted_item = None
+
+        elif action == Action.TARGETING_CANCEL:
+            # Cancel targeting
+            self.targeting_system.cancel_targeting()
+            input_handler.set_targeting_mode(False)
+            self.active_targeted_item = None
+            self.message_log.add_message("Targeting cancelled.")
+
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
 
@@ -176,6 +323,14 @@ class GameEngine:
                 y=0,
             )
 
+            # Render targeting cursor if in targeting mode
+            if self.targeting_system.is_active:
+                cursor_pos = self.targeting_system.get_cursor_position()
+                target = self.targeting_system.get_current_target()
+                target_name = target.name if target else None
+                if cursor_pos:
+                    renderer.render_targeting_cursor(cursor_pos, target_name)
+
             renderer.present()
 
             # Handle input
@@ -184,13 +339,21 @@ class GameEngine:
 
             action = input_handler.get_action()
             if action:
-                self.running = self.turn_manager.process_turn(
-                    action,
-                    self.player,
-                    self.entities,
-                    self.game_map,
-                    self.fov_map,
-                    self.fov_radius,
-                )
+                # Handle targeting mode actions
+                if self.targeting_system.is_active:
+                    self._handle_targeting_action(action, input_handler)
+                # Handle TEST_CONFUSION action to start targeting
+                elif action == Action.TEST_CONFUSION:
+                    self._start_confusion_targeting(input_handler)
+                # Normal game actions
+                else:
+                    self.running = self.turn_manager.process_turn(
+                        action,
+                        self.player,
+                        self.entities,
+                        self.game_map,
+                        self.fov_map,
+                        self.fov_radius,
+                    )
 
         renderer.close()

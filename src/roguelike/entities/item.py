@@ -63,6 +63,18 @@ class Item(Entity):
         self.item_type = item_type
         self.value = value
 
+    def requires_targeting(self) -> bool:
+        """Check if this item requires targeting before use.
+
+        Returns:
+            True if item needs target selection
+        """
+        return self.item_type in (
+            ItemType.SCROLL_CONFUSION,
+            ItemType.SCROLL_FIREBALL,
+            ItemType.SCROLL_LIGHTNING,
+        )
+
 
 def create_healing_potion(position: Position) -> Item:
     """Create a healing potion.

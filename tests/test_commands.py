@@ -282,3 +282,58 @@ def test_command_executor_no_redo_when_empty():
     executor = CommandExecutor()
     assert not executor.can_redo()
     assert not executor.redo()
+
+
+def test_use_item_command_rejects_targeted_items():
+    """UseItemCommand rejects items that require targeting."""
+    from roguelike.commands.actions import UseItemCommand
+    from roguelike.entities.item import create_scroll_confusion
+    from roguelike.systems.item_system import ItemSystem
+    from roguelike.systems.status_effects import StatusEffectsSystem
+
+    event_bus = EventBus()
+    status_effects_system = StatusEffectsSystem(event_bus)
+    item_system = ItemSystem(event_bus, status_effects_system)
+    player = Player(Position(10, 10))
+
+    # Add a confusion scroll to inventory
+    scroll = create_scroll_confusion(Position(0, 0))
+    player.inventory.add(scroll)
+
+    # Try to use it via UseItemCommand (should fail - requires targeting)
+    cmd = UseItemCommand(player, 0, item_system)
+    result = cmd.execute()
+
+    assert not result.success
+    assert not result.turn_consumed
+    # Item should still be in inventory (not consumed)
+    assert player.inventory.get_item_by_index(0) == scroll
+
+
+def test_use_item_command_allows_non_targeted_items():
+    """UseItemCommand works for items that don't require targeting."""
+    from roguelike.commands.actions import UseItemCommand
+    from roguelike.entities.item import create_healing_potion
+    from roguelike.systems.item_system import ItemSystem
+    from roguelike.systems.status_effects import StatusEffectsSystem
+
+    event_bus = EventBus()
+    status_effects_system = StatusEffectsSystem(event_bus)
+    item_system = ItemSystem(event_bus, status_effects_system)
+    player = Player(Position(10, 10))
+
+    # Damage player so healing works
+    player.take_damage(10)
+
+    # Add a healing potion to inventory
+    potion = create_healing_potion(Position(0, 0))
+    player.inventory.add(potion)
+
+    # Use it via UseItemCommand (should succeed - doesn't require targeting)
+    cmd = UseItemCommand(player, 0, item_system)
+    result = cmd.execute()
+
+    assert result.success
+    assert result.turn_consumed
+    # Item should be consumed (removed from inventory)
+    assert player.inventory.get_item_by_index(0) is None

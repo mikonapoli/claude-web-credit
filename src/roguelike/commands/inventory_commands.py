@@ -113,6 +113,9 @@ class UseItemCommand(Command):
     def execute(self) -> CommandResult:
         """Execute the use item command.
 
+        Note: This command does not support targeted items (confusion/fireball/lightning scrolls).
+        Targeted items must be handled through a targeting flow that provides a target.
+
         Returns:
             CommandResult indicating success/failure
         """
@@ -123,6 +126,11 @@ class UseItemCommand(Command):
 
         # Check if item is in inventory
         if self.item not in inventory.get_items():
+            return CommandResult(success=False, turn_consumed=False)
+
+        # Check if item requires targeting - cannot use via this command
+        if self.item.requires_targeting():
+            # Targeted items need special handling - fail gracefully
             return CommandResult(success=False, turn_consumed=False)
 
         # Apply item effect based on item type

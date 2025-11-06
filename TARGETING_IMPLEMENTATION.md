@@ -177,20 +177,57 @@ All 749 tests pass, including 21 new tests for targeting functionality.
 - `src/roguelike/entities/item.py` - Added requires_targeting() method
 - `src/roguelike/systems/item_system.py` - Added target parameter to use_item()
 
+## Important: UseItemCommand Limitation
+
+**UseItemCommand does NOT support targeted items.** The command pattern is designed for immediate, synchronous execution, which doesn't fit the targeting workflow (select item → enter targeting mode → select target → use item).
+
+**Current behavior:**
+- `UseItemCommand` checks `item.requires_targeting()`
+- If `True`, returns `success=False` without consuming turn or item
+- Item remains in inventory
+- Non-targeted items work normally
+
+**For inventory UI implementation:**
+When implementing inventory UI, check if an item requires targeting before creating a UseItemCommand:
+
+```python
+if item.requires_targeting():
+    # Enter targeting mode, store item reference
+    # When target selected, use: item_system.use_item(item, player, inventory, target=target)
+else:
+    # Use normal UseItemCommand
+    cmd = UseItemCommand(player, item_index, item_system)
+    result = cmd.execute()
+```
+
 ## Commits
 
 1. **Add TargetingSystem with comprehensive tests** - Core targeting logic
 2. **Add targeting mode input handling** - Input processing for targeting
 3. **Add targeting cursor rendering to Renderer** - Visual feedback
 4. **Add targeted item support for confusion scrolls** - Item system integration
+5. **Add test key binding for confusion scroll targeting** - Game integration with 'C' key
+6. **Add comprehensive targeting implementation documentation** - Usage guide
+7. **Add comprehensive testing guide for targeting system** - Manual testing guide
+8. **Fix turn consumption bug in targeting system** - Enemies act after item use
+9. **Prevent UseItemCommand from using targeted items** - Graceful failure for targeted items
 
-## Next Steps
+## Integration Status
 
-To complete the integration:
-1. Add targeting state management to GameEngine
-2. Create inventory UI or simple test key binding
-3. Connect targeting input/rendering to game loop
-4. Test in-game with real monsters
-5. Add visual polish (range indicators, better cursor, etc.)
+### ✅ Complete
+- Core targeting system with full test coverage
+- Input handling for targeting mode
+- UI rendering with targeting cursor
+- Item targeting support (confusion, fireball, lightning)
+- Turn consumption properly integrated
+- UseItemCommand protections for targeted items
+- Test key binding ('C') for demonstration
+- **751 tests passing** (21 targeting-specific tests)
 
-The core system is complete, tested, and ready to integrate!
+### ⏳ Pending
+- Full inventory UI with targeting integration
+- Visual range indicators
+- AoE targeting for fireball
+- Beam targeting for lightning
+
+The core system is complete, tested, and ready to use via the 'C' test key!

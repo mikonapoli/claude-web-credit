@@ -7,8 +7,10 @@ import tcod.event
 from roguelike.engine.events import (
     EventBus,
     CombatEvent,
+    CraftingAttemptEvent,
     DeathEvent,
     LevelUpEvent,
+    RecipeDiscoveredEvent,
     XPGainEvent,
     StatusEffectAppliedEvent,
     StatusEffectExpiredEvent,
@@ -19,13 +21,17 @@ from roguelike.entities.entity import Entity
 from roguelike.entities.item import Item, ItemType
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
+from roguelike.data.recipe_loader import RecipeLoader
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.crafting import CraftingSystem
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
 from roguelike.systems.turn_manager import TurnManager
+from roguelike.commands.crafting_commands import CraftItemsCommand
+from roguelike.ui.crafting_menu import CraftingMenu
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
@@ -56,6 +62,7 @@ class GameEngine:
         self.running = False
         self.message_log = MessageLog()
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.crafting_menu: Optional[CraftingMenu] = None  # Track active crafting menu
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -64,6 +71,8 @@ class GameEngine:
         self.status_effects_system = StatusEffectsSystem(self.event_bus)
         self.item_system = ItemSystem(self.event_bus, self.status_effects_system)
         self.targeting_system = TargetingSystem()
+        self.recipe_loader = RecipeLoader()
+        self.crafting_system = CraftingSystem(self.recipe_loader, self.event_bus)
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
@@ -95,6 +104,8 @@ class GameEngine:
         self.event_bus.subscribe("status_effect_applied", self._on_status_effect_applied)
         self.event_bus.subscribe("status_effect_expired", self._on_status_effect_expired)
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
+        self.event_bus.subscribe("crafting_attempt", self._on_crafting_attempt)
+        self.event_bus.subscribe("recipe_discovered", self._on_recipe_discovered)
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
@@ -139,6 +150,24 @@ class GameEngine:
                 f"{event.entity_name} takes {event.power} poison damage!"
             )
 
+    def _on_crafting_attempt(self, event: CraftingAttemptEvent) -> None:
+        """Handle crafting attempt event."""
+        if event.success:
+            self.message_log.add_message(
+                f"You craft {event.result_name}!"
+            )
+        else:
+            ingredient_list = ", ".join(event.ingredient_names)
+            self.message_log.add_message(
+                f"No recipe found for: {ingredient_list}"
+            )
+
+    def _on_recipe_discovered(self, event: RecipeDiscoveredEvent) -> None:
+        """Handle recipe discovered event."""
+        self.message_log.add_message(
+            f"New recipe discovered: {event.recipe_name}!"
+        )
+
     def _process_turn_after_action(self) -> None:
         """Process turn effects after an action that consumes a turn.
 
@@ -170,6 +199,63 @@ class GameEngine:
                     if died_from_effects:
                         self.combat_system.handle_death(entity, killed_by_player=False)
                         entity.blocks_movement = False
+
+    def _open_crafting_menu(self, renderer: Renderer) -> None:
+        """Open the crafting menu.
+
+        Args:
+            renderer: Renderer for getting console dimensions
+        """
+        self.crafting_menu = CraftingMenu(
+            crafter=self.player,
+            crafting_system=self.crafting_system,
+            console_width=renderer.width,
+            console_height=renderer.height,
+        )
+        self.message_log.add_message("Opened crafting menu (R to close)")
+
+    def _close_crafting_menu(self) -> None:
+        """Close the crafting menu."""
+        self.crafting_menu = None
+        self.message_log.add_message("Closed crafting menu")
+
+    def _handle_crafting_menu_action(self, key: int) -> None:
+        """Handle actions while in crafting menu.
+
+        Args:
+            key: Key code
+        """
+        if not self.crafting_menu:
+            return
+
+        action = self.crafting_menu.handle_key(key)
+
+        if action == "close":
+            self._close_crafting_menu()
+        elif action == "craft":
+            # Attempt to craft with selected ingredients
+            selected = self.crafting_menu.selected_ingredients
+
+            if not selected:
+                self.message_log.add_message("No ingredients selected!")
+                return
+
+            # Create and execute craft command
+            craft_command = CraftItemsCommand(
+                crafter=self.player,
+                ingredients=selected,
+                crafting_system=self.crafting_system,
+                entities=self.entities,
+            )
+
+            result = craft_command.execute()
+
+            if result.success:
+                # Clear selection after successful craft
+                self.crafting_menu.clear_selection()
+                # Process turn effects
+                self._process_turn_after_action()
+            # Messages are handled by event system
 
     def _start_confusion_targeting(self, input_handler: InputHandler) -> None:
         """Start targeting mode for confusion scroll.
@@ -331,22 +417,36 @@ class GameEngine:
                 if cursor_pos:
                     renderer.render_targeting_cursor(cursor_pos, target_name)
 
+            # Render crafting menu if open
+            if self.crafting_menu:
+                self.crafting_menu.render(renderer.console)
+
             renderer.present()
 
             # Handle input
             for event in tcod.event.wait():
-                input_handler.dispatch(event)
+                # Handle crafting menu input separately
+                if self.crafting_menu and isinstance(event, tcod.event.KeyDown):
+                    self._handle_crafting_menu_action(event.sym)
+                else:
+                    input_handler.dispatch(event)
 
             action = input_handler.get_action()
             if action:
+                # Handle crafting menu open action
+                if action == Action.CRAFT:
+                    if self.crafting_menu:
+                        self._close_crafting_menu()
+                    else:
+                        self._open_crafting_menu(renderer)
                 # Handle targeting mode actions
-                if self.targeting_system.is_active:
+                elif self.targeting_system.is_active:
                     self._handle_targeting_action(action, input_handler)
                 # Handle TEST_CONFUSION action to start targeting
                 elif action == Action.TEST_CONFUSION:
                     self._start_confusion_targeting(input_handler)
-                # Normal game actions
-                else:
+                # Normal game actions (only if not in crafting menu)
+                elif not self.crafting_menu:
                     self.running = self.turn_manager.process_turn(
                         action,
                         self.player,

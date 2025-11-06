@@ -21,6 +21,8 @@ class Action(Enum):
     DESCEND_STAIRS = "descend_stairs"
     PICKUP = "pickup"
     INVENTORY = "inventory"
+    INVENTORY_USE = "inventory_use"
+    INVENTORY_DROP = "inventory_drop"
     QUIT = "quit"
     TARGETING_SELECT = "targeting_select"
     TARGETING_CANCEL = "targeting_cancel"
@@ -36,6 +38,9 @@ class InputHandler(tcod.event.EventDispatch):
         """Initialize the input handler."""
         self.last_action: Optional[Action] = None
         self.targeting_mode: bool = False
+        self.inventory_mode: bool = False
+        self.inventory_drop_mode: bool = False
+        self.selected_item_letter: Optional[str] = None
 
     def ev_quit(self, event: tcod.event.Quit) -> None:
         """Handle quit event.
@@ -56,6 +61,11 @@ class InputHandler(tcod.event.EventDispatch):
         # Targeting mode has different key bindings
         if self.targeting_mode:
             self._handle_targeting_keys(event)
+            return
+
+        # Inventory mode has different key bindings
+        if self.inventory_mode:
+            self._handle_inventory_keys(event)
             return
 
         # Movement keys (vi keys and arrow keys)
@@ -144,6 +154,37 @@ class InputHandler(tcod.event.EventDispatch):
         elif key == tcod.event.KeySym.ESCAPE:
             self.last_action = Action.TARGETING_CANCEL
 
+    def _handle_inventory_keys(self, event: tcod.event.KeyDown) -> None:
+        """Handle keydown in inventory mode.
+
+        Args:
+            event: KeyDown event
+        """
+        key = event.sym
+
+        # Escape closes inventory
+        if key == tcod.event.KeySym.ESCAPE:
+            self.last_action = Action.INVENTORY
+            return
+
+        # Check if 'd' is pressed (drop mode)
+        if key == tcod.event.KeySym.D:
+            self.inventory_drop_mode = True
+            return
+
+        # Check for letter keys (a-z)
+        if tcod.event.KeySym.A <= key <= tcod.event.KeySym.Z:
+            # Convert key to letter
+            letter = chr(key).lower()
+            self.selected_item_letter = letter
+
+            # Determine action based on mode
+            if self.inventory_drop_mode:
+                self.last_action = Action.INVENTORY_DROP
+                self.inventory_drop_mode = False  # Reset drop mode
+            else:
+                self.last_action = Action.INVENTORY_USE
+
     def set_targeting_mode(self, enabled: bool) -> None:
         """Enable or disable targeting mode.
 
@@ -151,6 +192,27 @@ class InputHandler(tcod.event.EventDispatch):
             enabled: True to enable targeting mode
         """
         self.targeting_mode = enabled
+
+    def set_inventory_mode(self, enabled: bool) -> None:
+        """Enable or disable inventory mode.
+
+        Args:
+            enabled: True to enable inventory mode
+        """
+        self.inventory_mode = enabled
+        if not enabled:
+            self.inventory_drop_mode = False
+            self.selected_item_letter = None
+
+    def get_selected_item_letter(self) -> Optional[str]:
+        """Get the selected item letter and clear it.
+
+        Returns:
+            Selected item letter or None
+        """
+        letter = self.selected_item_letter
+        self.selected_item_letter = None
+        return letter
 
     def get_action(self) -> Optional[Action]:
         """Get the last action and clear it.

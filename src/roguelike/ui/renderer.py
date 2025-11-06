@@ -1,12 +1,14 @@
 """Rendering system using tcod."""
 
-from typing import Optional
+from typing import Optional, List
 
 import tcod
 
 from roguelike.entities.entity import Entity
+from roguelike.entities.item import Item
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.health_bar_renderer import HealthBarRenderer
+from roguelike.ui.inventory_ui import InventoryUI
 from roguelike.utils.position import Position
 from roguelike.utils.protocols import HealthBarRenderable
 from roguelike.world.fov import FOVMap
@@ -270,6 +272,60 @@ class Renderer:
         color = self.health_bar_renderer.get_health_color(fill_percentage)
 
         self.console.print(x, y, health_text, fg=color)
+
+    def render_inventory(
+        self,
+        inventory_ui: InventoryUI,
+        items: List[Item],
+        title: str = "Inventory"
+    ) -> None:
+        """Render the inventory overlay.
+
+        Args:
+            inventory_ui: Inventory UI instance
+            items: List of items to display
+            title: Title for inventory panel
+        """
+        # Calculate centered position
+        x, y = inventory_ui.calculate_position(self.width, self.height)
+
+        # Draw panel background (black with border)
+        for py in range(inventory_ui.height):
+            for px in range(inventory_ui.width):
+                self.console.print(x + px, y + py, " ", bg=(0, 0, 0))
+
+        # Draw border
+        for px in range(inventory_ui.width):
+            self.console.print(x + px, y, "─", fg=(255, 255, 255))
+            self.console.print(x + px, y + inventory_ui.height - 1, "─", fg=(255, 255, 255))
+        for py in range(inventory_ui.height):
+            self.console.print(x, y + py, "│", fg=(255, 255, 255))
+            self.console.print(x + inventory_ui.width - 1, y + py, "│", fg=(255, 255, 255))
+
+        # Draw corners
+        self.console.print(x, y, "┌", fg=(255, 255, 255))
+        self.console.print(x + inventory_ui.width - 1, y, "┐", fg=(255, 255, 255))
+        self.console.print(x, y + inventory_ui.height - 1, "└", fg=(255, 255, 255))
+        self.console.print(x + inventory_ui.width - 1, y + inventory_ui.height - 1, "┘", fg=(255, 255, 255))
+
+        # Draw title
+        title_x = x + (inventory_ui.width - len(title)) // 2
+        self.console.print(title_x, y, title, fg=(255, 255, 0))
+
+        # Draw instructions
+        instructions = "[ESC] Close  [a-z] Use  [d+a-z] Drop"
+        instr_x = x + 2
+        instr_y = y + inventory_ui.height - 2
+        self.console.print(instr_x, instr_y, instructions, fg=(128, 128, 128))
+
+        # Draw items
+        display_lines = inventory_ui.get_display_lines(items)
+        items_y = y + 2
+
+        for i, line in enumerate(display_lines):
+            if items_y + i >= y + inventory_ui.height - 3:  # Leave room for border and instructions
+                break
+            self.console.print(x + 2, items_y + i, line, fg=(255, 255, 255))
 
     def present(self) -> None:
         """Present the console to the screen."""

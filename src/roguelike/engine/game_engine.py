@@ -27,6 +27,7 @@ from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
 from roguelike.systems.turn_manager import TurnManager
 from roguelike.ui.input_handler import Action, InputHandler
+from roguelike.ui.inventory_ui import InventoryUI
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
@@ -56,6 +57,8 @@ class GameEngine:
         self.running = False
         self.message_log = MessageLog()
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.inventory_ui = InventoryUI(width=50, height=30)
+        self.inventory_open = False
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -280,6 +283,126 @@ class GameEngine:
             self.active_targeted_item = None
             self.message_log.add_message("Targeting cancelled.")
 
+    def _handle_inventory_action(self, action: Action, input_handler: InputHandler) -> None:
+        """Handle actions while in inventory mode.
+
+        Args:
+            action: The action to handle
+            input_handler: Input handler to control inventory mode
+        """
+        from roguelike.commands.inventory_commands import UseItemCommand, DropItemCommand
+        from roguelike.components.inventory import InventoryComponent
+
+        if action == Action.INVENTORY:
+            # Toggle inventory
+            self.inventory_open = not self.inventory_open
+            input_handler.set_inventory_mode(self.inventory_open)
+            return
+
+        if action == Action.INVENTORY_USE:
+            # Get selected item letter
+            letter = input_handler.get_selected_item_letter()
+            if not letter:
+                return
+
+            # Get player inventory
+            inventory = self.player.get_component(InventoryComponent)
+            if not inventory:
+                self.message_log.add_message("No inventory!")
+                return
+
+            # Get item by letter
+            items = inventory.get_items()
+            item = self.inventory_ui.get_item_by_letter(items, letter)
+
+            if not item:
+                self.message_log.add_message("Invalid item selection!")
+                return
+
+            # Check if item requires targeting
+            if item.requires_targeting():
+                # Close inventory and start targeting
+                self.inventory_open = False
+                input_handler.set_inventory_mode(False)
+
+                # Start targeting for the item
+                self._start_item_targeting(item, input_handler)
+                return
+
+            # Use the item directly (non-targeted items)
+            use_command = UseItemCommand(self.player, item)
+            result = use_command.execute()
+
+            if result.success:
+                self.message_log.add_message(f"You use {item.name}.")
+                # Close inventory after successful use
+                self.inventory_open = False
+                input_handler.set_inventory_mode(False)
+                # Process turn effects
+                self._process_turn_after_action()
+            else:
+                self.message_log.add_message(f"Cannot use {item.name}!")
+
+        elif action == Action.INVENTORY_DROP:
+            # Get selected item letter
+            letter = input_handler.get_selected_item_letter()
+            if not letter:
+                return
+
+            # Get player inventory
+            inventory = self.player.get_component(InventoryComponent)
+            if not inventory:
+                self.message_log.add_message("No inventory!")
+                return
+
+            # Get item by letter
+            items = inventory.get_items()
+            item = self.inventory_ui.get_item_by_letter(items, letter)
+
+            if not item:
+                self.message_log.add_message("Invalid item selection!")
+                return
+
+            # Drop the item
+            drop_command = DropItemCommand(self.player, item, self.entities)
+            result = drop_command.execute()
+
+            if result.success:
+                self.message_log.add_message(f"You drop {item.name}.")
+            else:
+                self.message_log.add_message(f"Cannot drop {item.name}!")
+
+    def _start_item_targeting(self, item: Item, input_handler: InputHandler) -> None:
+        """Start targeting mode for an item.
+
+        Args:
+            item: Item requiring targeting
+            input_handler: Input handler to set targeting mode
+        """
+        # Get all living monsters that are visible
+        monsters = [
+            e for e in self.entities
+            if isinstance(e, Monster) and e.is_alive and self.fov_map.is_visible(e.position)
+        ]
+
+        if not monsters:
+            self.message_log.add_message("No visible targets!")
+            return
+
+        # Start targeting with max range of 10
+        max_range = 10
+        if self.targeting_system.start_targeting(
+            self.player.position, max_range, monsters,
+            self.game_map.width, self.game_map.height
+        ):
+            self.active_targeted_item = item
+            input_handler.set_targeting_mode(True)
+            self.message_log.add_message(
+                "Select a target (Tab to cycle, Enter to select, Escape to cancel)"
+            )
+        else:
+            self.message_log.add_message("No targets in range!")
+
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
 
@@ -337,11 +460,22 @@ class GameEngine:
             for event in tcod.event.wait():
                 input_handler.dispatch(event)
 
+            # Render inventory overlay if open
+            if self.inventory_open:
+                from roguelike.components.inventory import InventoryComponent
+                inventory = self.player.get_component(InventoryComponent)
+                if inventory:
+                    items = inventory.get_items()
+                    renderer.render_inventory(self.inventory_ui, items)
+
             action = input_handler.get_action()
             if action:
                 # Handle targeting mode actions
                 if self.targeting_system.is_active:
                     self._handle_targeting_action(action, input_handler)
+                # Handle inventory actions
+                elif action in (Action.INVENTORY, Action.INVENTORY_USE, Action.INVENTORY_DROP):
+                    self._handle_inventory_action(action, input_handler)
                 # Handle TEST_CONFUSION action to start targeting
                 elif action == Action.TEST_CONFUSION:
                     self._start_confusion_targeting(input_handler)

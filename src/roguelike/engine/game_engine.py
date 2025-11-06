@@ -1,6 +1,6 @@
 """Main game engine."""
 
-from typing import List
+from typing import List, Optional
 
 import tcod.event
 
@@ -16,6 +16,7 @@ from roguelike.engine.events import (
 )
 from roguelike.entities.actor import Actor
 from roguelike.entities.entity import Entity
+from roguelike.entities.item import Item, ItemType
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
@@ -54,6 +55,7 @@ class GameEngine:
         self.entities = entities or []
         self.running = False
         self.message_log = MessageLog()
+        self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -175,6 +177,17 @@ class GameEngine:
         Args:
             input_handler: Input handler to set targeting mode
         """
+        # Check if player has a confusion scroll in inventory
+        confusion_scroll = None
+        for item in self.player.inventory.items:
+            if item.item_type == ItemType.SCROLL_CONFUSION:
+                confusion_scroll = item
+                break
+
+        if not confusion_scroll:
+            self.message_log.add_message("No confusion scroll in inventory!")
+            return
+
         # Get all living monsters that are visible
         monsters = [
             e for e in self.entities
@@ -191,6 +204,7 @@ class GameEngine:
             self.player.position, max_range, monsters,
             self.game_map.width, self.game_map.height
         ):
+            self.active_targeted_item = confusion_scroll
             input_handler.set_targeting_mode(True)
             self.message_log.add_message(
                 "Select a target (Tab to cycle, Enter to select, Escape to cancel)"
@@ -231,18 +245,14 @@ class GameEngine:
             self.targeting_system.cycle_target(-1)
 
         elif action == Action.TARGETING_SELECT:
-            # Select target and use confusion scroll
+            # Select target and use stored targeted item
             target = self.targeting_system.select_target()
             input_handler.set_targeting_mode(False)
 
-            if target:
-                # Create a test confusion scroll
-                from roguelike.entities.item import create_scroll_confusion
-                scroll = create_scroll_confusion(Position(0, 0))
-
-                # Use the scroll on the target
+            if target and self.active_targeted_item:
+                # Use the stored item on the target
                 success = self.item_system.use_item(
-                    scroll, self.player, self.player.inventory, target=target
+                    self.active_targeted_item, self.player, self.player.inventory, target=target
                 )
 
                 if success:
@@ -253,13 +263,21 @@ class GameEngine:
                     self._process_turn_after_action()
                 else:
                     self.message_log.add_message("Failed to confuse target!")
-            else:
+
+                # Clear the active item reference
+                self.active_targeted_item = None
+            elif not target:
                 self.message_log.add_message("No target selected!")
+                self.active_targeted_item = None
+            else:
+                self.message_log.add_message("No item to use!")
+                self.active_targeted_item = None
 
         elif action == Action.TARGETING_CANCEL:
             # Cancel targeting
             self.targeting_system.cancel_targeting()
             input_handler.set_targeting_mode(False)
+            self.active_targeted_item = None
             self.message_log.add_message("Targeting cancelled.")
 
     def run(self, renderer: Renderer) -> None:

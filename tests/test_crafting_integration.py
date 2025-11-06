@@ -64,13 +64,19 @@ def test_craft_command_with_valid_recipe():
 
 
 def test_craft_command_with_invalid_recipe():
-    """CraftCommand fails with invalid recipe combination."""
+    """CraftCommand fails with invalid recipe combination.
+
+    IMPORTANT: Failed crafts must still consume a turn (turn_consumed=True).
+    This prevents players from retrying bad combinations indefinitely without
+    enemies acting or status effects ticking. The game engine must respect
+    the turn_consumed flag regardless of success/failure.
+    """
     # Create crafter with inventory
     crafter = ComponentEntity(position=Position(0, 0), char="@", name="Player")
     inventory = InventoryComponent(capacity=10)
     crafter.add_component(inventory)
 
-    # Create incompatible ingredients
+    # Create incompatible ingredients (two herbs - no valid recipe)
     herb1 = ComponentEntity(position=Position(0, 0), char="%", name="Herb1")
     herb1.add_component(CraftingComponent(tags={"herbal"}, consumable=True))
     herb2 = ComponentEntity(position=Position(0, 0), char="%", name="Herb2")
@@ -101,9 +107,13 @@ def test_craft_command_with_invalid_recipe():
     )
     result = command.execute()
 
-    # Verify failure
+    # Verify failure but turn consumption
     assert result.success is False
-    assert result.turn_consumed is True  # Still consumes a turn
+    assert result.turn_consumed is True  # Critical: failed crafts must consume turn
+
+    # Verify nothing was consumed (ingredients remain)
+    assert herb1 in inventory.get_items()
+    assert herb2 in inventory.get_items()
 
 
 def test_recipe_discovery_on_first_craft():

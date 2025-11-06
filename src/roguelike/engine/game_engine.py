@@ -253,7 +253,9 @@ class GameEngine:
             if result.success:
                 # Clear selection after successful craft
                 self.crafting_menu.clear_selection()
-                # Process turn effects
+
+            # Process turn effects if turn was consumed (both success and failure)
+            if result.turn_consumed:
                 self._process_turn_after_action()
             # Messages are handled by event system
 

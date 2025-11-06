@@ -185,11 +185,15 @@ class TurnManager:
         if turn_consumed and player.is_alive:
             # Process status effects on player
             if self.status_effects_system:
-                self.status_effects_system.process_effects(player)
+                player_died_from_poison = self.status_effects_system.process_effects(player)
 
-            # Check if player died from status effects
-            if not player.is_alive:
-                return False  # Game over
+                # Check if player died from status effects
+                if player_died_from_poison:
+                    # Handle death from poison
+                    self.combat_system.handle_death(player, killed_by_player=False)
+                    # Corpses don't block movement
+                    player.blocks_movement = False
+                    return False  # Game over
 
             # Process enemy turns
             player_died = self.ai_system.process_turns(player, entities)
@@ -200,6 +204,11 @@ class TurnManager:
             if self.status_effects_system:
                 for entity in entities:
                     if isinstance(entity, Monster) and entity.is_alive:
-                        self.status_effects_system.process_effects(entity)
+                        died_from_poison = self.status_effects_system.process_effects(entity)
+                        if died_from_poison:
+                            # Handle death from poison
+                            self.combat_system.handle_death(entity, killed_by_player=False)
+                            # Corpses don't block movement
+                            entity.blocks_movement = False
 
         return True

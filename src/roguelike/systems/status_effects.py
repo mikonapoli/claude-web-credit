@@ -95,7 +95,7 @@ class StatusEffectsSystem:
 
         return False
 
-    def process_effects(self, entity: ComponentEntity | Actor) -> None:
+    def process_effects(self, entity: ComponentEntity | Actor) -> bool:
         """Process all status effects on an entity for one turn.
 
         Applies per-turn effects (like poison damage), emits tick events,
@@ -103,6 +103,9 @@ class StatusEffectsSystem:
 
         Args:
             entity: Entity whose effects to process
+
+        Returns:
+            True if the entity died from status effects
         """
         # Get status effects component
         status_comp = None
@@ -112,12 +115,18 @@ class StatusEffectsSystem:
             status_comp = entity._status_effects
 
         if status_comp is None:
-            return
+            return False
+
+        entity_died = False
 
         # Process each active effect
         for effect in status_comp.get_all_effects():
             # Apply effect-specific behavior
-            self._apply_effect_behavior(entity, effect.effect_type, effect.power)
+            died = self._apply_effect_behavior(entity, effect.effect_type, effect.power)
+            if died:
+                entity_died = True
+                # Don't process more effects if entity died
+                break
 
             # Emit tick event
             self.event_bus.emit(
@@ -128,6 +137,11 @@ class StatusEffectsSystem:
                     remaining_duration=effect.duration - 1,
                 )
             )
+
+        # If entity died, clear all effects and don't tick durations
+        if entity_died:
+            status_comp.clear_all_effects()
+            return True
 
         # Tick durations and get expired effects
         expired = status_comp.tick_durations()
@@ -140,39 +154,52 @@ class StatusEffectsSystem:
                 )
             )
 
+        return False
+
     def _apply_effect_behavior(
         self, entity: ComponentEntity | Actor, effect_type: str, power: int
-    ) -> None:
+    ) -> bool:
         """Apply effect-specific behavior each turn.
 
         Args:
             entity: Entity affected
             effect_type: Type of effect to apply
             power: Effect strength
+
+        Returns:
+            True if the entity died from the effect
         """
         if effect_type == "poison":
-            self._apply_poison(entity, power)
+            return self._apply_poison(entity, power)
         # Confusion and invisibility don't have per-turn damage
         # They are handled by checking has_effect in other systems
+        return False
 
-    def _apply_poison(self, entity: ComponentEntity | Actor, damage: int) -> None:
+    def _apply_poison(self, entity: ComponentEntity | Actor, damage: int) -> bool:
         """Apply poison damage to an entity.
 
         Args:
             entity: Entity to damage
             damage: Amount of poison damage per turn
+
+        Returns:
+            True if the entity died from poison damage
         """
         if damage <= 0:
-            return
+            return False
 
         # Try ComponentEntity with HealthComponent
         if isinstance(entity, ComponentEntity):
             health = entity.get_component(HealthComponent)
             if health:
                 health.take_damage(damage)
+                return not health.is_alive
         # Try Actor with take_damage method
         elif isinstance(entity, Actor):
             entity.take_damage(damage)
+            return not entity.is_alive
+
+        return False
 
     def has_effect(self, entity: ComponentEntity | Actor, effect_type: str) -> bool:
         """Check if entity has a specific status effect.

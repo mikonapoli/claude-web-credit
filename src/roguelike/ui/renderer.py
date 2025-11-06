@@ -54,8 +54,8 @@ class Renderer:
             vsync=True,
         )
 
-        # Create health bar renderer
-        self.health_bar_renderer = HealthBarRenderer(bar_width=10)
+        # Create health bar renderer with smaller width for less invasive display
+        self.health_bar_renderer = HealthBarRenderer(bar_width=5)
 
     def clear(self) -> None:
         """Clear the console."""
@@ -247,6 +247,29 @@ class Renderer:
             name_y = max(0, position.y - 1)
             name_x = max(0, min(position.x, self.width - len(target_name)))
             self.console.print(name_x, name_y, target_name, fg=(255, 255, 0))
+    def render_player_stats(
+        self,
+        player: HealthBarRenderable,
+        x: int,
+        y: int,
+    ) -> None:
+        """Render player stats as text (health, etc.).
+
+        Args:
+            player: Player entity with health stats
+            x: X position for stats display
+            y: Y position for stats display
+        """
+        # Render health as "Health: X/Y"
+        health_text = f"Health: {player.hp}/{player.max_hp}"
+
+        # Color based on health percentage
+        fill_percentage = self.health_bar_renderer.calculate_fill_percentage(
+            player.hp, player.max_hp
+        )
+        color = self.health_bar_renderer.get_health_color(fill_percentage)
+
+        self.console.print(x, y, health_text, fg=color)
 
     def present(self) -> None:
         """Present the console to the screen."""

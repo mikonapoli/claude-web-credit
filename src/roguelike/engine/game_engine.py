@@ -13,6 +13,8 @@ from roguelike.engine.events import (
     StatusEffectAppliedEvent,
     StatusEffectExpiredEvent,
     StatusEffectTickEvent,
+    SpellCastEvent,
+    ManaChangedEvent,
 )
 from roguelike.entities.actor import Actor
 from roguelike.entities.entity import Entity
@@ -22,10 +24,13 @@ from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.item_system import ItemSystem
+from roguelike.systems.magic_system import MagicSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
 from roguelike.systems.turn_manager import TurnManager
+from roguelike.data.spell_loader import SpellLoader
+from roguelike.magic.effects import DamageEffect, HealEffect, BuffEffect
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
@@ -56,6 +61,7 @@ class GameEngine:
         self.running = False
         self.message_log = MessageLog()
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.active_spell_id: Optional[str] = None  # Track spell being cast with targeting
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -64,12 +70,20 @@ class GameEngine:
         self.status_effects_system = StatusEffectsSystem(self.event_bus)
         self.item_system = ItemSystem(self.event_bus, self.status_effects_system)
         self.targeting_system = TargetingSystem()
+        self.magic_system = MagicSystem(self.event_bus)
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
         self.turn_manager = TurnManager(
-            self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
+            self.combat_system, self.movement_system, self.ai_system, self.status_effects_system, self.magic_system
         )
+
+        # Load spells and register spell effects
+        self.spell_loader = SpellLoader()
+        self._register_spell_effects()
+
+        # Give player starting spells
+        self._initialize_player_spells()
 
         # Subscribe to events for message logging
         self._setup_event_subscribers()
@@ -95,6 +109,34 @@ class GameEngine:
         self.event_bus.subscribe("status_effect_applied", self._on_status_effect_applied)
         self.event_bus.subscribe("status_effect_expired", self._on_status_effect_expired)
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
+        self.event_bus.subscribe("spell_cast", self._on_spell_cast_event)
+        self.event_bus.subscribe("mana_changed", self._on_mana_changed_event)
+
+    def _register_spell_effects(self) -> None:
+        """Register spell effects for all known spells."""
+        # Register damage spells
+        self.magic_system.register_spell_effect("magic_missile", DamageEffect())
+        self.magic_system.register_spell_effect("fireball", DamageEffect())
+        self.magic_system.register_spell_effect("lightning_bolt", DamageEffect())
+        self.magic_system.register_spell_effect("frost_nova", DamageEffect())
+
+        # Register healing spell
+        self.magic_system.register_spell_effect("heal", HealEffect())
+
+        # Register buff spells
+        self.magic_system.register_spell_effect("shield", BuffEffect(buff_amount=3))
+        self.magic_system.register_spell_effect("strength", BuffEffect(buff_amount=4))
+
+    def _initialize_player_spells(self) -> None:
+        """Give player starting spells."""
+        # Give player a basic spell to start with
+        magic_missile = self.spell_loader.get_spell("magic_missile")
+        heal = self.spell_loader.get_spell("heal")
+
+        if magic_missile:
+            self.player.spells.learn_spell(magic_missile)
+        if heal:
+            self.player.spells.learn_spell(heal)
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
@@ -139,6 +181,20 @@ class GameEngine:
                 f"{event.entity_name} takes {event.power} poison damage!"
             )
 
+    def _on_spell_cast_event(self, event: SpellCastEvent) -> None:
+        """Handle spell cast event."""
+        self.message_log.add_message(
+            f"{event.caster_name} casts {event.spell_name}! ({event.mana_cost} MP)"
+        )
+        if event.effect_message:
+            self.message_log.add_message(event.effect_message)
+
+    def _on_mana_changed_event(self, event: ManaChangedEvent) -> None:
+        """Handle mana changed event."""
+        # Only log mana changes for debugging, or omit entirely
+        # Most games don't log every mana change
+        pass
+
     def _process_turn_after_action(self) -> None:
         """Process turn effects after an action that consumes a turn.
 
@@ -170,6 +226,61 @@ class GameEngine:
                     if died_from_effects:
                         self.combat_system.handle_death(entity, killed_by_player=False)
                         entity.blocks_movement = False
+
+    def _start_spell_targeting(self, spell_id: str, input_handler: InputHandler) -> None:
+        """Start targeting mode for a spell.
+
+        Args:
+            spell_id: ID of spell to cast
+            input_handler: Input handler to set targeting mode
+        """
+        # Get spell from player's known spells
+        spell = self.player.spells.get_spell(spell_id)
+        if not spell:
+            self.message_log.add_message(f"You don't know that spell!")
+            return
+
+        # Check if player can cast spell
+        can_cast, reason = self.magic_system.can_cast_spell(
+            self.player, spell, self.player.mana, self.player.spells
+        )
+        if not can_cast:
+            self.message_log.add_message(reason)
+            return
+
+        # Handle self-targeted spells (like Heal)
+        if spell.target_type.value == "SELF":
+            result = self.magic_system.cast_spell(
+                self.player, self.player, spell, self.player.mana, self.player.spells
+            )
+            if result.success:
+                # Casting a spell consumes a turn
+                self._process_turn_after_action()
+            return
+
+        # For targeted spells, start targeting mode
+        # Get all living monsters that are visible
+        monsters = [
+            e for e in self.entities
+            if isinstance(e, Monster) and e.is_alive and self.fov_map.is_visible(e.position)
+        ]
+
+        if not monsters:
+            self.message_log.add_message("No visible targets!")
+            return
+
+        # Start targeting with spell range
+        if self.targeting_system.start_targeting(
+            self.player.position, spell.range, monsters,
+            self.game_map.width, self.game_map.height
+        ):
+            self.active_spell_id = spell_id
+            input_handler.set_targeting_mode(True)
+            self.message_log.add_message(
+                f"Casting {spell.name}... Select target (Tab to cycle, Enter to select, Escape to cancel)"
+            )
+        else:
+            self.message_log.add_message("No targets in range!")
 
     def _start_confusion_targeting(self, input_handler: InputHandler) -> None:
         """Start targeting mode for confusion scroll.
@@ -245,11 +356,34 @@ class GameEngine:
             self.targeting_system.cycle_target(-1)
 
         elif action == Action.TARGETING_SELECT:
-            # Select target and use stored targeted item
+            # Select target and use stored targeted item or cast spell
             target = self.targeting_system.select_target()
             input_handler.set_targeting_mode(False)
 
-            if target and self.active_targeted_item:
+            # Handle spell casting
+            if target and self.active_spell_id:
+                spell = self.player.spells.get_spell(self.active_spell_id)
+                if spell:
+                    result = self.magic_system.cast_spell(
+                        self.player, target, spell, self.player.mana, self.player.spells
+                    )
+
+                    if result.success:
+                        # Handle target death
+                        if result.target_died:
+                            self.combat_system.handle_death(target, killed_by_player=True)
+                            self.combat_system.award_xp(self.player, target.xp_value)
+                            target.blocks_movement = False
+
+                        # Casting a spell consumes a turn
+                        self._process_turn_after_action()
+                    else:
+                        self.message_log.add_message(result.message)
+
+                self.active_spell_id = None
+
+            # Handle item usage
+            elif target and self.active_targeted_item:
                 # Use the stored item on the target
                 success = self.item_system.use_item(
                     self.active_targeted_item, self.player, self.player.inventory, target=target
@@ -269,15 +403,18 @@ class GameEngine:
             elif not target:
                 self.message_log.add_message("No target selected!")
                 self.active_targeted_item = None
+                self.active_spell_id = None
             else:
-                self.message_log.add_message("No item to use!")
+                self.message_log.add_message("No action to perform!")
                 self.active_targeted_item = None
+                self.active_spell_id = None
 
         elif action == Action.TARGETING_CANCEL:
             # Cancel targeting
             self.targeting_system.cancel_targeting()
             input_handler.set_targeting_mode(False)
             self.active_targeted_item = None
+            self.active_spell_id = None
             self.message_log.add_message("Targeting cancelled.")
 
     def run(self, renderer: Renderer) -> None:
@@ -345,6 +482,11 @@ class GameEngine:
                 # Handle TEST_CONFUSION action to start targeting
                 elif action == Action.TEST_CONFUSION:
                     self._start_confusion_targeting(input_handler)
+                # Handle spell casting
+                elif action == Action.CAST_SPELL_1:
+                    self._start_spell_targeting("magic_missile", input_handler)
+                elif action == Action.CAST_SPELL_2:
+                    self._start_spell_targeting("heal", input_handler)
                 # Normal game actions
                 else:
                     self.running = self.turn_manager.process_turn(

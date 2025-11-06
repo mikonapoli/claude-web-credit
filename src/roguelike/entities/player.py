@@ -1,5 +1,7 @@
 """Player character."""
 
+from roguelike.components.mana import ManaComponent
+from roguelike.components.spells import SpellComponent
 from roguelike.entities.actor import Actor
 from roguelike.systems.inventory import Inventory
 from roguelike.utils.position import Position
@@ -23,3 +25,5 @@ class Player(Actor):
             power=5,
         )
         self.inventory = Inventory(capacity=26)
+        self.mana = ManaComponent(max_mp=50, mp_regen_rate=2)
+        self.spells = SpellComponent()

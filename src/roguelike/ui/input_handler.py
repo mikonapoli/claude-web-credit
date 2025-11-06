@@ -27,6 +27,8 @@ class Action(Enum):
     TARGETING_CYCLE_NEXT = "targeting_cycle_next"
     TARGETING_CYCLE_PREV = "targeting_cycle_prev"
     TEST_CONFUSION = "test_confusion"
+    CAST_SPELL_1 = "cast_spell_1"  # Magic Missile
+    CAST_SPELL_2 = "cast_spell_2"  # Heal
 
 
 class InputHandler(tcod.event.EventDispatch):
@@ -96,6 +98,12 @@ class InputHandler(tcod.event.EventDispatch):
         # Test: Confusion scroll targeting (C key)
         elif key == tcod.event.KeySym.C:
             self.last_action = Action.TEST_CONFUSION
+
+        # Spell casting (Z and X keys)
+        elif key == tcod.event.KeySym.Z:
+            self.last_action = Action.CAST_SPELL_1
+        elif key == tcod.event.KeySym.X:
+            self.last_action = Action.CAST_SPELL_2
 
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:

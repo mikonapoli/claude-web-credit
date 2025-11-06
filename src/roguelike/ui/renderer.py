@@ -253,7 +253,7 @@ class Renderer:
         x: int,
         y: int,
     ) -> None:
-        """Render player stats as text (health, etc.).
+        """Render player stats as text (health, mana, etc.).
 
         Args:
             player: Player entity with health stats
@@ -270,6 +270,23 @@ class Renderer:
         color = self.health_bar_renderer.get_health_color(fill_percentage)
 
         self.console.print(x, y, health_text, fg=color)
+
+        # Render mana if player has mana
+        if hasattr(player, "mana"):
+            mana_text = f"Mana: {player.mana.mp}/{player.mana.max_mp}"
+            # Use cyan color for mana
+            mana_color = (100, 200, 255)
+            self.console.print(x, y + 1, mana_text, fg=mana_color)
+
+        # Render known spells if player has spells
+        if hasattr(player, "spells"):
+            spells = player.spells.known_spells
+            if spells:
+                self.console.print(x, y + 3, "Spells:", fg=(255, 255, 255))
+                for i, spell in enumerate(spells[:2]):  # Show first 2 spells
+                    key = "Z" if i == 0 else "X"
+                    spell_text = f"{key}: {spell.name} ({spell.mana_cost}MP)"
+                    self.console.print(x, y + 4 + i, spell_text, fg=(200, 200, 200))
 
     def present(self) -> None:
         """Present the console to the screen."""

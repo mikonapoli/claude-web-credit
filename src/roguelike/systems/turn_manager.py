@@ -1,6 +1,6 @@
 """Turn management system."""
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, TYPE_CHECKING
 
 from roguelike.entities.actor import Actor
 from roguelike.entities.entity import Entity
@@ -15,6 +15,9 @@ from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
 
+if TYPE_CHECKING:
+    from roguelike.systems.magic_system import MagicSystem
+
 
 class TurnManager:
     """Manages turn-based game flow."""
@@ -25,6 +28,7 @@ class TurnManager:
         movement_system: MovementSystem,
         ai_system: AISystem,
         status_effects_system: Optional[StatusEffectsSystem] = None,
+        magic_system: Optional["MagicSystem"] = None,
     ):
         """Initialize turn manager.
 
@@ -33,11 +37,13 @@ class TurnManager:
             movement_system: Movement system for entity movement
             ai_system: AI system for enemy behavior
             status_effects_system: Status effects system for managing effects
+            magic_system: Magic system for spell casting and mana regeneration
         """
         self.combat_system = combat_system
         self.movement_system = movement_system
         self.ai_system = ai_system
         self.status_effects_system = status_effects_system
+        self.magic_system = magic_system
 
     def handle_player_action(
         self,
@@ -183,6 +189,10 @@ class TurnManager:
 
         # If turn was consumed and player is alive, process turn effects
         if turn_consumed and player.is_alive:
+            # Regenerate player mana
+            if self.magic_system and hasattr(player, "mana"):
+                self.magic_system.regenerate_mana(player.name, player.mana)
+
             # Process status effects on player
             if self.status_effects_system:
                 player_died_from_poison = self.status_effects_system.process_effects(player)

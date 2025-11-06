@@ -252,7 +252,8 @@ class GameEngine:
             if target and self.active_targeted_item:
                 # Use the stored item on the target
                 success = self.item_system.use_item(
-                    self.active_targeted_item, self.player, self.player.inventory, target=target
+                    self.active_targeted_item, self.player, self.player.inventory,
+                    target=target, game_map=self.game_map, fov_map=self.fov_map
                 )
 
                 if success:

@@ -5,15 +5,26 @@ import pytest
 from roguelike.engine.events import EventBus, HealingEvent, ItemUseEvent
 from roguelike.entities.actor import Actor
 from roguelike.entities.item import (
+    create_banana_peel,
     create_cheese_wheel,
+    create_coffee,
     create_cursed_ring,
+    create_gigantism_potion,
     create_greater_healing_potion,
     create_healing_potion,
+    create_lucky_coin,
+    create_rubber_chicken,
+    create_scroll_magic_mapping,
+    create_scroll_teleport,
+    create_shrinking_potion,
     create_strength_potion,
 )
 from roguelike.systems.inventory import Inventory
 from roguelike.systems.item_system import ItemSystem
+from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.utils.position import Position
+from roguelike.world.fov import FOVMap
+from roguelike.world.game_map import GameMap
 
 
 @pytest.fixture
@@ -23,9 +34,27 @@ def event_bus():
 
 
 @pytest.fixture
-def item_system(event_bus):
+def status_effects_system(event_bus):
+    """Create a status effects system for testing."""
+    return StatusEffectsSystem(event_bus)
+
+
+@pytest.fixture
+def item_system(event_bus, status_effects_system):
     """Create an item system for testing."""
-    return ItemSystem(event_bus)
+    return ItemSystem(event_bus, status_effects_system)
+
+
+@pytest.fixture
+def game_map():
+    """Create a test game map."""
+    return GameMap(width=20, height=20)
+
+
+@pytest.fixture
+def fov_map(game_map):
+    """Create a test FOV map."""
+    return FOVMap(game_map)
 
 
 @pytest.fixture
@@ -230,3 +259,180 @@ def test_healing_event_has_correct_entity_name(item_system, player, inventory, e
     item_system.use_item(potion, player, inventory)
 
     assert events[0].entity_name == "Player"
+
+
+# Tests for new item effects
+
+
+def test_scroll_magic_mapping_reveals_entire_map(item_system, player, inventory, game_map, fov_map):
+    """Magic mapping scroll reveals the entire map."""
+    scroll = create_scroll_magic_mapping(Position(5, 5))
+    inventory.add(scroll)
+
+    # Initially, map should not be fully explored
+    assert not fov_map.explored.all()
+
+    item_system.use_item(scroll, player, inventory, fov_map=fov_map)
+
+    # After using scroll, entire map should be explored
+    assert fov_map.explored.all()
+
+
+def test_scroll_magic_mapping_removed_from_inventory(item_system, player, inventory, fov_map):
+    """Magic mapping scroll is removed after use."""
+    scroll = create_scroll_magic_mapping(Position(5, 5))
+    inventory.add(scroll)
+
+    item_system.use_item(scroll, player, inventory, fov_map=fov_map)
+
+    assert len(inventory) == 0
+
+
+def test_scroll_teleport_changes_player_position(item_system, player, inventory, game_map):
+    """Teleportation scroll changes player position."""
+    scroll = create_scroll_teleport(Position(5, 5))
+    inventory.add(scroll)
+    original_position = player.position
+
+    # Make at least one tile walkable
+    from roguelike.world.tile import Tiles
+    game_map.set_tile(Position(10, 10), Tiles.FLOOR)
+
+    item_system.use_item(scroll, player, inventory, game_map=game_map)
+
+    # Player should be at a different position
+    assert player.position != original_position or game_map.is_walkable(player.position)
+
+
+def test_scroll_teleport_removed_from_inventory(item_system, player, inventory, game_map):
+    """Teleportation scroll is removed after use."""
+    scroll = create_scroll_teleport(Position(5, 5))
+    inventory.add(scroll)
+
+    # Make at least one tile walkable
+    from roguelike.world.tile import Tiles
+    game_map.set_tile(Position(10, 10), Tiles.FLOOR)
+
+    item_system.use_item(scroll, player, inventory, game_map=game_map)
+
+    assert len(inventory) == 0
+
+
+def test_gigantism_potion_applies_status_effect(item_system, player, inventory, status_effects_system):
+    """Gigantism potion applies gigantism status effect."""
+    potion = create_gigantism_potion(Position(5, 5))
+    inventory.add(potion)
+
+    item_system.use_item(potion, player, inventory)
+
+    assert status_effects_system.has_effect(player, "gigantism")
+
+
+def test_gigantism_potion_removed_from_inventory(item_system, player, inventory):
+    """Gigantism potion is removed after use."""
+    potion = create_gigantism_potion(Position(5, 5))
+    inventory.add(potion)
+
+    item_system.use_item(potion, player, inventory)
+
+    assert len(inventory) == 0
+
+
+def test_shrinking_potion_applies_status_effect(item_system, player, inventory, status_effects_system):
+    """Shrinking potion applies shrinking status effect."""
+    potion = create_shrinking_potion(Position(5, 5))
+    inventory.add(potion)
+
+    item_system.use_item(potion, player, inventory)
+
+    assert status_effects_system.has_effect(player, "shrinking")
+
+
+def test_shrinking_potion_removed_from_inventory(item_system, player, inventory):
+    """Shrinking potion is removed after use."""
+    potion = create_shrinking_potion(Position(5, 5))
+    inventory.add(potion)
+
+    item_system.use_item(potion, player, inventory)
+
+    assert len(inventory) == 0
+
+
+def test_coffee_applies_speed_status_effect(item_system, player, inventory, status_effects_system):
+    """Coffee applies speed status effect."""
+    coffee = create_coffee(Position(5, 5))
+    inventory.add(coffee)
+
+    item_system.use_item(coffee, player, inventory)
+
+    assert status_effects_system.has_effect(player, "speed")
+
+
+def test_coffee_removed_from_inventory(item_system, player, inventory):
+    """Coffee is removed after use."""
+    coffee = create_coffee(Position(5, 5))
+    inventory.add(coffee)
+
+    item_system.use_item(coffee, player, inventory)
+
+    assert len(inventory) == 0
+
+
+def test_lucky_coin_applies_lucky_status_effect(item_system, player, inventory, status_effects_system):
+    """Lucky coin applies lucky status effect."""
+    coin = create_lucky_coin(Position(5, 5))
+    inventory.add(coin)
+
+    item_system.use_item(coin, player, inventory)
+
+    assert status_effects_system.has_effect(player, "lucky")
+
+
+def test_lucky_coin_removed_from_inventory(item_system, player, inventory):
+    """Lucky coin is removed after use."""
+    coin = create_lucky_coin(Position(5, 5))
+    inventory.add(coin)
+
+    item_system.use_item(coin, player, inventory)
+
+    assert len(inventory) == 0
+
+
+def test_banana_peel_applies_confusion_status_effect(item_system, player, inventory, status_effects_system):
+    """Banana peel applies confusion status effect."""
+    peel = create_banana_peel(Position(5, 5))
+    inventory.add(peel)
+
+    item_system.use_item(peel, player, inventory)
+
+    assert status_effects_system.has_effect(player, "confusion")
+
+
+def test_banana_peel_removed_from_inventory(item_system, player, inventory):
+    """Banana peel is removed after use."""
+    peel = create_banana_peel(Position(5, 5))
+    inventory.add(peel)
+
+    item_system.use_item(peel, player, inventory)
+
+    assert len(inventory) == 0
+
+
+def test_rubber_chicken_applies_status_effect(item_system, player, inventory, status_effects_system):
+    """Rubber chicken applies rubber_chicken status effect."""
+    chicken = create_rubber_chicken(Position(5, 5))
+    inventory.add(chicken)
+
+    item_system.use_item(chicken, player, inventory)
+
+    assert status_effects_system.has_effect(player, "rubber_chicken")
+
+
+def test_rubber_chicken_removed_from_inventory(item_system, player, inventory):
+    """Rubber chicken is removed after use."""
+    chicken = create_rubber_chicken(Position(5, 5))
+    inventory.add(chicken)
+
+    item_system.use_item(chicken, player, inventory)
+
+    assert len(inventory) == 0

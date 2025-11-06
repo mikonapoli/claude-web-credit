@@ -222,6 +222,8 @@ class UseItemCommand(Command):
         player: Player,
         item_index: int,
         item_system: ItemSystem,
+        game_map: GameMap | None = None,
+        fov_map: FOVMap | None = None,
     ):
         """Initialize use item command.
 
@@ -229,10 +231,14 @@ class UseItemCommand(Command):
             player: Player entity
             item_index: Index of item in inventory to use
             item_system: Item system for handling effects
+            game_map: Optional game map for teleportation effects
+            fov_map: Optional FOV map for magic mapping effects
         """
         self.player = player
         self.item_index = item_index
         self.item_system = item_system
+        self.game_map = game_map
+        self.fov_map = fov_map
 
     def execute(self) -> CommandResult:
         """Execute the use item command.
@@ -256,7 +262,10 @@ class UseItemCommand(Command):
             )
 
         # Use the item (non-targeted items only)
-        success = self.item_system.use_item(item, self.player, self.player.inventory)
+        success = self.item_system.use_item(
+            item, self.player, self.player.inventory,
+            game_map=self.game_map, fov_map=self.fov_map
+        )
 
         return CommandResult(
             success=success, turn_consumed=success, should_quit=False

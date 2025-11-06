@@ -211,6 +211,8 @@ else:
 7. **Add comprehensive testing guide for targeting system** - Manual testing guide
 8. **Fix turn consumption bug in targeting system** - Enemies act after item use
 9. **Prevent UseItemCommand from using targeted items** - Graceful failure for targeted items
+10. **Add map bounds checking to TargetingSystem** - Prevent cursor from going outside map
+11. **Fix confusion scroll usage from inventory** - C key now uses player's scrolls
 
 ## Integration Status
 
@@ -221,8 +223,9 @@ else:
 - Item targeting support (confusion, fireball, lightning)
 - Turn consumption properly integrated
 - UseItemCommand protections for targeted items
-- Test key binding ('C') for demonstration
-- **751 tests passing** (21 targeting-specific tests)
+- Test key binding ('C') uses scrolls from inventory
+- Map bounds checking prevents out-of-bounds cursor
+- **756 tests passing** (26 targeting-specific tests)
 
 ### ⏳ Pending
 - Full inventory UI with targeting integration
@@ -230,4 +233,4 @@ else:
 - AoE targeting for fireball
 - Beam targeting for lightning
 
-The core system is complete, tested, and ready to use via the 'C' test key!
+The core system is complete, tested, and fully functional. The 'C' key now properly uses confusion scrolls from the player's inventory!

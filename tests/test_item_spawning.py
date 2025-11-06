@@ -56,7 +56,7 @@ def test_all_item_types_can_spawn(large_room):
     spawned_types = set()
     for _ in range(1000):
         items = place_items(large_room, max_items=1)
-        if items:
+        if items and hasattr(items[0], 'item_type'):
             spawned_types.add(items[0].item_type)
 
     # Verify we spawned a diverse set (at least 15 different types)
@@ -72,7 +72,7 @@ def test_rare_items_can_spawn(large_room):
     spawned_types = set()
     for _ in range(2000):
         items = place_items(large_room, max_items=1)
-        if items:
+        if items and hasattr(items[0], 'item_type'):
             spawned_types.add(items[0].item_type)
 
     # Check for some rare items that were previously broken
@@ -97,7 +97,7 @@ def test_cursed_ring_can_spawn(large_room):
     found_cursed_ring = False
     for _ in range(5000):
         items = place_items(large_room, max_items=1)
-        if items and items[0].item_type == ItemType.CURSED_RING:
+        if items and hasattr(items[0], 'item_type') and items[0].item_type == ItemType.CURSED_RING:
             found_cursed_ring = True
             break
 
@@ -113,7 +113,7 @@ def test_weighted_distribution_favors_common_items(large_room):
     item_counts = {}
     for _ in range(500):
         items = place_items(large_room, max_items=1)
-        if items:
+        if items and hasattr(items[0], 'item_type'):
             item_type = items[0].item_type
             item_counts[item_type] = item_counts.get(item_type, 0) + 1
 

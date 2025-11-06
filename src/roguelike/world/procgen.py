@@ -3,6 +3,7 @@
 import random
 from typing import List, Optional
 
+from roguelike.data.entity_loader import EntityLoader
 from roguelike.entities.item import (
     Item,
     create_banana_peel,
@@ -144,8 +145,12 @@ def place_items(room: Room, max_items: int) -> List[Item]:
     # Get all inner tile positions
     inner_positions = list(room.inner_tiles())
 
+    # Initialize entity loader for crafting materials
+    entity_loader = EntityLoader()
+
     # Item spawn chances with weights
     item_spawners = [
+        # Existing items
         (create_healing_potion, 30),  # Common
         (create_greater_healing_potion, 15),  # Uncommon
         (create_strength_potion, 10),  # Uncommon
@@ -167,8 +172,30 @@ def place_items(room: Room, max_items: int) -> List[Item]:
         (create_cursed_ring, 1),  # Ultra rare
     ]
 
+    # Crafting materials with weights
+    crafting_materials = [
+        ("moonleaf", 20),  # Common herbal
+        ("mana_crystal", 20),  # Common magical
+        ("nightshade", 15),  # Uncommon sinister herbal
+        ("purifying_salt", 15),  # Uncommon purifying
+        ("iron_ore", 12),  # Uncommon metallic
+        ("volcanic_ash", 10),  # Uncommon volcanic
+        ("sulfur", 10),  # Uncommon sulfuric
+        ("frost_essence", 8),  # Rare boreal
+        ("dragon_scale", 3),  # Very rare magical
+        ("runic_essence", 5),  # Rare runic
+        ("ancient_parchment", 12),  # Uncommon parchment
+        ("phoenix_feather", 3),  # Very rare fiery
+        ("thunder_stone", 3),  # Very rare electric
+        ("shadow_ink", 8),  # Rare sinister
+        ("blessed_water", 8),  # Rare holy
+        ("giants_tears", 4),  # Rare empowering
+        ("pixie_dust", 5),  # Rare ethereal
+        ("coffee", 8),  # Common energizing (already in item_spawners but also material)
+    ]
+
     # Calculate total weight for proper weighted selection
-    total_weight = sum(weight for _, weight in item_spawners)
+    total_weight = sum(weight for _, weight in item_spawners) + sum(weight for _, weight in crafting_materials)
 
     for _ in range(num_items):
         if not inner_positions:
@@ -181,11 +208,23 @@ def place_items(room: Room, max_items: int) -> List[Item]:
         # Choose item based on weighted random selection
         roll = random.randint(1, total_weight)
         cumulative = 0
+
+        # Try existing items first
+        spawned = False
         for spawner, weight in item_spawners:
             cumulative += weight
             if roll <= cumulative:
                 items.append(spawner(pos))
+                spawned = True
                 break
+
+        # If not spawned, try crafting materials
+        if not spawned:
+            for material_type, weight in crafting_materials:
+                cumulative += weight
+                if roll <= cumulative:
+                    items.append(entity_loader.create_entity(material_type, pos))
+                    break
 
     return items
 

@@ -7,6 +7,7 @@ import tcod.event
 from roguelike.engine.events import (
     EventBus,
     CombatEvent,
+    CraftingAttemptEvent,
     DeathEvent,
     LevelUpEvent,
     XPGainEvent,
@@ -19,8 +20,11 @@ from roguelike.entities.entity import Entity
 from roguelike.entities.item import Item, ItemType
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
+from roguelike.components.crafting import CraftingComponent
+from roguelike.data.recipe_loader import RecipeLoader
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.crafting import CraftingSystem
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
@@ -71,6 +75,10 @@ class GameEngine:
             self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
         )
 
+        # Initialize crafting system
+        recipe_loader = RecipeLoader()
+        self.crafting_system = CraftingSystem(recipe_loader, self.event_bus)
+
         # Subscribe to events for message logging
         self._setup_event_subscribers()
 
@@ -95,6 +103,7 @@ class GameEngine:
         self.event_bus.subscribe("status_effect_applied", self._on_status_effect_applied)
         self.event_bus.subscribe("status_effect_expired", self._on_status_effect_expired)
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
+        self.event_bus.subscribe("crafting_attempt", self._on_crafting_attempt)
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
@@ -137,6 +146,18 @@ class GameEngine:
         if event.effect_type == "poison" and event.power > 0:
             self.message_log.add_message(
                 f"{event.entity_name} takes {event.power} poison damage!"
+            )
+
+    def _on_crafting_attempt(self, event: CraftingAttemptEvent) -> None:
+        """Handle crafting attempt event."""
+        if event.success:
+            self.message_log.add_message(
+                f"You crafted a {event.result_name}!"
+            )
+        else:
+            ingredient_list = ", ".join(event.ingredient_names)
+            self.message_log.add_message(
+                f"No recipe found for: {ingredient_list}"
             )
 
     def _process_turn_after_action(self) -> None:
@@ -280,6 +301,61 @@ class GameEngine:
             self.active_targeted_item = None
             self.message_log.add_message("Targeting cancelled.")
 
+    def _handle_crafting(self) -> None:
+        """Handle crafting action - attempt to craft with inventory items."""
+        # Get all items with crafting components from inventory
+        craftable_items = []
+        for item in self.player.inventory.items:
+            if hasattr(item, 'get_component'):
+                crafting_comp = item.get_component(CraftingComponent)
+                if crafting_comp:
+                    craftable_items.append(item)
+
+        if len(craftable_items) < 2:
+            self.message_log.add_message("Not enough crafting materials in inventory!")
+            return
+
+        # Try to find a recipe that matches any combination of 2-3 items
+        from itertools import combinations
+
+        # Try 3-item recipes first, then 2-item
+        for num_ingredients in [3, 2]:
+            if len(craftable_items) < num_ingredients:
+                continue
+
+            for combo in combinations(craftable_items, num_ingredients):
+                recipe = self.crafting_system.find_matching_recipe(list(combo))
+                if recipe:
+                    # Found a match! Attempt to craft
+                    result, consumed = self.crafting_system.craft(
+                        list(combo), crafter=self.player
+                    )
+
+                    if result:
+                        # Remove consumed ingredients from inventory
+                        for ingredient in consumed:
+                            self.player.inventory.remove(ingredient)
+
+                        # Add crafted item to inventory
+                        if self.player.inventory.add(result):
+                            # Success message handled by event
+                            # Process turn effects after crafting
+                            self._process_turn_after_action()
+                            return
+                        else:
+                            # Inventory full - drop item at player position
+                            result.move_to(self.player.position)
+                            self.entities.append(result)
+                            self.message_log.add_message(
+                                f"Inventory full! {result.name} dropped at your feet."
+                            )
+                            # Process turn effects after crafting
+                            self._process_turn_after_action()
+                            return
+
+        # No matching recipe found
+        self.message_log.add_message("No valid crafting recipe found with your items!")
+
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
 
@@ -345,6 +421,9 @@ class GameEngine:
                 # Handle TEST_CONFUSION action to start targeting
                 elif action == Action.TEST_CONFUSION:
                     self._start_confusion_targeting(input_handler)
+                # Handle CRAFT action
+                elif action == Action.CRAFT:
+                    self._handle_crafting()
                 # Normal game actions
                 else:
                     self.running = self.turn_manager.process_turn(

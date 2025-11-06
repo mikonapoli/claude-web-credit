@@ -1,9 +1,10 @@
 """Turn management system."""
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, TYPE_CHECKING
 
 from roguelike.entities.actor import Actor
 from roguelike.entities.entity import Entity
+from roguelike.entities.item import Item
 from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
@@ -15,6 +16,9 @@ from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
 
+if TYPE_CHECKING:
+    from roguelike.engine.events import EventBus
+
 
 class TurnManager:
     """Manages turn-based game flow."""
@@ -25,6 +29,7 @@ class TurnManager:
         movement_system: MovementSystem,
         ai_system: AISystem,
         status_effects_system: Optional[StatusEffectsSystem] = None,
+        event_bus: Optional["EventBus"] = None,
     ):
         """Initialize turn manager.
 
@@ -33,11 +38,13 @@ class TurnManager:
             movement_system: Movement system for entity movement
             ai_system: AI system for enemy behavior
             status_effects_system: Status effects system for managing effects
+            event_bus: Event bus for pickup events
         """
         self.combat_system = combat_system
         self.movement_system = movement_system
         self.ai_system = ai_system
         self.status_effects_system = status_effects_system
+        self.event_bus = event_bus
 
     def handle_player_action(
         self,
@@ -67,6 +74,9 @@ class TurnManager:
         if action == Action.WAIT:
             return True, False
 
+        if action == Action.PICKUP:
+            return self._try_pickup_item(player, entities), False
+
         # Movement actions
         movement_map = {
             Action.MOVE_UP: (0, -1),
@@ -87,6 +97,54 @@ class TurnManager:
             return turn_consumed, False
 
         return False, False
+
+    def _try_pickup_item(
+        self,
+        player: Player,
+        entities: List[Entity],
+    ) -> bool:
+        """Try to pick up an item at player's position.
+
+        Args:
+            player: The player entity
+            entities: All entities in the game
+
+        Returns:
+            True if pickup was successful (consumes turn)
+        """
+        # Find pickupable entities at player's position
+        # Support both Item instances and ComponentEntity items (crafting materials)
+        items_here = []
+        for entity in entities:
+            if entity.position == player.position:
+                # Check if it's a pickupable entity (not a monster/actor)
+                if not isinstance(entity, (Monster, Actor)) or isinstance(entity, Item):
+                    items_here.append(entity)
+
+        if not items_here:
+            return False  # No items to pick up
+
+        # Try to pick up first item
+        item = items_here[0]
+
+        # Check if inventory is full
+        if player.inventory.is_full():
+            return False
+
+        # Add to inventory and remove from world
+        if player.inventory.add(item):
+            entities.remove(item)
+
+            # Emit pickup event if event bus is available
+            if self.event_bus:
+                from roguelike.engine.events import ItemPickupEvent
+                self.event_bus.emit(
+                    ItemPickupEvent(entity_name=player.name, item_name=item.name)
+                )
+
+            return True  # Pickup consumes turn
+
+        return False
 
     def _try_move_player(
         self,

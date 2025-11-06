@@ -30,8 +30,8 @@ def main():
     event_bus = EventBus()
     level_system = DungeonLevelSystem(event_bus)
 
-    # Generate the first dungeon level with scaled monsters
-    game_map, rooms, monsters, stairs_pos = level_system.generate_level_with_monsters(1)
+    # Generate the first dungeon level with scaled monsters and items
+    game_map, rooms, entities, stairs_pos = level_system.generate_level_with_monsters(1)
 
     # Place player in the center of the first room
     player_start = rooms[0].center
@@ -40,8 +40,8 @@ def main():
     # Create renderer
     renderer = Renderer(screen_width, screen_height, "Roguelike Adventure")
 
-    # Create and run the game engine
-    engine = GameEngine(game_map=game_map, player=player, entities=monsters)
+    # Create and run the game engine (entities includes both monsters and items)
+    engine = GameEngine(game_map=game_map, player=player, entities=entities)
     engine.run(renderer)
 
 

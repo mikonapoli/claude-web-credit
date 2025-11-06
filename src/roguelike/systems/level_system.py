@@ -6,9 +6,10 @@ import json
 import os
 import random
 
+from roguelike.entities.entity import Entity
 from roguelike.entities.monster import Monster
 from roguelike.world.game_map import GameMap
-from roguelike.world.procgen import generate_dungeon, place_stairs
+from roguelike.world.procgen import generate_dungeon, place_items, place_stairs
 from roguelike.world.room import Room
 from roguelike.utils.position import Position
 from roguelike.engine.events import EventBus, LevelTransitionEvent
@@ -220,30 +221,36 @@ class DungeonLevelSystem:
 
     def generate_level_with_monsters(
         self, level_number: int
-    ) -> Tuple[GameMap, List[Room], List[Monster], Position]:
-        """Generate a complete level with monsters and stairs.
+    ) -> Tuple[GameMap, List[Room], List[Entity], Position]:
+        """Generate a complete level with monsters, items, and stairs.
 
         Args:
             level_number: Level number to generate (1-5)
 
         Returns:
-            Tuple of (game map, list of rooms, list of monsters, stairs position)
+            Tuple of (game map, list of rooms, list of entities (monsters + items), stairs position)
         """
         config = self.level_configs[level_number]
         game_map, rooms = self.generate_level(level_number)
 
         # Place monsters in all rooms except the first (player spawn)
-        monsters: List[Monster] = []
+        entities: List[Entity] = []
         for room in rooms[1:]:
             room_monsters = place_monsters_scaled(room, config)
-            monsters.extend(room_monsters)
+            entities.extend(room_monsters)
+
+        # Place items in all rooms (including first room)
+        max_items_per_room = 3
+        for room in rooms:
+            room_items = place_items(room, max_items=max_items_per_room)
+            entities.extend(room_items)
 
         # Place stairs down in the last room (unless it's the final level)
         stairs_pos = None
         if level_number < len(self.level_configs):
             stairs_pos = place_stairs(game_map, rooms[-1], "down")
 
-        return game_map, rooms, monsters, stairs_pos
+        return game_map, rooms, entities, stairs_pos
 
     def transition_to_level(self, level_number: int) -> None:
         """Transition to a new level and emit event.

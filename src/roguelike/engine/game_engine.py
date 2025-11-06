@@ -9,6 +9,7 @@ from roguelike.engine.events import (
     CombatEvent,
     CraftingAttemptEvent,
     DeathEvent,
+    ItemPickupEvent,
     LevelUpEvent,
     XPGainEvent,
     StatusEffectAppliedEvent,
@@ -72,7 +73,7 @@ class GameEngine:
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
         self.turn_manager = TurnManager(
-            self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
+            self.combat_system, self.movement_system, self.ai_system, self.status_effects_system, self.event_bus
         )
 
         # Initialize crafting system
@@ -100,6 +101,7 @@ class GameEngine:
         self.event_bus.subscribe("death", self._on_death_event)
         self.event_bus.subscribe("xp_gain", self._on_xp_gain_event)
         self.event_bus.subscribe("level_up", self._on_level_up_event)
+        self.event_bus.subscribe("item_pickup", self._on_item_pickup_event)
         self.event_bus.subscribe("status_effect_applied", self._on_status_effect_applied)
         self.event_bus.subscribe("status_effect_expired", self._on_status_effect_expired)
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
@@ -124,6 +126,12 @@ class GameEngine:
         """Handle level up event."""
         self.message_log.add_message(
             f"You advance to level {event.new_level}!"
+        )
+
+    def _on_item_pickup_event(self, event: ItemPickupEvent) -> None:
+        """Handle item pickup event."""
+        self.message_log.add_message(
+            f"You pick up the {event.item_name}."
         )
 
     def _on_status_effect_applied(self, event: StatusEffectAppliedEvent) -> None:

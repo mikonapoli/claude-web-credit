@@ -137,6 +137,38 @@ class GameEngine:
                 f"{event.entity_name} takes {event.power} poison damage!"
             )
 
+    def _process_turn_after_action(self) -> None:
+        """Process turn effects after an action that consumes a turn.
+
+        This handles status effects and AI turns without requiring
+        the full turn manager flow.
+        """
+        # Process status effects on player
+        if self.status_effects_system:
+            player_died = self.status_effects_system.process_effects(self.player)
+
+            if player_died:
+                # Handle death from status effects
+                self.combat_system.handle_death(self.player, killed_by_player=False)
+                self.player.blocks_movement = False
+                self.running = False  # Game over
+                return
+
+        # Process enemy turns
+        player_died = self.ai_system.process_turns(self.player, self.entities)
+        if player_died:
+            self.running = False  # Game over
+            return
+
+        # Process status effects on monsters
+        if self.status_effects_system:
+            for entity in self.entities:
+                if isinstance(entity, Monster) and entity.is_alive:
+                    died_from_effects = self.status_effects_system.process_effects(entity)
+                    if died_from_effects:
+                        self.combat_system.handle_death(entity, killed_by_player=False)
+                        entity.blocks_movement = False
+
     def _start_confusion_targeting(self, input_handler: InputHandler) -> None:
         """Start targeting mode for confusion scroll.
 
@@ -216,6 +248,8 @@ class GameEngine:
                     self.message_log.add_message(
                         f"You confuse the {target.name} for 10 turns!"
                     )
+                    # Item use consumes a turn - process turn effects
+                    self._process_turn_after_action()
                 else:
                     self.message_log.add_message("Failed to confuse target!")
             else:

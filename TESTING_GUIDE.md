@@ -33,6 +33,8 @@ uv run python main.py
    - If successful: "You confuse the {monster name} for 10 turns!"
    - If failed: "Failed to confuse target!"
    - The confused monster will wander randomly for 10 turns
+   - **IMPORTANT**: Using the scroll consumes your turn - enemies will act immediately after!
+   - You'll see enemy movement/attacks in the message log after confirming the target
 
 ### What to Observe
 
@@ -64,6 +66,14 @@ Once a monster is confused:
    - Press Escape to cancel targeting
    - Message: "Targeting cancelled."
    - Game returns to normal mode
+   - **Does NOT consume a turn** - enemies won't act
+
+6. **Turn Consumption**:
+   - **Selecting a target (Enter)**: Consumes a turn if successful
+   - **Cancelling (Escape)**: Does NOT consume a turn
+   - **Moving cursor / cycling**: Does NOT consume a turn
+   - After successful use, enemies immediately take their turns
+   - Status effects tick (poison damage, confusion countdown, etc.)
 
 ### Testing Scenarios
 
@@ -98,6 +108,17 @@ Once a monster is confused:
 3. Press 'C'
 4. Should see "No targets in range!"
 
+#### Scenario 6: Turn Consumption (IMPORTANT)
+1. Find a monster near you
+2. Press 'C' to start targeting
+3. Press Enter to select and confuse the monster
+4. **Observe**: The monster should immediately take its turn
+   - If confused, it will move randomly
+   - If not adjacent, it might move toward you (then get confused)
+   - If adjacent, it might attack (then get confused for next turn)
+5. Try confusing multiple monsters - each selection should let enemies act
+6. Try canceling (Escape) - enemies should NOT act
+
 ### Known Limitations
 
 This is a test implementation with the following limitations:
@@ -129,6 +150,9 @@ If something doesn't work:
 - [ ] Cancel targeting with Escape
 - [ ] Try targeting from maximum range (10 tiles)
 - [ ] Try targeting from beyond maximum range
+- [ ] **Verify turn consumption**: Enemies act after successful target selection
+- [ ] **Verify no turn consumption**: Enemies don't act when canceling targeting
+- [ ] **Verify status effects tick**: Confusion countdown decrements each turn
 
 ### Success Criteria
 
@@ -137,7 +161,10 @@ If something doesn't work:
 - Cursor can be moved and cycled between targets
 - Target name appears above cursor
 - Selecting a target applies confusion effect
+- **Enemies act immediately after successful target selection** (turn consumed)
+- **Enemies do NOT act when targeting is canceled** (no turn consumed)
 - Confused monsters wander randomly
+- Status effects tick down each turn
 - Cancellation returns to normal game mode
 - All 749 tests still pass
 

@@ -253,23 +253,105 @@ class Renderer:
         x: int,
         y: int,
     ) -> None:
-        """Render player stats as text (health, etc.).
+        """Render player stats as text (health, level, power, defense, mana, etc.).
 
         Args:
             player: Player entity with health stats
             x: X position for stats display
             y: Y position for stats display
         """
-        # Render health as "Health: X/Y"
-        health_text = f"Health: {player.hp}/{player.max_hp}"
+        current_y = y
+
+        # Render health - use effective_max_hp if available
+        max_hp = player.max_hp
+        if hasattr(player, "effective_max_hp"):
+            max_hp = player.effective_max_hp
+        health_text = f"HP: {player.hp}/{max_hp}"
 
         # Color based on health percentage
         fill_percentage = self.health_bar_renderer.calculate_fill_percentage(
-            player.hp, player.max_hp
+            player.hp, max_hp
         )
         color = self.health_bar_renderer.get_health_color(fill_percentage)
+        self.console.print(x, current_y, health_text, fg=color)
+        current_y += 1
 
-        self.console.print(x, y, health_text, fg=color)
+        # Render mana if player has mana component
+        if hasattr(player, "mana"):
+            mana = player.mana
+            mana_text = f"MP: {mana.mp}/{mana.max_mp}"
+            # Mana color: cyan/blue
+            mana_percentage = mana.mana_percentage
+            if mana_percentage >= 0.6:
+                mana_color = (100, 200, 255)  # Bright cyan
+            elif mana_percentage >= 0.25:
+                mana_color = (50, 150, 200)  # Medium cyan
+            else:
+                mana_color = (50, 100, 150)  # Dark cyan
+            self.console.print(x, current_y, mana_text, fg=mana_color)
+            current_y += 1
+
+        # Render level and XP
+        if hasattr(player, "level") and hasattr(player, "xp"):
+            level_text = f"Level: {player.level}"
+            self.console.print(x, current_y, level_text, fg=(255, 215, 0))  # Gold
+            current_y += 1
+
+            xp_text = f"XP: {player.xp}"
+            self.console.print(x, current_y, xp_text, fg=(200, 180, 0))  # Dark gold
+            current_y += 1
+
+        # Render power (base + equipment bonus)
+        if hasattr(player, "effective_power"):
+            power = player.effective_power
+            base_power = player.power
+            bonus = power - base_power
+            if bonus > 0:
+                power_text = f"Power: {base_power}+{bonus}"
+            else:
+                power_text = f"Power: {power}"
+            self.console.print(x, current_y, power_text, fg=(255, 100, 100))  # Red
+            current_y += 1
+        elif hasattr(player, "power"):
+            power_text = f"Power: {player.power}"
+            self.console.print(x, current_y, power_text, fg=(255, 100, 100))  # Red
+            current_y += 1
+
+        # Render defense (base + equipment bonus)
+        if hasattr(player, "effective_defense"):
+            defense = player.effective_defense
+            base_defense = player.defense
+            bonus = defense - base_defense
+            if bonus > 0:
+                defense_text = f"Defense: {base_defense}+{bonus}"
+            else:
+                defense_text = f"Defense: {defense}"
+            self.console.print(x, current_y, defense_text, fg=(100, 150, 255))  # Blue
+            current_y += 1
+        elif hasattr(player, "defense"):
+            defense_text = f"Defense: {player.defense}"
+            self.console.print(x, current_y, defense_text, fg=(100, 150, 255))  # Blue
+            current_y += 1
+
+        # Render status effects if player has them
+        if hasattr(player, "status_effects"):
+            effects = player.status_effects.get_all_effects()
+            if effects:
+                current_y += 1  # Add spacing
+                self.console.print(x, current_y, "Effects:", fg=(200, 100, 255))  # Purple
+                current_y += 1
+                for effect in effects[:3]:  # Show max 3 effects to save space
+                    effect_text = f" {effect.effect_type[:8]}: {effect.duration}t"
+                    self.console.print(x, current_y, effect_text, fg=(180, 80, 200))
+                    current_y += 1
+
+        # Render equipped items count
+        if hasattr(player, "equipment"):
+            equipped_items = player.equipment.get_all_equipped()
+            if equipped_items:
+                current_y += 1  # Add spacing
+                equipped_text = f"Equipped: {len(equipped_items)}"
+                self.console.print(x, current_y, equipped_text, fg=(150, 150, 150))  # Gray
 
     def present(self) -> None:
         """Present the console to the screen."""

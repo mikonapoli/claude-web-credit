@@ -20,8 +20,10 @@ from roguelike.entities.monster import Monster
 from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
+from roguelike.systems.targeting import TargetingSystem
 from roguelike.systems.turn_manager import TurnManager
 from roguelike.ui.input_handler import Action, InputHandler
 from roguelike.ui.message_log import MessageLog
@@ -58,6 +60,8 @@ class GameEngine:
         self.combat_system = CombatSystem(self.event_bus)
         self.movement_system = MovementSystem(game_map)
         self.status_effects_system = StatusEffectsSystem(self.event_bus)
+        self.item_system = ItemSystem(self.event_bus, self.status_effects_system)
+        self.targeting_system = TargetingSystem()
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
@@ -133,6 +137,96 @@ class GameEngine:
                 f"{event.entity_name} takes {event.power} poison damage!"
             )
 
+    def _start_confusion_targeting(self, input_handler: InputHandler) -> None:
+        """Start targeting mode for confusion scroll.
+
+        Args:
+            input_handler: Input handler to set targeting mode
+        """
+        # Get all living monsters that are visible
+        monsters = [
+            e for e in self.entities
+            if isinstance(e, Monster) and e.is_alive and self.fov_map.is_visible(e.position)
+        ]
+
+        if not monsters:
+            self.message_log.add_message("No visible targets!")
+            return
+
+        # Start targeting with max range of 10
+        max_range = 10
+        if self.targeting_system.start_targeting(
+            self.player.position, max_range, monsters
+        ):
+            input_handler.set_targeting_mode(True)
+            self.message_log.add_message(
+                "Select a target (Tab to cycle, Enter to select, Escape to cancel)"
+            )
+        else:
+            self.message_log.add_message("No targets in range!")
+
+    def _handle_targeting_action(self, action: Action, input_handler: InputHandler) -> None:
+        """Handle actions while in targeting mode.
+
+        Args:
+            action: The action to handle
+            input_handler: Input handler to control targeting mode
+        """
+        # Map movement directions
+        movement_map = {
+            Action.MOVE_UP: (0, -1),
+            Action.MOVE_DOWN: (0, 1),
+            Action.MOVE_LEFT: (-1, 0),
+            Action.MOVE_RIGHT: (1, 0),
+            Action.MOVE_UP_LEFT: (-1, -1),
+            Action.MOVE_UP_RIGHT: (1, -1),
+            Action.MOVE_DOWN_LEFT: (-1, 1),
+            Action.MOVE_DOWN_RIGHT: (1, 1),
+        }
+
+        if action in movement_map:
+            # Move cursor
+            dx, dy = movement_map[action]
+            self.targeting_system.move_cursor(dx, dy)
+
+        elif action == Action.TARGETING_CYCLE_NEXT:
+            # Cycle to next target
+            self.targeting_system.cycle_target(1)
+
+        elif action == Action.TARGETING_CYCLE_PREV:
+            # Cycle to previous target
+            self.targeting_system.cycle_target(-1)
+
+        elif action == Action.TARGETING_SELECT:
+            # Select target and use confusion scroll
+            target = self.targeting_system.select_target()
+            input_handler.set_targeting_mode(False)
+
+            if target:
+                # Create a test confusion scroll
+                from roguelike.entities.item import create_scroll_confusion
+                scroll = create_scroll_confusion(Position(0, 0))
+
+                # Use the scroll on the target
+                success = self.item_system.use_item(
+                    scroll, self.player, self.player.inventory, target=target
+                )
+
+                if success:
+                    self.message_log.add_message(
+                        f"You confuse the {target.name} for 10 turns!"
+                    )
+                else:
+                    self.message_log.add_message("Failed to confuse target!")
+            else:
+                self.message_log.add_message("No target selected!")
+
+        elif action == Action.TARGETING_CANCEL:
+            # Cancel targeting
+            self.targeting_system.cancel_targeting()
+            input_handler.set_targeting_mode(False)
+            self.message_log.add_message("Targeting cancelled.")
+
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
 
@@ -170,6 +264,14 @@ class GameEngine:
             renderer.render_health_bars(actors_to_render, self.fov_map)
             renderer.render_health_bar(self.player, self.fov_map)
 
+            # Render targeting cursor if in targeting mode
+            if self.targeting_system.is_active:
+                cursor_pos = self.targeting_system.get_cursor_position()
+                target = self.targeting_system.get_current_target()
+                target_name = target.name if target else None
+                if cursor_pos:
+                    renderer.render_targeting_cursor(cursor_pos, target_name)
+
             renderer.present()
 
             # Handle input
@@ -178,13 +280,21 @@ class GameEngine:
 
             action = input_handler.get_action()
             if action:
-                self.running = self.turn_manager.process_turn(
-                    action,
-                    self.player,
-                    self.entities,
-                    self.game_map,
-                    self.fov_map,
-                    self.fov_radius,
-                )
+                # Handle targeting mode actions
+                if self.targeting_system.is_active:
+                    self._handle_targeting_action(action, input_handler)
+                # Handle TEST_CONFUSION action to start targeting
+                elif action == Action.TEST_CONFUSION:
+                    self._start_confusion_targeting(input_handler)
+                # Normal game actions
+                else:
+                    self.running = self.turn_manager.process_turn(
+                        action,
+                        self.player,
+                        self.entities,
+                        self.game_map,
+                        self.fov_map,
+                        self.fov_radius,
+                    )
 
         renderer.close()

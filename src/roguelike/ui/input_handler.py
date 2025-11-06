@@ -26,6 +26,7 @@ class Action(Enum):
     TARGETING_CANCEL = "targeting_cancel"
     TARGETING_CYCLE_NEXT = "targeting_cycle_next"
     TARGETING_CYCLE_PREV = "targeting_cycle_prev"
+    TEST_CONFUSION = "test_confusion"
 
 
 class InputHandler(tcod.event.EventDispatch):
@@ -91,6 +92,10 @@ class InputHandler(tcod.event.EventDispatch):
         # Inventory
         elif key == tcod.event.KeySym.I:
             self.last_action = Action.INVENTORY
+
+        # Test: Confusion scroll targeting (C key)
+        elif key == tcod.event.KeySym.C:
+            self.last_action = Action.TEST_CONFUSION
 
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:

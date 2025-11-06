@@ -196,10 +196,10 @@ class TurnManager:
             if player_died:
                 return False  # Game over
 
-            # Process status effects on all monsters
+            # Process status effects on monsters only (player already processed above)
             if self.status_effects_system:
                 for entity in entities:
-                    if isinstance(entity, Actor) and entity.is_alive:
+                    if isinstance(entity, Monster) and entity.is_alive:
                         self.status_effects_system.process_effects(entity)
 
         return True

@@ -454,19 +454,19 @@ class GameEngine:
                 if cursor_pos:
                     renderer.render_targeting_cursor(cursor_pos, target_name)
 
-            renderer.present()
-
-            # Handle input
-            for event in tcod.event.wait():
-                input_handler.dispatch(event)
-
-            # Render inventory overlay if open
+            # Render inventory overlay if open (before present!)
             if self.inventory_open:
                 from roguelike.components.inventory import InventoryComponent
                 inventory = self.player.get_component(InventoryComponent)
                 if inventory:
                     items = inventory.get_items()
                     renderer.render_inventory(self.inventory_ui, items)
+
+            renderer.present()
+
+            # Handle input
+            for event in tcod.event.wait():
+                input_handler.dispatch(event)
 
             action = input_handler.get_action()
             if action:

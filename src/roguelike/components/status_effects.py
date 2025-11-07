@@ -33,13 +33,13 @@ class StatusEffectsComponent(Component):
     This component uses the SHARED STATE pattern:
     - StatusEffectsSystem reads/writes to this component
     - StatusEffectsSystem may modify HealthComponent (e.g., poison damage)
-    - Processing happens at a specific point in turn order (see TurnManager)
+    - Processing happens at a specific point in turn order
 
     Processing Order Dependencies:
     ------------------------------
     IMPORTANT: StatusEffectsSystem.process_effects() modifies HealthComponent.
     This happens AFTER player/enemy actions but BEFORE the next action.
-    See TurnManager for detailed processing order.
+    Commands handle their own turn cycle processing to maintain proper order.
 
     Example Effect Types:
     - "poison": Deals damage per turn (modifies HealthComponent)

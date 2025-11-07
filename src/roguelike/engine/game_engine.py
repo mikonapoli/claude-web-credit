@@ -23,7 +23,6 @@ from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
-from roguelike.systems.turn_manager import TurnManager
 from roguelike.ui.input_handler import InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
@@ -71,9 +70,6 @@ class GameEngine:
         self.targeting_system = TargetingSystem()
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
-        )
-        self.turn_manager = TurnManager(
-            self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
         )
 
         # Subscribe to events for message logging

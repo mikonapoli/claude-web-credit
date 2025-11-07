@@ -8,7 +8,6 @@ from roguelike.engine.events import EventBus
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
-from roguelike.systems.turn_manager import TurnManager
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap

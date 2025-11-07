@@ -91,56 +91,6 @@ def is_monster(entity) -> bool:
     )
 
 
-def get_effective_power(entity: ComponentEntity) -> int:
-    """Calculate effective power (base power + equipment bonuses).
-
-    Args:
-        entity: Entity to calculate effective power for
-
-    Returns:
-        Total effective power including equipment bonuses
-
-    Note:
-        If entity has no CombatComponent, returns 0.
-        If entity has no EquipmentComponent, returns base power.
-    """
-    combat = entity.get_component(CombatComponent)
-    if not combat:
-        return 0
-
-    base_power = combat.power
-    equipment = entity.get_component(EquipmentComponent)
-
-    if equipment:
-        return base_power + equipment.get_total_power_bonus()
-    return base_power
-
-
-def get_effective_defense(entity: ComponentEntity) -> int:
-    """Calculate effective defense (base defense + equipment bonuses).
-
-    Args:
-        entity: Entity to calculate effective defense for
-
-    Returns:
-        Total effective defense including equipment bonuses
-
-    Note:
-        If entity has no CombatComponent, returns 0.
-        If entity has no EquipmentComponent, returns base defense.
-    """
-    combat = entity.get_component(CombatComponent)
-    if not combat:
-        return 0
-
-    base_defense = combat.defense
-    equipment = entity.get_component(EquipmentComponent)
-
-    if equipment:
-        return base_defense + equipment.get_total_defense_bonus()
-    return base_defense
-
-
 def get_equipment_bonuses(entity: ComponentEntity) -> Tuple[int, int, int]:
     """Get all equipment bonuses for an entity.
 

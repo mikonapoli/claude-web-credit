@@ -6,7 +6,7 @@ import tcod
 
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.equipment import EquipmentComponent
-from roguelike.components.helpers import get_effective_power, get_effective_defense, get_equipment_bonuses
+from roguelike.components.helpers import get_equipment_bonuses
 from roguelike.components.mana import ManaComponent
 from roguelike.components.status_effects import StatusEffectsComponent
 from roguelike.entities.entity import Entity
@@ -313,28 +313,29 @@ class Renderer:
         current_y += 1
 
         # Combat stats with equipment bonuses
-        effective_power = get_effective_power(player)
-        effective_defense = get_effective_defense(player)
+        # Note: player.power and player.defense already include equipment bonuses
+        # (applied by EquipmentSystem), so we subtract to get the true base values
         power_bonus, defense_bonus, hp_bonus = get_equipment_bonuses(player)
 
-        # Base power/defense
-        base_power = player.power
-        base_defense = player.defense
+        current_power = player.power  # Already includes bonuses
+        current_defense = player.defense  # Already includes bonuses
+        base_power = current_power - power_bonus
+        base_defense = current_defense - defense_bonus
 
-        # Show base stats
+        # Show base stats with bonuses
         if power_bonus > 0:
-            power_text = f"Power: {base_power} (+{power_bonus}) = {effective_power}"
+            power_text = f"Power: {base_power} (+{power_bonus}) = {current_power}"
             self.console.print(x, current_y, power_text, fg=(255, 150, 150))
         else:
-            power_text = f"Power: {base_power}"
+            power_text = f"Power: {current_power}"
             self.console.print(x, current_y, power_text, fg=(200, 200, 200))
         current_y += 1
 
         if defense_bonus > 0:
-            defense_text = f"Defense: {base_defense} (+{defense_bonus}) = {effective_defense}"
+            defense_text = f"Defense: {base_defense} (+{defense_bonus}) = {current_defense}"
             self.console.print(x, current_y, defense_text, fg=(150, 150, 255))
         else:
-            defense_text = f"Defense: {base_defense}"
+            defense_text = f"Defense: {current_defense}"
             self.console.print(x, current_y, defense_text, fg=(200, 200, 200))
         current_y += 1
 

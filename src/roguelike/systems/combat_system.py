@@ -84,8 +84,21 @@ class CombatSystem:
         Returns:
             New level if level up occurred, None otherwise
         """
+        # Check for XP bonus status effect
+        from roguelike.components.status_effects import StatusEffectsComponent
+
+        actual_xp = xp_amount
+        if hasattr(recipient, "get_component"):
+            status_comp = recipient.get_component(StatusEffectsComponent)
+            if status_comp and status_comp.has_effect("xp_bonus"):
+                effect = status_comp.get_effect("xp_bonus")
+                if effect:
+                    # Apply bonus percentage (e.g., 50% bonus from lucky coin)
+                    bonus_percent = effect.power
+                    actual_xp = xp_amount + (xp_amount * bonus_percent // 100)
+
         # Award XP
-        recipient.xp += xp_amount
+        recipient.xp += actual_xp
 
         # Get recipient name safely
         recipient_name = getattr(recipient, "name", "Unknown")
@@ -94,7 +107,7 @@ class CombatSystem:
         self.event_bus.emit(
             XPGainEvent(
                 entity_name=recipient_name,
-                xp_gained=xp_amount,
+                xp_gained=actual_xp,
             )
         )
 

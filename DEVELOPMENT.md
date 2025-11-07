@@ -56,7 +56,7 @@ This codebase uses:
 2. **Component-based entities** - Composition over inheritance for entity behaviors
 3. **Command pattern** - All actions are encapsulated as commands (enables undo/redo)
 4. **Data-driven configuration** - Entities defined in JSON, not hardcoded
-5. **System-based organization** - MovementSystem, CombatSystem, AISystem, TurnManager, etc.
+5. **System-based organization** - MovementSystem, CombatSystem, AISystem, etc.
 
 **Maintain these patterns** when adding new features.
 
@@ -151,7 +151,7 @@ def test_enemy_attack_damages_player():
 ```
 Add HealthComponent for entities
 Fix corpse blocking movement
-Refactor TurnManager from GameEngine
+Implement State pattern for MonsterAI
 Extract AISystem, reduce GameEngine by 50 lines
 Update entity factory for new component
 ```

@@ -23,7 +23,6 @@ from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
-from roguelike.systems.turn_manager import TurnManager
 from roguelike.ui.input_handler import InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
@@ -72,9 +71,6 @@ class GameEngine:
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
-        self.turn_manager = TurnManager(
-            self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
-        )
 
         # Subscribe to events for message logging
         self._setup_event_subscribers()
@@ -83,24 +79,9 @@ class GameEngine:
         self.fov_map = FOVMap(game_map)
         self.fov_radius = 8
 
-        # Create command factory and executor (after FOV map is created)
-        from roguelike.commands import CommandFactory, CommandExecutor
+        # Create command executor
+        from roguelike.commands import CommandExecutor
 
-        self.command_factory = CommandFactory(
-            player=self.player,
-            entities=self.entities,
-            game_map=game_map,
-            fov_map=self.fov_map,
-            fov_radius=self.fov_radius,
-            combat_system=self.combat_system,
-            movement_system=self.movement_system,
-            ai_system=self.ai_system,
-            status_effects_system=self.status_effects_system,
-            targeting_system=self.targeting_system,
-            message_log=self.message_log,
-            event_bus=self.event_bus,
-            stairs_pos=self.stairs_pos,
-        )
         self.command_executor = CommandExecutor(max_history=100)
 
         # Register monsters with AI system
@@ -238,20 +219,13 @@ class GameEngine:
         self.fov_map = FOVMap(self.game_map)
         self.fov_map.compute_fov(self.player.position, self.fov_radius)
 
-        # Update CommandFactory with new map references
-        # Critical: Without this, commands would operate on stale map/FOV state
-        self.command_factory.update_context(
-            entities=self.entities,
-            game_map=self.game_map,
-            fov_map=self.fov_map,
-            stairs_pos=self.stairs_pos,
-        )
-
         # Emit level transition event and log message
         level_name = self.level_system.level_configs[next_level].name
         self.message_log.add_message(f"You descend to level {next_level}: {level_name}")
         self.level_system.transition_to_level(next_level)
 
+        # Note: InputHandler context will be updated in run() when it's recreated
+        # or via update_context() if the handler persists across levels
 
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
@@ -260,7 +234,20 @@ class GameEngine:
             renderer: The renderer to use
         """
         self.running = True
-        input_handler = InputHandler(self.command_factory)
+        input_handler = InputHandler(
+            player=self.player,
+            entities=self.entities,
+            game_map=self.game_map,
+            fov_map=self.fov_map,
+            fov_radius=self.fov_radius,
+            combat_system=self.combat_system,
+            movement_system=self.movement_system,
+            ai_system=self.ai_system,
+            status_effects_system=self.status_effects_system,
+            targeting_system=self.targeting_system,
+            message_log=self.message_log,
+            stairs_pos=self.stairs_pos,
+        )
 
         # Message log display configuration
         # Use the map's actual height for viewport, message log fills remaining space
@@ -322,6 +309,13 @@ class GameEngine:
                     # Handle special command results
                     if result.data.get("descend_stairs"):
                         self._transition_to_next_level()
+                        # Update input handler with new level context
+                        input_handler.update_context(
+                            entities=self.entities,
+                            game_map=self.game_map,
+                            fov_map=self.fov_map,
+                            stairs_pos=self.stairs_pos,
+                        )
                     elif result.data.get("start_targeting"):
                         # Activate targeting mode in input handler
                         input_handler.set_targeting_mode(True)

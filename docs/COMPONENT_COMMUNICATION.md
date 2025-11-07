@@ -83,7 +83,7 @@ As the book warns: *"Shared mutable state where lots of code is reading and writ
 
 **The book advises: "Document and enforce this order explicitly."**
 
-### Turn Processing Order (see TurnManager)
+### Turn Processing Order
 
 The processing order is **critical** to avoid race conditions:
 

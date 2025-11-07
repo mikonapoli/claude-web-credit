@@ -436,3 +436,123 @@ def test_process_effects_works_on_actor():
     system.process_effects(actor)
 
     assert len(events) == 1
+
+
+def test_get_stat_modifiers_returns_zero_for_no_effects():
+    """get_stat_modifiers returns zero modifiers when no effects."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["power"] == 0
+
+
+def test_get_stat_modifiers_returns_zero_defense_for_no_effects():
+    """get_stat_modifiers returns zero defense when no effects."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["defense"] == 0
+
+
+def test_strength_effect_increases_power():
+    """Strength effect increases power modifier."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "strength", duration=5, power=3)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["power"] == 3
+
+
+def test_defense_effect_increases_defense():
+    """Defense effect increases defense modifier."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "defense", duration=5, power=2)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["defense"] == 2
+
+
+def test_gigantism_effect_increases_power():
+    """Gigantism effect increases power modifier."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "gigantism", duration=5, power=4)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["power"] == 4
+
+
+def test_gigantism_effect_increases_defense():
+    """Gigantism effect increases defense modifier."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "gigantism", duration=5, power=4)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["defense"] == 2
+
+
+def test_shrinking_effect_increases_defense():
+    """Shrinking effect increases defense modifier."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "shrinking", duration=5, power=3)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["defense"] == 3
+
+
+def test_multiple_effects_stack_modifiers():
+    """Multiple buff effects stack their modifiers."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "strength", duration=5, power=3)
+    system.apply_effect(entity, "defense", duration=5, power=2)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["power"] == 3
+
+
+def test_multiple_defense_effects_stack():
+    """Multiple defense effects stack their modifiers."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "defense", duration=5, power=2)
+    system.apply_effect(entity, "shrinking", duration=5, power=1)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["defense"] == 3
+
+
+def test_speed_effect_does_not_affect_combat_stats():
+    """Speed effect does not modify power or defense."""
+    event_bus = EventBus()
+    system = StatusEffectsSystem(event_bus)
+    entity = ComponentEntity(Position(5, 5), "@", "Player")
+
+    system.apply_effect(entity, "speed", duration=5, power=1)
+    modifiers = system.get_stat_modifiers(entity)
+
+    assert modifiers["power"] == 0

@@ -7,6 +7,7 @@ from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.health import HealthComponent
 from roguelike.components.inventory import InventoryComponent
+from roguelike.components.status_effects import StatusEffectsComponent
 from roguelike.entities.entity import Entity
 from roguelike.entities.item import Item, ItemType
 
@@ -148,14 +149,15 @@ class UseItemCommand(Command):
             effect_applied = actual_healed > 0
 
         elif self.item.item_type == ItemType.STRENGTH_POTION:
-            # Check if player has combat component
-            combat = self.player.get_component(CombatComponent)
-            if combat is None:
-                return CommandResult(success=False, turn_consumed=False)
+            # Apply temporary strength buff via status effect
+            status_comp = self.player.get_component(StatusEffectsComponent)
+            if status_comp is None:
+                # Add status effects component if it doesn't exist
+                status_comp = StatusEffectsComponent()
+                self.player.add_component(status_comp)
 
-            # Increase player's power
-            self.player.power += self.item.value
-            effect_applied = True
+            # Apply strength effect (10 turns, power bonus = item value)
+            effect_applied = status_comp.add_effect("strength", duration=10, power=self.item.value)
 
         # Only remove item and succeed if effect was applied
         if effect_applied:

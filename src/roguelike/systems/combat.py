@@ -1,6 +1,7 @@
 """Combat system for handling attacks and damage."""
 
 from dataclasses import dataclass
+from typing import Optional
 
 from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
@@ -17,38 +18,50 @@ class CombatResult:
     defender_died: bool
 
 
-def calculate_damage(attacker: ComponentEntity, defender: ComponentEntity) -> int:
+def calculate_damage(
+    attacker: ComponentEntity,
+    defender: ComponentEntity,
+    attacker_power_bonus: int = 0,
+    defender_defense_bonus: int = 0,
+) -> int:
     """Calculate damage dealt from attacker to defender.
 
     Args:
         attacker: Attacking entity
         defender: Defending entity
+        attacker_power_bonus: Bonus power from status effects
+        defender_defense_bonus: Bonus defense from status effects
+
 
     Returns:
         Damage amount after defense reduction
     """
-    attacker_combat = attacker.get_component(CombatComponent)
-    defender_combat = defender.get_component(CombatComponent)
-
-    if not attacker_combat or not defender_combat:
-        return 0
-
-    damage = attacker_combat.power - defender_combat.defense
+    effective_power = attacker.power + attacker_power_bonus
+    effective_defense = defender.defense + defender_defense_bonus
+    damage = effective_power - effective_defense
     return max(0, damage)  # Minimum 0 damage
 
 
-def attack(attacker: ComponentEntity, defender: ComponentEntity) -> CombatResult:
-    """Perform an attack from one entity to another.
+def attack(
+    attacker: ComponentEntity,
+    defender: ComponentEntity,
+    attacker_power_bonus: int = 0,
+    defender_defense_bonus: int = 0,
+) -> CombatResult:
+    """Perform an attack from one actor to another.
 
     Args:
         attacker: The attacking entity
         defender: The defending entity
+        attacker_power_bonus: Bonus power from status effects
+        defender_defense_bonus: Bonus defense from status effects
 
     Returns:
         CombatResult with details of the attack
     """
-    damage = calculate_damage(attacker, defender)
-
+    damage = calculate_damage(
+        attacker, defender, attacker_power_bonus, defender_defense_bonus
+    )
     defender_health = defender.get_component(HealthComponent)
     if defender_health:
         defender_health.take_damage(damage)

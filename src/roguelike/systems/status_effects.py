@@ -219,3 +219,36 @@ class StatusEffectsSystem:
             display.append(f"{effect_name} ({effect.duration})")
 
         return display
+
+    def get_stat_modifiers(
+        self, entity: ComponentEntity
+    ) -> dict[str, int]:
+        """Get stat modifiers from active status effects.
+
+        Args:
+            entity: Entity to get modifiers for
+
+        Returns:
+            Dictionary with stat modifiers (e.g., {"power": 3, "defense": 2})
+        """
+        status_comp = entity.get_component(StatusEffectsComponent)
+
+        if status_comp is None:
+            return {"power": 0, "defense": 0}
+
+        modifiers = {"power": 0, "defense": 0}
+
+        for effect in status_comp.get_all_effects():
+            if effect.effect_type == "strength":
+                modifiers["power"] += effect.power
+            elif effect.effect_type == "defense":
+                modifiers["defense"] += effect.power
+            elif effect.effect_type == "gigantism":
+                # Gigantism provides both power and defense boost
+                modifiers["power"] += effect.power
+                modifiers["defense"] += effect.power // 2
+            elif effect.effect_type == "shrinking":
+                # Shrinking provides defense boost (harder to hit)
+                modifiers["defense"] += effect.power
+
+        return modifiers

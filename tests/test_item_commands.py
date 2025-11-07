@@ -62,7 +62,9 @@ def ai_system(combat_system, movement_system, game_map, status_effects_system):
 @pytest.fixture
 def item_system(event_bus):
     """Create an item system for testing."""
-    return ItemSystem(event_bus)
+    from roguelike.systems.status_effects import StatusEffectsSystem
+    status_effects_system = StatusEffectsSystem(event_bus)
+    return ItemSystem(event_bus, status_effects_system)
 
 
 @pytest.fixture
@@ -295,12 +297,12 @@ def test_use_item_at_full_hp_stays_in_inventory(player, item_system):
 
 
 def test_use_strength_potion_increases_power(player, item_system):
-    """Using strength potion increases power."""
-    initial_power = player.power
+    """Using strength potion applies strength status effect."""
     potion = create_strength_potion(Position(5, 5))
     player.inventory.add(potion)
     command = UseItemCommand(player, potion)
 
     command.execute()
 
-    assert player.power == initial_power + 3
+    # Check that strength effect is applied
+    assert item_system.status_effects_system.has_effect(player, "strength")

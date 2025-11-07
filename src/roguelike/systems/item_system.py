@@ -174,9 +174,12 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # Apply permanent power boost
-        user.power += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary strength buff (value = power bonus, duration in turns)
+            return self.status_effects_system.apply_effect(
+                user, "strength", duration=10, power=item.value
+            )
+        return False
 
     def _apply_defense_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply defense buff.
@@ -191,9 +194,12 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # Apply permanent defense boost
-        user.defense += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary defense buff (value = defense bonus, duration in turns)
+            return self.status_effects_system.apply_effect(
+                user, "defense", duration=10, power=item.value
+            )
+        return False
 
     def _apply_speed_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply speed buff.
@@ -208,8 +214,12 @@ class ItemSystem:
         Returns:
             True (item consumed with no effect)
         """
-        # Speed/turn system not yet implemented
-        return True
+        if self.status_effects_system:
+            # Apply temporary speed buff (allows extra actions)
+            return self.status_effects_system.apply_effect(
+                user, "speed", duration=5, power=1
+            )
+        return False
 
     def _apply_invisibility(self, item: Item, user: ComponentEntity) -> bool:
         """Apply invisibility effect.
@@ -240,11 +250,9 @@ class ItemSystem:
             True if effect was applied
         """
         if self.status_effects_system:
-            # Apply temporary power boost via status effect
-            # Duration is 10 turns, power value is the boost amount
-            duration = 10
+            # Apply temporary gigantism buff (increases power and defense)
             return self.status_effects_system.apply_effect(
-                user, "gigantism", duration=duration, power=item.value
+                user, "gigantism", duration=8, power=item.value
             )
         return False
 

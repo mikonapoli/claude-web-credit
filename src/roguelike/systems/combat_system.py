@@ -11,13 +11,15 @@ from roguelike.utils.protocols import Combatant, Levelable, XPSource
 class CombatSystem:
     """Handles combat resolution and related game events."""
 
-    def __init__(self, event_bus: EventBus):
+    def __init__(self, event_bus: EventBus, status_effects_system=None):
         """Initialize combat system.
 
         Args:
             event_bus: Event bus for publishing combat events
+            status_effects_system: Optional status effects system for modifiers
         """
         self.event_bus = event_bus
+        self.status_effects_system = status_effects_system
 
     def resolve_attack(
         self,
@@ -33,7 +35,17 @@ class CombatSystem:
         Returns:
             True if defender died
         """
-        result = attack(attacker, defender)
+        # Get status effect modifiers if available
+        attacker_power_bonus = 0
+        defender_defense_bonus = 0
+
+        if self.status_effects_system:
+            attacker_mods = self.status_effects_system.get_stat_modifiers(attacker)
+            defender_mods = self.status_effects_system.get_stat_modifiers(defender)
+            attacker_power_bonus = attacker_mods.get("power", 0)
+            defender_defense_bonus = defender_mods.get("defense", 0)
+
+        result = attack(attacker, defender, attacker_power_bonus, defender_defense_bonus)
 
         # Emit combat event
         self.event_bus.emit(

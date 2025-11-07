@@ -252,6 +252,7 @@ class Renderer:
         player: HealthBarRenderable,
         x: int,
         y: int,
+        status_effects: list[str] | None = None,
     ) -> None:
         """Render player stats as text (health, etc.).
 
@@ -259,6 +260,7 @@ class Renderer:
             player: Player entity with health stats
             x: X position for stats display
             y: Y position for stats display
+            status_effects: Optional list of active status effects to display
         """
         # Render health as "Health: X/Y"
         health_text = f"Health: {player.hp}/{player.max_hp}"
@@ -270,6 +272,16 @@ class Renderer:
         color = self.health_bar_renderer.get_health_color(fill_percentage)
 
         self.console.print(x, y, health_text, fg=color)
+
+        # Render status effects below health
+        if status_effects:
+            effects_y = y + 1
+            effects_text = "Effects: " + ", ".join(status_effects)
+            # Truncate if too long
+            max_width = self.width - x
+            if len(effects_text) > max_width:
+                effects_text = effects_text[:max_width-3] + "..."
+            self.console.print(x, effects_y, effects_text, fg=(200, 200, 100))
 
     def present(self) -> None:
         """Present the console to the screen."""

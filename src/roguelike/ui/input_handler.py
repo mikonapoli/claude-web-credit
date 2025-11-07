@@ -5,6 +5,7 @@ from typing import List, Optional
 import tcod.event
 
 from roguelike.commands.command import Command
+from roguelike.commands.crafting_commands import AutoCraftCommand
 from roguelike.commands.game_commands import (
     MoveCommand,
     WaitCommand,
@@ -20,6 +21,7 @@ from roguelike.commands.game_commands import (
 from roguelike.components.entity import ComponentEntity
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.crafting import CraftingSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
@@ -49,6 +51,7 @@ class InputHandler:
         ai_system: AISystem,
         status_effects_system: Optional[StatusEffectsSystem],
         targeting_system: TargetingSystem,
+        crafting_system: CraftingSystem,
         message_log: MessageLog,
         stairs_pos: Optional[Position] = None,
     ):
@@ -65,6 +68,7 @@ class InputHandler:
             ai_system: AI system for enemy behavior
             status_effects_system: Status effects system for managing effects
             targeting_system: Targeting system for targeted abilities
+            crafting_system: Crafting system for recipe matching
             message_log: Message log for displaying messages
             stairs_pos: Position of stairs (if any)
         """
@@ -78,6 +82,7 @@ class InputHandler:
         self.ai_system = ai_system
         self.status_effects_system = status_effects_system
         self.targeting_system = targeting_system
+        self.crafting_system = crafting_system
         self.message_log = message_log
         self.stairs_pos = stairs_pos
         self.last_command: Optional[Command] = None
@@ -218,9 +223,15 @@ class InputHandler:
                 self.ai_system, self.combat_system, self.status_effects_system
             )
 
-        # Test: Confusion scroll targeting (C key)
+        # Crafting (lowercase 'c' key)
+        elif key == tcod.event.KeySym.C and not event.mod & tcod.event.KMOD_SHIFT:
+            self.last_command = AutoCraftCommand(
+                self.player, self.crafting_system, self.message_log, self.entities
+            )
+
+        # Test: Confusion scroll targeting (uppercase 'C' key)
         # Note: Inventory UI ('I' key) not yet implemented
-        elif key == tcod.event.KeySym.C:
+        elif key == tcod.event.KeySym.C and event.mod & tcod.event.KMOD_SHIFT:
             self.last_command = StartTargetingCommand(
                 self.player, self.entities, self.fov_map, self.targeting_system,
                 self.message_log, self.game_map

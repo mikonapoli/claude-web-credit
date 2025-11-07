@@ -272,6 +272,7 @@ class GameEngine:
             ai_system=self.ai_system,
             status_effects_system=self.status_effects_system,
             targeting_system=self.targeting_system,
+            crafting_system=self.crafting_system,
             message_log=self.message_log,
             stairs_pos=self.stairs_pos,
         )

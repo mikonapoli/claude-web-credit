@@ -1,6 +1,5 @@
 """Input handling for the game."""
 
-from enum import Enum
 from typing import Optional, TYPE_CHECKING
 
 import tcod.event
@@ -8,33 +7,6 @@ import tcod.event
 if TYPE_CHECKING:
     from roguelike.commands.command import Command
     from roguelike.commands.factory import CommandFactory
-
-
-class Action(Enum):
-    """Possible player actions.
-
-    NOTE: This enum is kept for backward compatibility with existing tests
-    and TurnManager. New code should use Command objects directly instead.
-    """
-
-    MOVE_UP = "move_up"
-    MOVE_DOWN = "move_down"
-    MOVE_LEFT = "move_left"
-    MOVE_RIGHT = "move_right"
-    MOVE_UP_LEFT = "move_up_left"
-    MOVE_UP_RIGHT = "move_up_right"
-    MOVE_DOWN_LEFT = "move_down_left"
-    MOVE_DOWN_RIGHT = "move_down_right"
-    WAIT = "wait"
-    DESCEND_STAIRS = "descend_stairs"
-    PICKUP = "pickup"
-    INVENTORY = "inventory"
-    QUIT = "quit"
-    TARGETING_SELECT = "targeting_select"
-    TARGETING_CANCEL = "targeting_cancel"
-    TARGETING_CYCLE_NEXT = "targeting_cycle_next"
-    TARGETING_CYCLE_PREV = "targeting_cycle_prev"
-    TEST_CONFUSION = "test_confusion"
 
 
 class InputHandler:

@@ -360,7 +360,7 @@ def test_command_executor_no_redo_when_empty():
 
 def test_use_item_command_rejects_targeted_items():
     """UseItemCommand rejects items that require targeting."""
-    from roguelike.commands.actions import UseItemCommand
+    from roguelike.commands.inventory_commands import UseItemCommand
     from roguelike.entities.item import create_scroll_confusion
     from roguelike.systems.item_system import ItemSystem
     from roguelike.systems.status_effects import StatusEffectsSystem
@@ -375,7 +375,7 @@ def test_use_item_command_rejects_targeted_items():
     player.inventory.add(scroll)
 
     # Try to use it via UseItemCommand (should fail - requires targeting)
-    cmd = UseItemCommand(player, 0, item_system)
+    cmd = UseItemCommand(player, scroll)
     result = cmd.execute()
 
     assert not result.success
@@ -386,7 +386,7 @@ def test_use_item_command_rejects_targeted_items():
 
 def test_use_item_command_allows_non_targeted_items():
     """UseItemCommand works for items that don't require targeting."""
-    from roguelike.commands.actions import UseItemCommand
+    from roguelike.commands.inventory_commands import UseItemCommand
     from roguelike.entities.item import create_healing_potion
     from roguelike.systems.item_system import ItemSystem
     from roguelike.systems.status_effects import StatusEffectsSystem
@@ -404,7 +404,7 @@ def test_use_item_command_allows_non_targeted_items():
     player.inventory.add(potion)
 
     # Use it via UseItemCommand (should succeed - doesn't require targeting)
-    cmd = UseItemCommand(player, 0, item_system)
+    cmd = UseItemCommand(player, potion)
     result = cmd.execute()
 
     assert result.success

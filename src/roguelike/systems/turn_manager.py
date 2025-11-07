@@ -15,7 +15,29 @@ from roguelike.world.game_map import GameMap
 
 
 class TurnManager:
-    """Manages turn-based game flow."""
+    """Manages turn-based game flow.
+
+    CRITICAL: Component Processing Order
+    =====================================
+    The order in which components are processed each turn is CRITICAL to avoid
+    race conditions and ensure predictable behavior. This order must be maintained:
+
+    1. Player Action (combat may modify HealthComponent)
+    2. Player Status Effects (StatusEffectsSystem → HealthComponent)
+       - If player dies from status effects → game over
+    3. Enemy AI Turns (combat may modify HealthComponent)
+       - If player dies from enemy attack → game over
+    4. Enemy Status Effects (StatusEffectsSystem → HealthComponent)
+       - Enemies may die from status effects
+
+    Rationale:
+    - Player sees their action results immediately
+    - Status effects apply after action (poison ticks after movement)
+    - Enemies respond to player's action
+    - Enemy status effects apply last (consistent with player)
+
+    See docs/COMPONENT_COMMUNICATION.md for more details.
+    """
 
     def __init__(
         self,

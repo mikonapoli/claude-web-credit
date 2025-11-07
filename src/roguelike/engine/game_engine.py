@@ -335,7 +335,7 @@ class GameEngine:
                             # Find first confusion scroll in inventory
                             from roguelike.entities.item import ItemType
                             confusion_scroll = None
-                            for item in self.player.inventory.get_items():
+                            for item in self.player.inventory.items:
                                 if hasattr(item, 'item_type') and item.item_type == ItemType.SCROLL_CONFUSION:
                                     confusion_scroll = item
                                     break

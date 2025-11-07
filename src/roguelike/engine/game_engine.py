@@ -240,6 +240,10 @@ class GameEngine:
         self.stairs_pos = stairs_pos
         self.current_dungeon_level = next_level
 
+        # Update map references in subsystems
+        self.movement_system.game_map = game_map
+        self.ai_system.game_map = game_map
+
         # Place player at start of first room
         self.player.position = rooms[0].center
 

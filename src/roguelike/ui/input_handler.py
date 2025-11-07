@@ -226,7 +226,13 @@ class InputHandler:
         # Crafting (lowercase 'c' key)
         elif key == tcod.event.KeySym.C and not event.mod & tcod.event.KMOD_SHIFT:
             self.last_command = AutoCraftCommand(
-                self.player, self.crafting_system, self.message_log, self.entities
+                self.player,
+                self.crafting_system,
+                self.message_log,
+                self.entities,
+                self.ai_system,
+                self.combat_system,
+                self.status_effects_system,
             )
 
         # Test: Confusion scroll targeting (uppercase 'C' key)

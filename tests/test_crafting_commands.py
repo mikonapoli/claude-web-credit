@@ -9,9 +9,14 @@ from roguelike.components.inventory import InventoryComponent
 from roguelike.data.entity_loader import EntityLoader
 from roguelike.data.recipe_loader import RecipeLoader
 from roguelike.engine.events import EventBus
+from roguelike.systems.ai_system import AISystem
+from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.crafting import CraftingSystem
+from roguelike.systems.movement_system import MovementSystem
+from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.ui.message_log import MessageLog
 from roguelike.utils.position import Position
+from roguelike.world.game_map import GameMap
 
 
 @pytest.fixture
@@ -57,7 +62,40 @@ def entity_loader():
     return EntityLoader()
 
 
-def test_craft_command_success(player, crafting_system, message_log, entity_loader):
+@pytest.fixture
+def game_map():
+    """Create game map for testing."""
+    return GameMap(width=80, height=50)
+
+
+@pytest.fixture
+def combat_system(event_bus):
+    """Create combat system for testing."""
+    return CombatSystem(event_bus)
+
+
+@pytest.fixture
+def movement_system(game_map):
+    """Create movement system for testing."""
+    return MovementSystem(game_map)
+
+
+@pytest.fixture
+def status_effects_system(event_bus):
+    """Create status effects system for testing."""
+    return StatusEffectsSystem(event_bus)
+
+
+@pytest.fixture
+def ai_system(combat_system, movement_system, game_map, status_effects_system):
+    """Create AI system for testing."""
+    return AISystem(combat_system, movement_system, game_map, status_effects_system)
+
+
+def test_craft_command_success(
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
+):
     """Test successful crafting with CraftCommand."""
     # Create ingredients for healing potion (herbal + magical)
     moonleaf = entity_loader.create_entity("moonleaf", Position(10, 10))
@@ -69,7 +107,11 @@ def test_craft_command_success(player, crafting_system, message_log, entity_load
     inventory.add_item(crystal)
 
     # Create craft command
-    cmd = CraftCommand(player, [moonleaf, crystal], crafting_system, message_log)
+    entities = []
+    cmd = CraftCommand(
+        player, [moonleaf, crystal], crafting_system, message_log,
+        entities, ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
     # Should succeed
@@ -86,7 +128,10 @@ def test_craft_command_success(player, crafting_system, message_log, entity_load
     assert items[0].name == "Healing Potion"
 
 
-def test_craft_command_no_recipe(player, crafting_system, message_log, entity_loader):
+def test_craft_command_no_recipe(
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
+):
     """Test crafting with ingredients that don't match a recipe."""
     # Create incompatible ingredients
     moonleaf = entity_loader.create_entity("moonleaf", Position(10, 10))
@@ -98,7 +143,11 @@ def test_craft_command_no_recipe(player, crafting_system, message_log, entity_lo
     inventory.add_item(nightshade)
 
     # Create craft command
-    cmd = CraftCommand(player, [moonleaf, nightshade], crafting_system, message_log)
+    entities = []
+    cmd = CraftCommand(
+        player, [moonleaf, nightshade], crafting_system, message_log,
+        entities, ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
     # Should fail
@@ -111,7 +160,8 @@ def test_craft_command_no_recipe(player, crafting_system, message_log, entity_lo
 
 
 def test_craft_command_ingredient_not_in_inventory(
-    player, crafting_system, message_log, entity_loader
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
 ):
     """Test crafting with ingredient not in inventory."""
     # Create ingredients but don't add to inventory
@@ -119,7 +169,11 @@ def test_craft_command_ingredient_not_in_inventory(
     crystal = entity_loader.create_entity("mana_crystal", Position(10, 10))
 
     # Create craft command
-    cmd = CraftCommand(player, [moonleaf, crystal], crafting_system, message_log)
+    entities = []
+    cmd = CraftCommand(
+        player, [moonleaf, crystal], crafting_system, message_log,
+        entities, ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
     # Should fail
@@ -128,7 +182,8 @@ def test_craft_command_ingredient_not_in_inventory(
 
 
 def test_auto_craft_command_finds_recipe(
-    player, crafting_system, message_log, entity_loader
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
 ):
     """Test AutoCraftCommand finds valid recipe."""
     # Create ingredients for healing potion
@@ -142,7 +197,10 @@ def test_auto_craft_command_finds_recipe(
 
     # Create auto craft command
     entities = []
-    cmd = AutoCraftCommand(player, crafting_system, message_log, entities)
+    cmd = AutoCraftCommand(
+        player, crafting_system, message_log, entities,
+        ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
     # Should succeed
@@ -156,7 +214,8 @@ def test_auto_craft_command_finds_recipe(
 
 
 def test_auto_craft_command_no_valid_recipe(
-    player, crafting_system, message_log, entity_loader
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
 ):
     """Test AutoCraftCommand with no valid recipes."""
     # Create incompatible ingredients
@@ -170,7 +229,10 @@ def test_auto_craft_command_no_valid_recipe(
 
     # Create auto craft command
     entities = []
-    cmd = AutoCraftCommand(player, crafting_system, message_log, entities)
+    cmd = AutoCraftCommand(
+        player, crafting_system, message_log, entities,
+        ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
     # Should fail
@@ -182,7 +244,8 @@ def test_auto_craft_command_no_valid_recipe(
 
 
 def test_auto_craft_command_not_enough_items(
-    player, crafting_system, message_log, entity_loader
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
 ):
     """Test AutoCraftCommand with less than 2 craftable items."""
     # Create only one craftable item
@@ -194,7 +257,10 @@ def test_auto_craft_command_not_enough_items(
 
     # Create auto craft command
     entities = []
-    cmd = AutoCraftCommand(player, crafting_system, message_log, entities)
+    cmd = AutoCraftCommand(
+        player, crafting_system, message_log, entities,
+        ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
     # Should fail
@@ -203,7 +269,8 @@ def test_auto_craft_command_not_enough_items(
 
 
 def test_auto_craft_command_prefers_three_ingredient_recipes(
-    player, crafting_system, message_log, entity_loader
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
 ):
     """Test AutoCraftCommand tries 3-ingredient recipes before 2-ingredient."""
     # Create ingredients for both 2-item and 3-item recipes
@@ -220,7 +287,10 @@ def test_auto_craft_command_prefers_three_ingredient_recipes(
 
     # Create auto craft command
     entities = []
-    cmd = AutoCraftCommand(player, crafting_system, message_log, entities)
+    cmd = AutoCraftCommand(
+        player, crafting_system, message_log, entities,
+        ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
     # Should succeed
@@ -232,7 +302,8 @@ def test_auto_craft_command_prefers_three_ingredient_recipes(
 
 
 def test_craft_command_drops_item_if_inventory_full(
-    player, crafting_system, message_log, entity_loader
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
 ):
     """Test crafting drops item on ground if inventory is full."""
     # Fill inventory to capacity
@@ -250,15 +321,15 @@ def test_craft_command_drops_item_if_inventory_full(
     # Now inventory is exactly at capacity
     assert inventory.is_full()
 
-    # Create craft command
-    cmd = CraftCommand(player, [moonleaf, crystal], crafting_system, message_log)
+    # Create craft command with entities list
+    entities = []
+    cmd = CraftCommand(
+        player, [moonleaf, crystal], crafting_system, message_log,
+        entities, ai_system, combat_system, status_effects_system
+    )
     result = cmd.execute()
 
-    # Should fail because we can't fit the result
-    # (consumed ingredients free space but we check if inventory can add first)
-    # Actually, let's check what really happens...
-    # The command removes consumed ingredients first, then tries to add
-    # So it should succeed!
+    # Should succeed - ingredients are removed first, freeing space
     assert result.success is True
 
     # Check that crafted item was added

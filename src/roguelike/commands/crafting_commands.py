@@ -19,6 +19,10 @@ class CraftCommand(Command):
         ingredients: List[ComponentEntity],
         crafting_system: CraftingSystem,
         message_log: MessageLog,
+        entities: List[ComponentEntity],
+        ai_system: "AISystem",
+        combat_system: "CombatSystem",
+        status_effects_system: Optional["StatusEffectsSystem"],
     ):
         """Initialize craft command.
 
@@ -27,11 +31,19 @@ class CraftCommand(Command):
             ingredients: List of ingredient entities to combine
             crafting_system: Crafting system for recipe matching
             message_log: Message log for feedback
+            entities: List of all entities (for dropping items if needed)
+            ai_system: AI system for enemy behavior
+            combat_system: Combat system for handling death
+            status_effects_system: Status effects system for managing effects
         """
         self.player = player
         self.ingredients = ingredients
         self.crafting_system = crafting_system
         self.message_log = message_log
+        self.entities = entities
+        self.ai_system = ai_system
+        self.combat_system = combat_system
+        self.status_effects_system = status_effects_system
 
     def execute(self) -> CommandResult:
         """Execute the craft command.
@@ -78,16 +90,26 @@ class CraftCommand(Command):
         # Add crafted item to inventory
         if not inventory.add_item(result):
             # Inventory full - drop at player's position
-            # Note: We would need to add result to entities list, but
-            # that's handled by the game engine's entity management
+            self.entities.append(result)
             self.message_log.add_message(
                 f"Inventory full! {result.name} dropped on ground."
             )
-            # For now, just fail - proper item dropping requires entity list access
-            return CommandResult(success=False, turn_consumed=False)
 
         # Success message is handled by event system
-        return CommandResult(success=True, turn_consumed=True)
+        # Process turn cycle (enemies act, status effects tick)
+        game_over = self._process_turn_cycle(
+            self.player,
+            self.entities,
+            self.ai_system,
+            self.combat_system,
+            self.status_effects_system,
+        )
+
+        return CommandResult(
+            success=True,
+            turn_consumed=True,
+            should_quit=game_over,
+        )
 
 
 class AutoCraftCommand(Command):
@@ -103,6 +125,9 @@ class AutoCraftCommand(Command):
         crafting_system: CraftingSystem,
         message_log: MessageLog,
         entities: List[ComponentEntity],
+        ai_system: "AISystem",
+        combat_system: "CombatSystem",
+        status_effects_system: Optional["StatusEffectsSystem"],
     ):
         """Initialize auto craft command.
 
@@ -111,11 +136,17 @@ class AutoCraftCommand(Command):
             crafting_system: Crafting system for recipe matching
             message_log: Message log for feedback
             entities: List of all entities (for dropping items if needed)
+            ai_system: AI system for enemy behavior
+            combat_system: Combat system for handling death
+            status_effects_system: Status effects system for managing effects
         """
         self.player = player
         self.crafting_system = crafting_system
         self.message_log = message_log
         self.entities = entities
+        self.ai_system = ai_system
+        self.combat_system = combat_system
+        self.status_effects_system = status_effects_system
 
     def execute(self) -> CommandResult:
         """Execute the auto craft command.
@@ -172,7 +203,20 @@ class AutoCraftCommand(Command):
                         )
 
                     # Success - message already handled by event system
-                    return CommandResult(success=True, turn_consumed=True)
+                    # Process turn cycle (enemies act, status effects tick)
+                    game_over = self._process_turn_cycle(
+                        self.player,
+                        self.entities,
+                        self.ai_system,
+                        self.combat_system,
+                        self.status_effects_system,
+                    )
+
+                    return CommandResult(
+                        success=True,
+                        turn_consumed=True,
+                        should_quit=game_over,
+                    )
 
         # No valid recipes found
         self.message_log.add_message(

@@ -1,8 +1,14 @@
 """Inventory system."""
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from roguelike.entities.item import Item, ItemType
+
+if TYPE_CHECKING:
+    from roguelike.components.entity import ComponentEntity
+
+# Type alias for items that can be stored in inventory
+InventoryItem = Union[Item, "ComponentEntity"]
 
 
 class Inventory:
@@ -15,13 +21,13 @@ class Inventory:
             capacity: Maximum number of items
         """
         self.capacity = capacity
-        self.items: List[Item] = []
+        self.items: List[InventoryItem] = []
 
-    def add(self, item: Item) -> bool:
+    def add(self, item: InventoryItem) -> bool:
         """Add item to inventory.
 
         Args:
-            item: Item to add
+            item: Item to add (Item or ComponentEntity with CraftingComponent)
 
         Returns:
             True if item was added
@@ -31,7 +37,7 @@ class Inventory:
         self.items.append(item)
         return True
 
-    def remove(self, item: Item) -> bool:
+    def remove(self, item: InventoryItem) -> bool:
         """Remove item from inventory.
 
         Args:
@@ -45,7 +51,7 @@ class Inventory:
             return True
         return False
 
-    def get_item_by_index(self, index: int) -> Optional[Item]:
+    def get_item_by_index(self, index: int) -> Optional[InventoryItem]:
         """Get item by index.
 
         Args:

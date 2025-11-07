@@ -428,11 +428,18 @@ class PickupItemCommand(Command):
         Returns:
             CommandResult indicating success/failure
         """
+        from roguelike.components.crafting import CraftingComponent
+
         # Find items at player's position
+        # Include both Item objects (with item_type) and ComponentEntity with CraftingComponent
         items_at_position = [
             item
             for item in self.entities
-            if hasattr(item, "item_type") and item.position == self.player.position
+            if item.position == self.player.position
+            and (
+                hasattr(item, "item_type")
+                or item.get_component(CraftingComponent) is not None
+            )
         ]
 
         if not items_at_position:

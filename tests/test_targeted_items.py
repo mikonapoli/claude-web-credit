@@ -4,8 +4,8 @@ import pytest
 
 from roguelike.engine.events import EventBus
 from roguelike.entities.item import create_scroll_confusion, create_healing_potion, ItemType
-from roguelike.entities.monster import create_orc, create_troll
-from roguelike.entities.player import Player
+from roguelike.components.factories import create_orc, create_troll
+from tests.test_helpers import create_test_player, create_test_monster
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.utils.position import Position
@@ -29,7 +29,7 @@ def test_confusion_scroll_applies_to_target():
     status_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_system)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     orc = create_orc(Position(7, 7))
     scroll = create_scroll_confusion(Position(0, 0))
 
@@ -46,7 +46,7 @@ def test_confusion_scroll_fails_without_target():
     status_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_system)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     scroll = create_scroll_confusion(Position(0, 0))
 
     # Use scroll without target
@@ -61,7 +61,7 @@ def test_confusion_scroll_fails_on_dead_target():
     status_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_system)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     orc = create_orc(Position(7, 7))
     orc.take_damage(100)  # Kill orc
     scroll = create_scroll_confusion(Position(0, 0))
@@ -74,11 +74,13 @@ def test_confusion_scroll_fails_on_dead_target():
 
 def test_confusion_scroll_with_correct_duration():
     """Confusion scroll applies effect with correct duration."""
+    from roguelike.components.status_effects import StatusEffectsComponent
+
     event_bus = EventBus()
     status_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_system)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     orc = create_orc(Position(7, 7))
     scroll = create_scroll_confusion(Position(0, 0))
 
@@ -86,7 +88,9 @@ def test_confusion_scroll_with_correct_duration():
     item_system.use_item(scroll, player, player.inventory, target=orc)
 
     # Check effect duration matches scroll value (10 turns)
-    effect = orc._status_effects.get_effect("confusion")
+    status_comp = orc.get_component(StatusEffectsComponent)
+    assert status_comp is not None
+    effect = status_comp.get_effect("confusion")
     assert effect is not None
     assert effect.duration == 10
 
@@ -97,7 +101,7 @@ def test_confusion_scroll_on_multiple_targets():
     status_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_system)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     orc = create_orc(Position(7, 7))
     troll = create_troll(Position(10, 10))
 

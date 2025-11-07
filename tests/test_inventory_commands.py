@@ -374,7 +374,7 @@ def test_use_item_command_no_health_component():
 
 
 def test_use_healing_potion_at_full_health():
-    """Using healing potion at full health still works."""
+    """Using healing potion at full health fails (doesn't waste the potion)."""
     player = ComponentEntity(Position(5, 5), "@", "Player")
     health = HealthComponent(max_hp=30)
     player.add_component(health)
@@ -387,4 +387,7 @@ def test_use_healing_potion_at_full_health():
     cmd = UseItemCommand(player, item)
     result = cmd.execute()
 
-    assert result.success is True
+    # Should fail because player is at full health - don't waste the potion
+    assert result.success is False
+    # Item should still be in inventory
+    assert item in inventory.get_items()

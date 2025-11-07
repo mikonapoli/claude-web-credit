@@ -10,7 +10,25 @@ from roguelike.engine.events import EquipEvent, EventBus, UnequipEvent
 
 
 class EquipmentSystem:
-    """Manages equipment and applies stat bonuses."""
+    """Manages equipment and applies stat bonuses.
+
+    Component Communication:
+    ------------------------
+    This system uses the SHARED STATE pattern and modifies multiple components:
+    - Reads: EquipmentComponent, EquipmentStats
+    - Modifies: CombatComponent (power/defense), HealthComponent (max_hp)
+
+    Processing Order Dependencies:
+    ------------------------------
+    Equipment bonuses are applied IMMEDIATELY when equipping/unequipping.
+    These bonuses persist in the component stats (not recalculated each frame).
+
+    IMPORTANT: When modifying max_hp:
+    - Maintains HP percentage to avoid unfair HP loss/gain
+    - Ensures living entities keep at least 1 HP
+
+    See docs/COMPONENT_COMMUNICATION.md for more details.
+    """
 
     def __init__(self, event_bus: EventBus):
         """Initialize equipment system.

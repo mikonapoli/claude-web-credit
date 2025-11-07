@@ -2,7 +2,7 @@
 
 import pytest
 
-from roguelike.entities.monster import create_orc, create_troll
+from roguelike.components.factories import create_orc, create_troll
 from roguelike.systems.targeting import TargetingSystem
 from roguelike.utils.position import Position
 

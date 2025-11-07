@@ -72,7 +72,7 @@ class TestHealthBarRenderer:
         # Check that background characters are drawn
         # Background should be full width
         for i in range(renderer.bar_width):
-            char = console.tiles["ch"][3, 5 + i]
+            char = console.rgb["ch"][3, 5 + i]
             # ASCII 219 is '█' (full block)
             assert char != 0  # Some character was drawn
 
@@ -83,7 +83,7 @@ class TestHealthBarRenderer:
         renderer.render(console, x=5, y=3, hp=5, max_hp=10)
 
         # Should have drawn something at the start position
-        char = console.tiles["ch"][3, 5]
+        char = console.rgb["ch"][3, 5]
         assert char != 0
 
     def test_custom_bar_width(self):

@@ -4,7 +4,7 @@ import pytest
 from roguelike.components.mana import ManaComponent
 from roguelike.components.spells import SpellComponent
 from roguelike.engine.events import EventBus
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity
 from roguelike.magic.effects import DamageEffect, HealEffect
 from roguelike.magic.spell import Spell, SpellSchool, TargetType
 from roguelike.systems.magic_system import MagicSystem
@@ -26,10 +26,10 @@ def magic_system(event_bus):
 @pytest.fixture
 def wizard():
     """Create wizard actor."""
-    return Actor(
-        position=Position(0, 0),
-        char="@",
-        name="Wizard",
+    return create_test_entity(
+        Position(0, 0),
+        "@",
+        "Wizard",
         max_hp=50,
         defense=2,
         power=5,
@@ -39,10 +39,10 @@ def wizard():
 @pytest.fixture
 def orc():
     """Create orc actor."""
-    return Actor(
-        position=Position(1, 1),
-        char="o",
-        name="Orc",
+    return create_test_entity(
+        Position(1, 1),
+        "o",
+        "Orc",
         max_hp=20,
         defense=1,
         power=3,

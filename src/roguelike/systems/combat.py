@@ -3,7 +3,9 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from roguelike.entities.actor import Actor
+from roguelike.components.combat import CombatComponent
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.health import HealthComponent
 
 
 @dataclass
@@ -17,18 +19,19 @@ class CombatResult:
 
 
 def calculate_damage(
-    attacker: Actor,
-    defender: Actor,
+    attacker: ComponentEntity,
+    defender: ComponentEntity,
     attacker_power_bonus: int = 0,
     defender_defense_bonus: int = 0,
 ) -> int:
     """Calculate damage dealt from attacker to defender.
 
     Args:
-        attacker: Attacking actor
-        defender: Defending actor
+        attacker: Attacking entity
+        defender: Defending entity
         attacker_power_bonus: Bonus power from status effects
         defender_defense_bonus: Bonus defense from status effects
+
 
     Returns:
         Damage amount after defense reduction
@@ -40,16 +43,16 @@ def calculate_damage(
 
 
 def attack(
-    attacker: Actor,
-    defender: Actor,
+    attacker: ComponentEntity,
+    defender: ComponentEntity,
     attacker_power_bonus: int = 0,
     defender_defense_bonus: int = 0,
 ) -> CombatResult:
     """Perform an attack from one actor to another.
 
     Args:
-        attacker: The attacking actor
-        defender: The defending actor
+        attacker: The attacking entity
+        defender: The defending entity
         attacker_power_bonus: Bonus power from status effects
         defender_defense_bonus: Bonus defense from status effects
 
@@ -59,11 +62,13 @@ def attack(
     damage = calculate_damage(
         attacker, defender, attacker_power_bonus, defender_defense_bonus
     )
-    defender.take_damage(damage)
+    efender_health = defender.get_component(HealthComponent)
+    if defender_health:
+        defender_health.take_damage(damage)
 
     return CombatResult(
         attacker_name=attacker.name,
         defender_name=defender.name,
         damage=damage,
-        defender_died=not defender.is_alive,
+        defender_died=not defender_health.is_alive if defender_health else False,
     )

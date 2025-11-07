@@ -7,7 +7,23 @@ if TYPE_CHECKING:
 
 
 class Component:
-    """Base class for all components."""
+    """Base class for all components.
+
+    Component Pattern:
+    ------------------
+    Components are data containers attached to entities. They use the
+    SHARED STATE communication pattern:
+    - Components store state
+    - Systems orchestrate behavior by reading/writing component state
+    - Components DO NOT directly reference other components
+
+    Each component should:
+    - Encapsulate a single concern (health, combat, inventory, etc.)
+    - Expose clean interfaces for systems to use
+    - Maintain their own invariants
+
+    See docs/COMPONENT_COMMUNICATION.md for detailed guidelines.
+    """
 
     def __init__(self, entity: Optional["ComponentEntity"] = None):
         """Initialize component.

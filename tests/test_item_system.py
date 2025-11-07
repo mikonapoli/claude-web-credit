@@ -3,7 +3,7 @@
 import pytest
 
 from roguelike.engine.events import EventBus, HealingEvent, ItemUseEvent
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.entities.item import (
     create_cheese_wheel,
     create_cursed_ring,
@@ -33,14 +33,7 @@ def item_system(event_bus):
 @pytest.fixture
 def player():
     """Create a test player."""
-    return Actor(
-        position=Position(5, 5),
-        char="@",
-        name="Player",
-        max_hp=30,
-        defense=2,
-        power=5,
-    )
+    return create_test_player(Position(5, 5))
 
 
 @pytest.fixture

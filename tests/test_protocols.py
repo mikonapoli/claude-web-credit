@@ -1,8 +1,7 @@
 """Tests for protocol interfaces."""
 
-from roguelike.entities.actor import Actor
-from roguelike.entities.monster import create_orc
-from roguelike.entities.player import Player
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
+from roguelike.components.factories import create_orc
 from roguelike.utils.position import Position
 from roguelike.utils.protocols import (
     AIControlled,
@@ -13,32 +12,32 @@ from roguelike.utils.protocols import (
 )
 
 
-def test_actor_implements_combatant():
-    """Actor implements Combatant protocol."""
-    actor = Actor(
-        position=Position(0, 0),
-        char="@",
-        name="TestActor",
+def test_component_entity_implements_combatant():
+    """ComponentEntity implements Combatant protocol."""
+    entity = create_test_entity(
+        Position(0, 0),
+        "@",
+        "TestEntity",
         max_hp=10,
         defense=1,
         power=5,
     )
     # Type check - this will fail at type-check time if protocol not satisfied
-    combatant: Combatant = actor
-    assert combatant.name == "TestActor"
+    combatant: Combatant = entity
+    assert combatant.name == "TestEntity"
 
 
-def test_actor_implements_positionable():
-    """Actor implements Positionable protocol."""
-    actor = Actor(
-        position=Position(0, 0),
-        char="@",
-        name="TestActor",
+def test_component_entity_implements_positionable():
+    """ComponentEntity implements Positionable protocol."""
+    entity = create_test_entity(
+        Position(0, 0),
+        "@",
+        "TestEntity",
         max_hp=10,
         defense=1,
         power=5,
     )
-    positionable: Positionable = actor
+    positionable: Positionable = entity
     assert positionable.position == Position(0, 0)
 
 
@@ -58,6 +57,6 @@ def test_monster_implements_xp_source():
 
 def test_player_implements_levelable():
     """Player implements Levelable protocol."""
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     levelable: Levelable = player
     assert levelable.level == 1

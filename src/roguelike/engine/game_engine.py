@@ -4,6 +4,8 @@ from typing import List, Optional
 
 import tcod.event
 
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.helpers import is_alive, is_monster
 from roguelike.engine.events import (
     EventBus,
     CombatEvent,
@@ -14,19 +16,14 @@ from roguelike.engine.events import (
     StatusEffectExpiredEvent,
     StatusEffectTickEvent,
 )
-from roguelike.entities.actor import Actor
-from roguelike.entities.entity import Entity
 from roguelike.entities.item import Item, ItemType
-from roguelike.entities.monster import Monster
-from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
-from roguelike.systems.turn_manager import TurnManager
-from roguelike.ui.input_handler import Action, InputHandler
+from roguelike.ui.input_handler import InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
 from roguelike.utils.position import Position
@@ -40,8 +37,10 @@ class GameEngine:
     def __init__(
         self,
         game_map: GameMap,
-        player: Player,
-        entities: List[Entity] | None = None,
+        player: ComponentEntity,
+        entities: List[ComponentEntity] | None = None,
+        level_system=None,
+        stairs_pos: Optional[Position] = None,
     ):
         """Initialize the game engine.
 
@@ -49,6 +48,8 @@ class GameEngine:
             game_map: The game map
             player: The player entity
             entities: List of other entities
+            level_system: Optional dungeon level system for level transitions
+            stairs_pos: Optional position of stairs down
         """
         self.game_map = game_map
         self.player = player
@@ -56,6 +57,9 @@ class GameEngine:
         self.running = False
         self.message_log = MessageLog()
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.level_system = level_system
+        self.stairs_pos = stairs_pos
+        self.current_dungeon_level = 1
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -67,9 +71,6 @@ class GameEngine:
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
-        self.turn_manager = TurnManager(
-            self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
-        )
 
         # Subscribe to events for message logging
         self._setup_event_subscribers()
@@ -78,9 +79,14 @@ class GameEngine:
         self.fov_map = FOVMap(game_map)
         self.fov_radius = 8
 
+        # Create command executor
+        from roguelike.commands import CommandExecutor
+
+        self.command_executor = CommandExecutor(max_history=100)
+
         # Register monsters with AI system
         for entity in self.entities:
-            if isinstance(entity, Monster):
+            if is_monster(entity):
                 self.ai_system.register_monster(entity)
 
         # Compute initial FOV
@@ -165,120 +171,61 @@ class GameEngine:
         # Process status effects on monsters
         if self.status_effects_system:
             for entity in self.entities:
-                if isinstance(entity, Monster) and entity.is_alive:
+                if is_monster(entity) and is_alive(entity):
                     died_from_effects = self.status_effects_system.process_effects(entity)
                     if died_from_effects:
                         self.combat_system.handle_death(entity, killed_by_player=False)
                         entity.blocks_movement = False
 
-    def _start_confusion_targeting(self, input_handler: InputHandler) -> None:
-        """Start targeting mode for confusion scroll.
-
-        Args:
-            input_handler: Input handler to set targeting mode
-        """
-        # Check if player has a confusion scroll in inventory
-        confusion_scroll = None
-        for item in self.player.inventory.items:
-            if item.item_type == ItemType.SCROLL_CONFUSION:
-                confusion_scroll = item
-                break
-
-        if not confusion_scroll:
-            self.message_log.add_message("No confusion scroll in inventory!")
+    def _transition_to_next_level(self) -> None:
+        """Transition to the next dungeon level."""
+        if not self.level_system:
+            self.message_log.add_message("No more levels available!")
             return
 
-        # Get all living monsters that are visible
-        monsters = [
-            e for e in self.entities
-            if isinstance(e, Monster) and e.is_alive and self.fov_map.is_visible(e.position)
-        ]
+        next_level = self.current_dungeon_level + 1
 
-        if not monsters:
-            self.message_log.add_message("No visible targets!")
+        # Check if next level exists
+        if next_level > len(self.level_system.level_configs):
+            self.message_log.add_message("You have reached the deepest level!")
             return
 
-        # Start targeting with max range of 10
-        max_range = 10
-        if self.targeting_system.start_targeting(
-            self.player.position, max_range, monsters,
-            self.game_map.width, self.game_map.height
-        ):
-            self.active_targeted_item = confusion_scroll
-            input_handler.set_targeting_mode(True)
-            self.message_log.add_message(
-                "Select a target (Tab to cycle, Enter to select, Escape to cancel)"
-            )
-        else:
-            self.message_log.add_message("No targets in range!")
+        # Generate new level
+        game_map, rooms, monsters, stairs_pos = self.level_system.generate_level_with_monsters(next_level)
 
-    def _handle_targeting_action(self, action: Action, input_handler: InputHandler) -> None:
-        """Handle actions while in targeting mode.
+        # Update game state
+        self.game_map = game_map
+        self.stairs_pos = stairs_pos
+        self.current_dungeon_level = next_level
 
-        Args:
-            action: The action to handle
-            input_handler: Input handler to control targeting mode
-        """
-        # Map movement directions
-        movement_map = {
-            Action.MOVE_UP: (0, -1),
-            Action.MOVE_DOWN: (0, 1),
-            Action.MOVE_LEFT: (-1, 0),
-            Action.MOVE_RIGHT: (1, 0),
-            Action.MOVE_UP_LEFT: (-1, -1),
-            Action.MOVE_UP_RIGHT: (1, -1),
-            Action.MOVE_DOWN_LEFT: (-1, 1),
-            Action.MOVE_DOWN_RIGHT: (1, 1),
-        }
+        # Update map references in subsystems
+        self.movement_system.game_map = game_map
+        self.ai_system.game_map = game_map
 
-        if action in movement_map:
-            # Move cursor
-            dx, dy = movement_map[action]
-            self.targeting_system.move_cursor(dx, dy)
+        # Place player at start of first room
+        self.player.position = rooms[0].center
 
-        elif action == Action.TARGETING_CYCLE_NEXT:
-            # Cycle to next target
-            self.targeting_system.cycle_target(1)
+        # Clear old entities and add new monsters
+        self.entities.clear()
+        self.entities.extend(monsters)
 
-        elif action == Action.TARGETING_CYCLE_PREV:
-            # Cycle to previous target
-            self.targeting_system.cycle_target(-1)
+        # Re-register monsters with AI system
+        self.ai_system.monster_ais.clear()
+        for entity in self.entities:
+            if is_monster(entity):
+                self.ai_system.register_monster(entity)
 
-        elif action == Action.TARGETING_SELECT:
-            # Select target and use stored targeted item
-            target = self.targeting_system.select_target()
-            input_handler.set_targeting_mode(False)
+        # Recreate FOV map for new level
+        self.fov_map = FOVMap(self.game_map)
+        self.fov_map.compute_fov(self.player.position, self.fov_radius)
 
-            if target and self.active_targeted_item:
-                # Use the stored item on the target
-                success = self.item_system.use_item(
-                    self.active_targeted_item, self.player, self.player.inventory, target=target
-                )
+        # Emit level transition event and log message
+        level_name = self.level_system.level_configs[next_level].name
+        self.message_log.add_message(f"You descend to level {next_level}: {level_name}")
+        self.level_system.transition_to_level(next_level)
 
-                if success:
-                    self.message_log.add_message(
-                        f"You confuse the {target.name} for 10 turns!"
-                    )
-                    # Item use consumes a turn - process turn effects
-                    self._process_turn_after_action()
-                else:
-                    self.message_log.add_message("Failed to confuse target!")
-
-                # Clear the active item reference
-                self.active_targeted_item = None
-            elif not target:
-                self.message_log.add_message("No target selected!")
-                self.active_targeted_item = None
-            else:
-                self.message_log.add_message("No item to use!")
-                self.active_targeted_item = None
-
-        elif action == Action.TARGETING_CANCEL:
-            # Cancel targeting
-            self.targeting_system.cancel_targeting()
-            input_handler.set_targeting_mode(False)
-            self.active_targeted_item = None
-            self.message_log.add_message("Targeting cancelled.")
+        # Note: InputHandler context will be updated in run() when it's recreated
+        # or via update_context() if the handler persists across levels
 
     def run(self, renderer: Renderer) -> None:
         """Run the main game loop.
@@ -287,7 +234,20 @@ class GameEngine:
             renderer: The renderer to use
         """
         self.running = True
-        input_handler = InputHandler()
+        input_handler = InputHandler(
+            player=self.player,
+            entities=self.entities,
+            game_map=self.game_map,
+            fov_map=self.fov_map,
+            fov_radius=self.fov_radius,
+            combat_system=self.combat_system,
+            movement_system=self.movement_system,
+            ai_system=self.ai_system,
+            status_effects_system=self.status_effects_system,
+            targeting_system=self.targeting_system,
+            message_log=self.message_log,
+            stairs_pos=self.stairs_pos,
+        )
 
         # Message log display configuration
         # Use the map's actual height for viewport, message log fills remaining space
@@ -300,7 +260,7 @@ class GameEngine:
             renderer.clear()
             renderer.render_map(self.game_map, self.fov_map, max_height=map_viewport_height)
             # Only render living monsters
-            living_entities = [e for e in self.entities if not isinstance(e, Monster) or e.is_alive]
+            living_entities = [e for e in self.entities if not is_monster(e) or is_alive(e)]
             renderer.render_entities(living_entities, self.fov_map, max_height=map_viewport_height)
             renderer.render_entity(self.player, self.fov_map, max_height=map_viewport_height)
             # Render message log at bottom of screen
@@ -312,9 +272,9 @@ class GameEngine:
                 height=message_log_height
             )
 
-            # Render health bars only for Actors (entities with health, excluding player)
-            actors_to_render = [e for e in living_entities if isinstance(e, Actor)]
-            renderer.render_health_bars(actors_to_render, self.fov_map)
+            # Render health bars for monsters with health (entities that are monsters)
+            monsters_to_render = [e for e in living_entities if is_monster(e)]
+            renderer.render_health_bars(monsters_to_render, self.fov_map)
 
             # Render player stats as text in the top-right area of the map viewport
             # Get active status effects for display
@@ -340,23 +300,62 @@ class GameEngine:
             for event in tcod.event.wait():
                 input_handler.dispatch(event)
 
-            action = input_handler.get_action()
-            if action:
-                # Handle targeting mode actions
-                if self.targeting_system.is_active:
-                    self._handle_targeting_action(action, input_handler)
-                # Handle TEST_CONFUSION action to start targeting
-                elif action == Action.TEST_CONFUSION:
-                    self._start_confusion_targeting(input_handler)
-                # Normal game actions
-                else:
-                    self.running = self.turn_manager.process_turn(
-                        action,
-                        self.player,
-                        self.entities,
-                        self.game_map,
-                        self.fov_map,
-                        self.fov_radius,
-                    )
+            command = input_handler.get_command()
+            if command:
+                # Execute command through executor
+                result = self.command_executor.execute(command)
+
+                # Handle command results
+                if result.should_quit:
+                    self.running = False
+                elif result.data:
+                    # Handle special command results
+                    if result.data.get("descend_stairs"):
+                        self._transition_to_next_level()
+                        # Update input handler with new level context
+                        input_handler.update_context(
+                            entities=self.entities,
+                            game_map=self.game_map,
+                            fov_map=self.fov_map,
+                            stairs_pos=self.stairs_pos,
+                        )
+                    elif result.data.get("start_targeting"):
+                        # Activate targeting mode in input handler
+                        input_handler.set_targeting_mode(True)
+                    elif result.data.get("targeting_select"):
+                        # Targeting selection made - exit targeting mode
+                        input_handler.set_targeting_mode(False)
+
+                        # Use confusion scroll on the selected target (test feature for 'C' key)
+                        target = result.data.get("target")
+                        if target:
+                            # Find first confusion scroll in inventory
+                            from roguelike.entities.item import ItemType
+                            confusion_scroll = None
+                            for item in self.player.inventory.items:
+                                if hasattr(item, 'item_type') and item.item_type == ItemType.SCROLL_CONFUSION:
+                                    confusion_scroll = item
+                                    break
+
+                            if confusion_scroll:
+                                # Use the confusion scroll on the target
+                                success = self.item_system.use_item(
+                                    confusion_scroll,
+                                    self.player,
+                                    self.player.inventory,
+                                    target=target
+                                )
+                                if success:
+                                    self.message_log.add_message(f"You confuse the {target.name}!")
+                                    # Process turn after successful item use
+                                    # This allows enemies to act and status effects to tick
+                                    self._process_turn_after_action()
+                                else:
+                                    self.message_log.add_message("The confusion scroll failed!")
+                            else:
+                                self.message_log.add_message("No confusion scroll in inventory!")
+                    elif result.data.get("targeting_cancel"):
+                        # Targeting cancelled - exit targeting mode
+                        input_handler.set_targeting_mode(False)
 
         renderer.close()

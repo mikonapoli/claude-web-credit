@@ -1,9 +1,14 @@
 """Component-based entity class."""
 
-from typing import Dict, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Dict, Optional, Type, TypeVar
 
 from roguelike.components.component import Component
 from roguelike.utils.position import Position
+
+if TYPE_CHECKING:
+    from roguelike.components.combat import CombatComponent
+    from roguelike.components.health import HealthComponent
+    from roguelike.components.level import LevelComponent
 
 T = TypeVar("T", bound=Component)
 
@@ -88,6 +93,199 @@ class ComponentEntity:
             position: New position
         """
         self.position = position
+
+    # Properties for protocol compatibility
+    # These delegate to components when available
+
+    @property
+    def hp(self) -> int:
+        """Current hit points (delegates to HealthComponent)."""
+        from roguelike.components.health import HealthComponent
+
+        health = self.get_component(HealthComponent)
+        if health is None:
+            raise AttributeError(f"Entity {self.name} has no HealthComponent")
+        return health.hp
+
+    @hp.setter
+    def hp(self, value: int) -> None:
+        """Set hit points (delegates to HealthComponent)."""
+        from roguelike.components.health import HealthComponent
+
+        health = self.get_component(HealthComponent)
+        if health is None:
+            raise AttributeError(f"Entity {self.name} has no HealthComponent")
+        health.hp = value
+
+    @property
+    def max_hp(self) -> int:
+        """Maximum hit points (delegates to HealthComponent)."""
+        from roguelike.components.health import HealthComponent
+
+        health = self.get_component(HealthComponent)
+        if health is None:
+            raise AttributeError(f"Entity {self.name} has no HealthComponent")
+        return health.max_hp
+
+    @max_hp.setter
+    def max_hp(self, value: int) -> None:
+        """Set maximum hit points (delegates to HealthComponent)."""
+        from roguelike.components.health import HealthComponent
+
+        health = self.get_component(HealthComponent)
+        if health is None:
+            raise AttributeError(f"Entity {self.name} has no HealthComponent")
+        health.max_hp = value
+
+    @property
+    def is_alive(self) -> bool:
+        """Check if entity is alive (delegates to HealthComponent)."""
+        from roguelike.components.health import HealthComponent
+
+        health = self.get_component(HealthComponent)
+        return health.is_alive if health else True
+
+    @property
+    def power(self) -> int:
+        """Attack power (delegates to CombatComponent)."""
+        from roguelike.components.combat import CombatComponent
+
+        combat = self.get_component(CombatComponent)
+        if combat is None:
+            raise AttributeError(f"Entity {self.name} has no CombatComponent")
+        return combat.power
+
+    @power.setter
+    def power(self, value: int) -> None:
+        """Set attack power (delegates to CombatComponent)."""
+        from roguelike.components.combat import CombatComponent
+
+        combat = self.get_component(CombatComponent)
+        if combat is None:
+            raise AttributeError(f"Entity {self.name} has no CombatComponent")
+        combat.power = value
+
+    @property
+    def defense(self) -> int:
+        """Defense value (delegates to CombatComponent)."""
+        from roguelike.components.combat import CombatComponent
+
+        combat = self.get_component(CombatComponent)
+        if combat is None:
+            raise AttributeError(f"Entity {self.name} has no CombatComponent")
+        return combat.defense
+
+    @defense.setter
+    def defense(self, value: int) -> None:
+        """Set defense value (delegates to CombatComponent)."""
+        from roguelike.components.combat import CombatComponent
+
+        combat = self.get_component(CombatComponent)
+        if combat is None:
+            raise AttributeError(f"Entity {self.name} has no CombatComponent")
+        combat.defense = value
+
+    @property
+    def level(self) -> int:
+        """Entity level (delegates to LevelComponent)."""
+        from roguelike.components.level import LevelComponent
+
+        level_comp = self.get_component(LevelComponent)
+        if level_comp is None:
+            raise AttributeError(f"Entity {self.name} has no LevelComponent")
+        return level_comp.level
+
+    @level.setter
+    def level(self, value: int) -> None:
+        """Set entity level (delegates to LevelComponent)."""
+        from roguelike.components.level import LevelComponent
+
+        level_comp = self.get_component(LevelComponent)
+        if level_comp is None:
+            raise AttributeError(f"Entity {self.name} has no LevelComponent")
+        level_comp.level = value
+
+    @property
+    def xp(self) -> int:
+        """Experience points (delegates to LevelComponent)."""
+        from roguelike.components.level import LevelComponent
+
+        level_comp = self.get_component(LevelComponent)
+        if level_comp is None:
+            raise AttributeError(f"Entity {self.name} has no LevelComponent")
+        return level_comp.xp
+
+    @xp.setter
+    def xp(self, value: int) -> None:
+        """Set experience points (delegates to LevelComponent)."""
+        from roguelike.components.level import LevelComponent
+
+        level_comp = self.get_component(LevelComponent)
+        if level_comp is None:
+            raise AttributeError(f"Entity {self.name} has no LevelComponent")
+        level_comp.xp = value
+
+    @property
+    def xp_value(self) -> int:
+        """XP awarded when killed (delegates to LevelComponent)."""
+        from roguelike.components.level import LevelComponent
+
+        level_comp = self.get_component(LevelComponent)
+        if level_comp is None:
+            raise AttributeError(f"Entity {self.name} has no LevelComponent")
+        return level_comp.xp_value
+
+    @xp_value.setter
+    def xp_value(self, value: int) -> None:
+        """Set XP awarded when killed (delegates to LevelComponent)."""
+        from roguelike.components.level import LevelComponent
+
+        level_comp = self.get_component(LevelComponent)
+        if level_comp is None:
+            raise AttributeError(f"Entity {self.name} has no LevelComponent")
+        level_comp.xp_value = value
+
+    def take_damage(self, amount: int) -> int:
+        """Take damage (delegates to HealthComponent).
+
+        Args:
+            amount: Damage amount
+
+        Returns:
+            Actual damage taken
+        """
+        from roguelike.components.health import HealthComponent
+
+        health = self.get_component(HealthComponent)
+        if health is None:
+            raise AttributeError(f"Entity {self.name} has no HealthComponent")
+        return health.take_damage(amount)
+
+    def heal(self, amount: int) -> int:
+        """Heal damage (delegates to HealthComponent).
+
+        Args:
+            amount: Heal amount
+
+        Returns:
+            Actual amount healed
+        """
+        from roguelike.components.health import HealthComponent
+
+        health = self.get_component(HealthComponent)
+        if health is None:
+            raise AttributeError(f"Entity {self.name} has no HealthComponent")
+        return health.heal(amount)
+
+    @property
+    def inventory(self):
+        """Get inventory (delegates to InventoryComponent)."""
+        from roguelike.components.inventory import InventoryComponent
+
+        inv_comp = self.get_component(InventoryComponent)
+        if inv_comp is None:
+            raise AttributeError(f"Entity {self.name} has no InventoryComponent")
+        return inv_comp._inventory
 
     def __repr__(self) -> str:
         """Return string representation."""

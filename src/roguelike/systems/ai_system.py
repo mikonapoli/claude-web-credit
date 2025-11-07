@@ -3,9 +3,8 @@
 import random
 from typing import Dict, List, Optional
 
-from roguelike.entities.entity import Entity
-from roguelike.entities.monster import Monster
-from roguelike.entities.player import Player
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.helpers import is_alive, is_monster
 from roguelike.systems.ai import MonsterAI
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
@@ -36,9 +35,9 @@ class AISystem:
         self.movement_system = movement_system
         self.game_map = game_map
         self.status_effects_system = status_effects_system
-        self.monster_ais: Dict[Monster, MonsterAI] = {}
+        self.monster_ais: Dict[ComponentEntity, MonsterAI] = {}
 
-    def register_monster(self, monster: Monster) -> None:
+    def register_monster(self, monster: ComponentEntity) -> None:
         """Register a monster with the AI system.
 
         Args:
@@ -47,7 +46,7 @@ class AISystem:
         if monster not in self.monster_ais:
             self.monster_ais[monster] = MonsterAI(monster)
 
-    def unregister_monster(self, monster: Monster) -> None:
+    def unregister_monster(self, monster: ComponentEntity) -> None:
         """Unregister a monster from the AI system.
 
         Args:
@@ -58,8 +57,8 @@ class AISystem:
 
     def process_turns(
         self,
-        player: Player,
-        entities: List[Entity],
+        player: ComponentEntity,
+        entities: List[ComponentEntity],
     ) -> bool:
         """Process all AI-controlled entity turns.
 
@@ -74,7 +73,7 @@ class AISystem:
 
         for entity in entities:
             # Skip non-monsters and dead monsters
-            if not isinstance(entity, Monster) or not entity.is_alive:
+            if not is_monster(entity) or not is_alive(entity):
                 continue
 
             # Get AI for this monster
@@ -96,7 +95,7 @@ class AISystem:
 
             # Get all living entities for blocking checks
             living_entities = [
-                e for e in entities if isinstance(e, Monster) and e.is_alive
+                e for e in entities if is_monster(e) and is_alive(e)
             ]
             living_entities.append(player)
 
@@ -141,7 +140,7 @@ class AISystem:
         return player_died
 
     def _handle_confused_turn(
-        self, entity: Monster, living_entities: List[Entity]
+        self, entity: ComponentEntity, living_entities: List[ComponentEntity]
     ) -> None:
         """Handle a confused monster's turn with random movement.
 

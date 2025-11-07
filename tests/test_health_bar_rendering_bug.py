@@ -3,8 +3,8 @@
 import pytest
 
 from roguelike.entities.item import create_healing_potion
-from roguelike.entities.monster import Monster, create_orc
-from roguelike.entities.player import Player
+from roguelike.components.factories import create_orc
+from tests.test_helpers import create_test_player
 from roguelike.utils.position import Position
 
 
@@ -21,8 +21,9 @@ class TestHealthBarRenderingBug:
 
     def test_living_entities_list_includes_items(self):
         """The living_entities filter includes items which lack health."""
+        from roguelike.components.helpers import is_monster, is_alive
         # Create a mix of entities
-        player = Player(position=Position(10, 10))
+        player = create_test_player(Position(10, 10))
         monster = create_orc(position=Position(15, 15))
         dead_monster = create_orc(position=Position(20, 20))
         dead_monster.hp = 0
@@ -30,10 +31,10 @@ class TestHealthBarRenderingBug:
 
         entities = [monster, dead_monster, item]
 
-        # This is the current filter logic from game_engine.py
-        living_entities = [e for e in entities if not isinstance(e, Monster) or e.is_alive]
+        # Current filter logic from game_engine.py uses helpers
+        living_entities = [e for e in entities if not is_monster(e) or is_alive(e)]
 
-        # The bug: living_entities includes the item (because it's not a Monster)
+        # Items are not monsters, so they pass the filter
         assert item in living_entities
         # And the item lacks health attributes
         assert not hasattr(item, "hp")

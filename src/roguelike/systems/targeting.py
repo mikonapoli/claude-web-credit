@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from roguelike.entities.actor import Actor
+from roguelike.components.entity import ComponentEntity
 from roguelike.utils.position import Position
 
 
@@ -15,13 +15,13 @@ class TargetingSystem:
         self.cursor_position: Optional[Position] = None
         self.origin: Optional[Position] = None
         self.max_range: int = 0
-        self.valid_targets: List[Actor] = []
+        self.valid_targets: List[ComponentEntity] = []
         self.current_target_index: int = 0
         self.map_width: int = 0
         self.map_height: int = 0
 
     def start_targeting(
-        self, origin: Position, max_range: int, valid_targets: List[Actor],
+        self, origin: Position, max_range: int, valid_targets: List[ComponentEntity],
         map_width: int, map_height: int
     ) -> bool:
         """Start targeting mode.
@@ -66,7 +66,7 @@ class TargetingSystem:
         """
         return self.cursor_position
 
-    def get_valid_targets(self) -> List[Actor]:
+    def get_valid_targets(self) -> List[ComponentEntity]:
         """Get list of valid targets.
 
         Returns:
@@ -74,7 +74,7 @@ class TargetingSystem:
         """
         return self.valid_targets
 
-    def get_current_target(self) -> Optional[Actor]:
+    def get_current_target(self) -> Optional[ComponentEntity]:
         """Get the actor at the current cursor position.
 
         Returns:
@@ -127,7 +127,7 @@ class TargetingSystem:
         if self.origin.manhattan_distance_to(new_position) <= self.max_range:
             self.cursor_position = new_position
 
-    def select_target(self) -> Optional[Actor]:
+    def select_target(self) -> Optional[ComponentEntity]:
         """Confirm target selection.
 
         Returns:

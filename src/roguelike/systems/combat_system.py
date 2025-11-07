@@ -77,6 +77,8 @@ class CombatSystem:
     ) -> Optional[int]:
         """Award XP to an entity and check for level up.
 
+        Applies Lucky Coin bonus if recipient has "lucky" status effect.
+
         Args:
             recipient: Entity receiving XP
             xp_amount: Amount of XP to award
@@ -84,17 +86,26 @@ class CombatSystem:
         Returns:
             New level if level up occurred, None otherwise
         """
+        # Check for Lucky Coin bonus (50% XP boost)
+        final_xp = xp_amount
+        if hasattr(recipient, "_status_effects"):
+            effects = recipient._status_effects
+            if effects.has_effect("lucky"):
+                lucky_power = effects.get_effect("lucky").power
+                # Power represents percentage bonus (e.g., 50 = 50% bonus)
+                final_xp = xp_amount + int(xp_amount * lucky_power / 100)
+
         # Award XP
-        recipient.xp += xp_amount
+        recipient.xp += final_xp
 
         # Get recipient name safely
         recipient_name = getattr(recipient, "name", "Unknown")
 
-        # Emit XP gain event
+        # Emit XP gain event (with the final amount after bonuses)
         self.event_bus.emit(
             XPGainEvent(
                 entity_name=recipient_name,
-                xp_gained=xp_amount,
+                xp_gained=final_xp,
             )
         )
 

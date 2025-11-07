@@ -189,6 +189,11 @@ class ItemSystem:
     def _apply_speed_buff(self, item: Item, user: Actor) -> bool:
         """Apply speed buff.
 
+        NOTE: Speed buff is applied as a status effect but not yet implemented
+        in the turn/action system. The game doesn't have a speed/action point
+        system yet, so this effect is stored but doesn't affect gameplay.
+        Future implementation should allow multiple actions per turn when buffed.
+
         Args:
             item: Speed potion
             user: Actor to buff

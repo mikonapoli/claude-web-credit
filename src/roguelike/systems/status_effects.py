@@ -274,3 +274,25 @@ class StatusEffectsSystem:
             display.append(f"{effect_name} ({effect.duration})")
 
         return display
+
+    def get_effect_power(self, entity: ComponentEntity | Actor, effect_type: str) -> int:
+        """Get the power value of a status effect.
+
+        Args:
+            entity: Entity to check
+            effect_type: Type of effect
+
+        Returns:
+            Power value of the effect, or 0 if effect not present
+        """
+        status_comp = None
+        if isinstance(entity, ComponentEntity):
+            status_comp = entity.get_component(StatusEffectsComponent)
+        elif isinstance(entity, Actor) and hasattr(entity, "_status_effects"):
+            status_comp = entity._status_effects
+
+        if status_comp is None:
+            return 0
+
+        effect = status_comp.get_effect(effect_type)
+        return effect.power if effect else 0

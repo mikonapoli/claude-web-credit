@@ -4,6 +4,8 @@ from typing import List, Optional
 
 import tcod.event
 
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.helpers import is_alive, is_monster
 from roguelike.engine.events import (
     EventBus,
     CombatEvent,
@@ -14,11 +16,7 @@ from roguelike.engine.events import (
     StatusEffectExpiredEvent,
     StatusEffectTickEvent,
 )
-from roguelike.entities.actor import Actor
-from roguelike.entities.entity import Entity
 from roguelike.entities.item import Item, ItemType
-from roguelike.entities.monster import Monster
-from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.item_system import ItemSystem
@@ -40,8 +38,8 @@ class GameEngine:
     def __init__(
         self,
         game_map: GameMap,
-        player: Player,
-        entities: List[Entity] | None = None,
+        player: ComponentEntity,
+        entities: List[ComponentEntity] | None = None,
         level_system=None,
         stairs_pos: Optional[Position] = None,
     ):
@@ -87,7 +85,7 @@ class GameEngine:
 
         # Register monsters with AI system
         for entity in self.entities:
-            if isinstance(entity, Monster):
+            if is_monster(entity):
                 self.ai_system.register_monster(entity)
 
         # Compute initial FOV
@@ -172,7 +170,7 @@ class GameEngine:
         # Process status effects on monsters
         if self.status_effects_system:
             for entity in self.entities:
-                if isinstance(entity, Monster) and entity.is_alive:
+                if is_monster(entity) and is_alive(entity):
                     died_from_effects = self.status_effects_system.process_effects(entity)
                     if died_from_effects:
                         self.combat_system.handle_death(entity, killed_by_player=False)
@@ -198,7 +196,7 @@ class GameEngine:
         # Get all living monsters that are visible
         monsters = [
             e for e in self.entities
-            if isinstance(e, Monster) and e.is_alive and self.fov_map.is_visible(e.position)
+            if is_monster(e) and is_alive(e) and self.fov_map.is_visible(e.position)
         ]
 
         if not monsters:
@@ -254,7 +252,7 @@ class GameEngine:
         # Re-register monsters with AI system
         self.ai_system.monster_ais.clear()
         for entity in self.entities:
-            if isinstance(entity, Monster):
+            if is_monster(entity):
                 self.ai_system.register_monster(entity)
 
         # Recreate FOV map for new level
@@ -354,7 +352,7 @@ class GameEngine:
             renderer.clear()
             renderer.render_map(self.game_map, self.fov_map, max_height=map_viewport_height)
             # Only render living monsters
-            living_entities = [e for e in self.entities if not isinstance(e, Monster) or e.is_alive]
+            living_entities = [e for e in self.entities if not is_monster(e) or is_alive(e)]
             renderer.render_entities(living_entities, self.fov_map, max_height=map_viewport_height)
             renderer.render_entity(self.player, self.fov_map, max_height=map_viewport_height)
             # Render message log at bottom of screen
@@ -366,9 +364,9 @@ class GameEngine:
                 height=message_log_height
             )
 
-            # Render health bars only for Actors (entities with health, excluding player)
-            actors_to_render = [e for e in living_entities if isinstance(e, Actor)]
-            renderer.render_health_bars(actors_to_render, self.fov_map)
+            # Render health bars for monsters with health (entities that are monsters)
+            monsters_to_render = [e for e in living_entities if is_monster(e)]
+            renderer.render_health_bars(monsters_to_render, self.fov_map)
 
             # Render player stats as text in the top-right area of the map viewport
             renderer.render_player_stats(

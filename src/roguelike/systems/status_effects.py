@@ -221,7 +221,7 @@ class StatusEffectsSystem:
         return display
 
     def get_stat_modifiers(
-        self, entity: ComponentEntity | Actor
+        self, entity: ComponentEntity
     ) -> dict[str, int]:
         """Get stat modifiers from active status effects.
 
@@ -231,11 +231,7 @@ class StatusEffectsSystem:
         Returns:
             Dictionary with stat modifiers (e.g., {"power": 3, "defense": 2})
         """
-        status_comp = None
-        if isinstance(entity, ComponentEntity):
-            status_comp = entity.get_component(StatusEffectsComponent)
-        elif isinstance(entity, Actor) and hasattr(entity, "_status_effects"):
-            status_comp = entity._status_effects
+        status_comp = entity.get_component(StatusEffectsComponent)
 
         if status_comp is None:
             return {"power": 0, "defense": 0}

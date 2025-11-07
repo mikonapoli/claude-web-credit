@@ -298,8 +298,9 @@ def test_use_item_at_full_hp_stays_in_inventory(player, item_system):
 
 def test_use_strength_potion_increases_power(player, item_system):
     """Using strength potion applies strength status effect."""
-    player.inventory.add(create_strength_potion(Position(5, 5)))
-    command = UseItemCommand(player, 0, item_system)
+    potion = create_strength_potion(Position(5, 5))
+    player.inventory.add(potion)
+    command = UseItemCommand(player, potion)
 
     command.execute()
 

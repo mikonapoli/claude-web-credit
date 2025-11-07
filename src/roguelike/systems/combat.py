@@ -62,7 +62,7 @@ def attack(
     damage = calculate_damage(
         attacker, defender, attacker_power_bonus, defender_defense_bonus
     )
-    efender_health = defender.get_component(HealthComponent)
+    defender_health = defender.get_component(HealthComponent)
     if defender_health:
         defender_health.take_damage(damage)
 

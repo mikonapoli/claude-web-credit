@@ -163,7 +163,7 @@ def test_resolve_attack_with_strength_buff_increases_damage():
     status_system = StatusEffectsSystem(event_bus)
     combat_system = CombatSystem(event_bus, status_system)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     orc = create_orc(Position(1, 1))
     initial_hp = orc.hp
 
@@ -183,7 +183,7 @@ def test_resolve_attack_with_defense_buff_reduces_damage():
     status_system = StatusEffectsSystem(event_bus)
     combat_system = CombatSystem(event_bus, status_system)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     orc = create_orc(Position(1, 1))
     initial_player_hp = player.hp
 
@@ -204,7 +204,7 @@ def test_resolve_attack_with_gigantism_increases_power_and_defense():
     status_system = StatusEffectsSystem(event_bus)
     combat_system = CombatSystem(event_bus, status_system)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     orc = create_orc(Position(1, 1))
 
     # Apply gigantism buff to player

@@ -27,6 +27,26 @@ class StatusEffectsComponent(Component):
 
     Tracks active status effects, their durations, and provides
     methods to add, remove, and query effects.
+
+    Component Communication:
+    ------------------------
+    This component uses the SHARED STATE pattern:
+    - StatusEffectsSystem reads/writes to this component
+    - StatusEffectsSystem may modify HealthComponent (e.g., poison damage)
+    - Processing happens at a specific point in turn order (see TurnManager)
+
+    Processing Order Dependencies:
+    ------------------------------
+    IMPORTANT: StatusEffectsSystem.process_effects() modifies HealthComponent.
+    This happens AFTER player/enemy actions but BEFORE the next action.
+    See TurnManager for detailed processing order.
+
+    Example Effect Types:
+    - "poison": Deals damage per turn (modifies HealthComponent)
+    - "confusion": AI behavior modifier (checked by AI system)
+    - "invisibility": Rendering/targeting modifier (checked by relevant systems)
+
+    See docs/COMPONENT_COMMUNICATION.md for more details.
     """
 
     def __init__(self):

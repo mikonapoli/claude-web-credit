@@ -1,125 +1,52 @@
-"""Helper functions for working with component-based entities."""
+"""Helper functions for working with component-based entities.
 
-from typing import Optional
+This module provides high-level helper functions for common entity queries.
+These functions abstract away component access patterns for specific use cases.
+
+Note: For simple property access (hp, power, defense, etc.), use the
+ComponentEntity properties directly (e.g., entity.hp, entity.power).
+"""
 
 from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.health import HealthComponent
-from roguelike.components.level import LevelComponent
 
 
 def is_alive(entity: ComponentEntity) -> bool:
     """Check if an entity is alive.
+
+    This is a convenience function that safely checks for health component
+    existence before checking the is_alive status.
 
     Args:
         entity: Entity to check
 
     Returns:
         True if entity has health and is alive, False otherwise
+
+    Note:
+        For entities known to have HealthComponent, prefer using
+        entity.is_alive property directly.
     """
     health = entity.get_component(HealthComponent)
     return health.is_alive if health else False
 
 
-def get_hp(entity: ComponentEntity) -> Optional[int]:
-    """Get current HP of an entity.
-
-    Args:
-        entity: Entity to check
-
-    Returns:
-        Current HP or None if entity has no health component
-    """
-    health = entity.get_component(HealthComponent)
-    return health.hp if health else None
-
-
-def get_max_hp(entity: ComponentEntity) -> Optional[int]:
-    """Get max HP of an entity.
-
-    Args:
-        entity: Entity to check
-
-    Returns:
-        Max HP or None if entity has no health component
-    """
-    health = entity.get_component(HealthComponent)
-    return health.max_hp if health else None
-
-
-def get_power(entity: ComponentEntity) -> Optional[int]:
-    """Get power stat of an entity.
-
-    Args:
-        entity: Entity to check
-
-    Returns:
-        Power or None if entity has no combat component
-    """
-    combat = entity.get_component(CombatComponent)
-    return combat.power if combat else None
-
-
-def get_defense(entity: ComponentEntity) -> Optional[int]:
-    """Get defense stat of an entity.
-
-    Args:
-        entity: Entity to check
-
-    Returns:
-        Defense or None if entity has no combat component
-    """
-    combat = entity.get_component(CombatComponent)
-    return combat.defense if combat else None
-
-
-def get_level(entity: ComponentEntity) -> Optional[int]:
-    """Get level of an entity.
-
-    Args:
-        entity: Entity to check
-
-    Returns:
-        Level or None if entity has no level component
-    """
-    level_comp = entity.get_component(LevelComponent)
-    return level_comp.level if level_comp else None
-
-
-def get_xp(entity: ComponentEntity) -> Optional[int]:
-    """Get XP of an entity.
-
-    Args:
-        entity: Entity to check
-
-    Returns:
-        XP or None if entity has no level component
-    """
-    level_comp = entity.get_component(LevelComponent)
-    return level_comp.xp if level_comp else None
-
-
-def get_xp_value(entity: ComponentEntity) -> Optional[int]:
-    """Get XP value of an entity (awarded when killed).
-
-    Args:
-        entity: Entity to check
-
-    Returns:
-        XP value or None if entity has no level component
-    """
-    level_comp = entity.get_component(LevelComponent)
-    return level_comp.xp_value if level_comp else None
-
-
 def is_player(entity) -> bool:
     """Check if an entity is the player.
+
+    This function uses a heuristic based on entity name and character.
+    It provides a centralized place to define what constitutes a player entity.
 
     Args:
         entity: Entity to check (any type)
 
     Returns:
         True if entity is the player
+
+    Note:
+        Currently identifies players by name="Player" and char="@".
+        If player identification logic needs to change, update it here.
     """
     # Check if it's a ComponentEntity and has player attributes
     if not isinstance(entity, ComponentEntity):
@@ -128,13 +55,26 @@ def is_player(entity) -> bool:
 
 
 def is_monster(entity) -> bool:
-    """Check if an entity is a monster (has combat and health but not player).
+    """Check if an entity is a monster.
+
+    A monster is defined as a ComponentEntity that:
+    - Has both HealthComponent and CombatComponent
+    - Is not the player
+    - Blocks movement
+
+    This provides a centralized definition for monster identification
+    used throughout systems (AI, rendering, combat).
 
     Args:
         entity: Entity to check (any type)
 
     Returns:
         True if entity is a monster
+
+    Example:
+        >>> for entity in entities:
+        ...     if is_monster(entity) and is_alive(entity):
+        ...         process_monster_ai(entity)
     """
     # Only ComponentEntity can be a monster
     if not isinstance(entity, ComponentEntity):

@@ -8,7 +8,7 @@ from roguelike.commands.game_commands import (
     WaitCommand,
     QuitCommand,
     DescendStairsCommand,
-    ShowInventoryCommand,
+    PickupItemCommand,
     TargetingMoveCommand,
     TargetingSelectCommand,
     TargetingCancelCommand,
@@ -21,7 +21,6 @@ from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
-from roguelike.ui.input_handler import Action
 from roguelike.ui.message_log import MessageLog
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
@@ -29,10 +28,19 @@ from roguelike.world.game_map import GameMap
 
 
 class CommandFactory:
-    """Factory for creating Command objects from Actions."""
+    """Factory for creating Command objects directly from input.
+
+    This factory eliminates the Action enum middleman and creates
+    Command objects directly, as recommended in Game Programming Patterns.
+    """
 
     def __init__(
         self,
+        player: ComponentEntity,
+        entities: List[ComponentEntity],
+        game_map: GameMap,
+        fov_map: FOVMap,
+        fov_radius: int,
         combat_system: CombatSystem,
         movement_system: MovementSystem,
         ai_system: AISystem,
@@ -40,10 +48,16 @@ class CommandFactory:
         targeting_system: TargetingSystem,
         message_log: MessageLog,
         event_bus: EventBus,
+        stairs_pos: Optional[Position] = None,
     ):
         """Initialize command factory.
 
         Args:
+            player: The player entity
+            entities: All entities in the game
+            game_map: The game map
+            fov_map: Field of view map
+            fov_radius: FOV radius
             combat_system: Combat system for resolving attacks
             movement_system: Movement system for entity movement
             ai_system: AI system for enemy behavior
@@ -51,7 +65,13 @@ class CommandFactory:
             targeting_system: Targeting system for targeted abilities
             message_log: Message log for displaying messages
             event_bus: Event bus for publishing events
+            stairs_pos: Position of stairs (if any)
         """
+        self.player = player
+        self.entities = entities
+        self.game_map = game_map
+        self.fov_map = fov_map
+        self.fov_radius = fov_radius
         self.combat_system = combat_system
         self.movement_system = movement_system
         self.ai_system = ai_system
@@ -59,101 +79,144 @@ class CommandFactory:
         self.targeting_system = targeting_system
         self.message_log = message_log
         self.event_bus = event_bus
+        self.stairs_pos = stairs_pos
 
-    def create_command(
+    def update_context(
         self,
-        action: Action,
-        player: ComponentEntity,
-        entities: List[ComponentEntity],
-        game_map: GameMap,
-        fov_map: FOVMap,
-        fov_radius: int,
+        player: Optional[ComponentEntity] = None,
+        entities: Optional[List[ComponentEntity]] = None,
         stairs_pos: Optional[Position] = None,
-    ) -> Optional[Command]:
-        """Create a command from an action.
+    ) -> None:
+        """Update the factory's context (player, entities, stairs position).
 
         Args:
-            action: Action to convert
             player: The player entity
             entities: All entities in the game
-            game_map: The game map
-            fov_map: Field of view map
-            fov_radius: FOV radius
             stairs_pos: Position of stairs (if any)
+        """
+        if player is not None:
+            self.player = player
+        if entities is not None:
+            self.entities = entities
+        if stairs_pos is not None:
+            self.stairs_pos = stairs_pos
+
+    def create_move_command(self, dx: int, dy: int) -> MoveCommand:
+        """Create a move command.
+
+        Args:
+            dx: X direction to move
+            dy: Y direction to move
 
         Returns:
-            Command object or None if action not recognized
+            MoveCommand instance
         """
-        # Movement commands
-        movement_map = {
-            Action.MOVE_UP: (0, -1),
-            Action.MOVE_DOWN: (0, 1),
-            Action.MOVE_LEFT: (-1, 0),
-            Action.MOVE_RIGHT: (1, 0),
-            Action.MOVE_UP_LEFT: (-1, -1),
-            Action.MOVE_UP_RIGHT: (1, -1),
-            Action.MOVE_DOWN_LEFT: (-1, 1),
-            Action.MOVE_DOWN_RIGHT: (1, 1),
-        }
+        return MoveCommand(
+            player=self.player,
+            dx=dx,
+            dy=dy,
+            entities=self.entities,
+            game_map=self.game_map,
+            fov_map=self.fov_map,
+            fov_radius=self.fov_radius,
+            movement_system=self.movement_system,
+            combat_system=self.combat_system,
+            ai_system=self.ai_system,
+            status_effects_system=self.status_effects_system,
+        )
 
-        if action in movement_map:
-            dx, dy = movement_map[action]
-            return MoveCommand(
-                player=player,
-                dx=dx,
-                dy=dy,
-                entities=entities,
-                game_map=game_map,
-                fov_map=fov_map,
-                fov_radius=fov_radius,
-                movement_system=self.movement_system,
-                combat_system=self.combat_system,
-                ai_system=self.ai_system,
-                status_effects_system=self.status_effects_system,
-            )
+    def create_wait_command(self) -> WaitCommand:
+        """Create a wait command.
 
-        # Other commands
-        if action == Action.WAIT:
-            return WaitCommand(
-                player=player,
-                entities=entities,
-                ai_system=self.ai_system,
-                combat_system=self.combat_system,
-                status_effects_system=self.status_effects_system,
-            )
-        elif action == Action.QUIT:
-            return QuitCommand()
-        elif action == Action.DESCEND_STAIRS:
-            return DescendStairsCommand(
-                player=player,
-                stairs_pos=stairs_pos,
-                message_log=self.message_log,
-            )
-        elif action == Action.INVENTORY:
-            return ShowInventoryCommand()
+        Returns:
+            WaitCommand instance
+        """
+        return WaitCommand(
+            player=self.player,
+            entities=self.entities,
+            ai_system=self.ai_system,
+            combat_system=self.combat_system,
+            status_effects_system=self.status_effects_system,
+        )
 
-        # Targeting commands
-        if self.targeting_system.is_active:
-            if action in movement_map:
-                dx, dy = movement_map[action]
-                return TargetingMoveCommand(
-                    targeting_system=self.targeting_system,
-                    dx=dx,
-                    dy=dy,
-                )
-            elif action == Action.TARGETING_SELECT:
-                return TargetingSelectCommand(
-                    targeting_system=self.targeting_system,
-                )
-            elif action == Action.TARGETING_CANCEL:
-                return TargetingCancelCommand(
-                    targeting_system=self.targeting_system,
-                )
-            elif action in (Action.TARGETING_CYCLE_NEXT, Action.TARGETING_CYCLE_PREV):
-                forward = action == Action.TARGETING_CYCLE_NEXT
-                return TargetingCycleCommand(
-                    targeting_system=self.targeting_system,
-                    forward=forward,
-                )
+    def create_quit_command(self) -> QuitCommand:
+        """Create a quit command.
 
-        return None
+        Returns:
+            QuitCommand instance
+        """
+        return QuitCommand()
+
+    def create_descend_stairs_command(self) -> DescendStairsCommand:
+        """Create a descend stairs command.
+
+        Returns:
+            DescendStairsCommand instance
+        """
+        return DescendStairsCommand(
+            player=self.player,
+            stairs_pos=self.stairs_pos,
+            message_log=self.message_log,
+        )
+
+    def create_pickup_command(self) -> PickupItemCommand:
+        """Create a pickup item command.
+
+        Returns:
+            PickupItemCommand instance
+        """
+        return PickupItemCommand(
+            player=self.player,
+            entities=self.entities,
+            message_log=self.message_log,
+        )
+
+    def create_targeting_move_command(self, dx: int, dy: int) -> TargetingMoveCommand:
+        """Create a targeting cursor move command.
+
+        Args:
+            dx: X direction to move
+            dy: Y direction to move
+
+        Returns:
+            TargetingMoveCommand instance
+        """
+        return TargetingMoveCommand(
+            targeting_system=self.targeting_system,
+            dx=dx,
+            dy=dy,
+        )
+
+    def create_targeting_select_command(self) -> TargetingSelectCommand:
+        """Create a targeting select command.
+
+        Returns:
+            TargetingSelectCommand instance
+        """
+        return TargetingSelectCommand(
+            targeting_system=self.targeting_system,
+        )
+
+    def create_targeting_cancel_command(self) -> TargetingCancelCommand:
+        """Create a targeting cancel command.
+
+        Returns:
+            TargetingCancelCommand instance
+        """
+        return TargetingCancelCommand(
+            targeting_system=self.targeting_system,
+        )
+
+    def create_targeting_cycle_command(self, forward: bool = True) -> TargetingCycleCommand:
+        """Create a targeting cycle command.
+
+        Args:
+            forward: True to cycle forward, False to cycle backward
+
+        Returns:
+            TargetingCycleCommand instance
+        """
+        return TargetingCycleCommand(
+            targeting_system=self.targeting_system,
+            forward=forward,
+        )

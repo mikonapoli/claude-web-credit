@@ -76,10 +76,22 @@ class GameEngine:
             self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
         )
 
-        # Create command factory and executor
+        # Subscribe to events for message logging
+        self._setup_event_subscribers()
+
+        # Create FOV map
+        self.fov_map = FOVMap(game_map)
+        self.fov_radius = 8
+
+        # Create command factory and executor (after FOV map is created)
         from roguelike.commands import CommandFactory, CommandExecutor
 
         self.command_factory = CommandFactory(
+            player=self.player,
+            entities=self.entities,
+            game_map=game_map,
+            fov_map=self.fov_map,
+            fov_radius=self.fov_radius,
             combat_system=self.combat_system,
             movement_system=self.movement_system,
             ai_system=self.ai_system,
@@ -87,15 +99,9 @@ class GameEngine:
             targeting_system=self.targeting_system,
             message_log=self.message_log,
             event_bus=self.event_bus,
+            stairs_pos=self.stairs_pos,
         )
         self.command_executor = CommandExecutor(max_history=100)
-
-        # Subscribe to events for message logging
-        self._setup_event_subscribers()
-
-        # Create FOV map
-        self.fov_map = FOVMap(game_map)
-        self.fov_radius = 8
 
         # Register monsters with AI system
         for entity in self.entities:
@@ -382,7 +388,7 @@ class GameEngine:
             renderer: The renderer to use
         """
         self.running = True
-        input_handler = InputHandler()
+        input_handler = InputHandler(self.command_factory)
 
         # Message log display configuration
         # Use the map's actual height for viewport, message log fills remaining space
@@ -432,40 +438,23 @@ class GameEngine:
             for event in tcod.event.wait():
                 input_handler.dispatch(event)
 
-            action = input_handler.get_action()
-            if action:
-                # Handle targeting mode with old flow (temporary)
-                if self.targeting_system.is_active:
-                    self._handle_targeting_action(action, input_handler)
-                # Handle special actions that still need old flow
-                elif action == Action.TEST_CONFUSION:
-                    self._start_confusion_targeting(input_handler)
-                elif action == Action.PICKUP:
-                    self._handle_pickup_action()
-                elif action == Action.INVENTORY:
-                    # TODO: Show inventory UI
-                    self.message_log.add_message("Inventory (not yet implemented)")
-                # Normal game actions via Command pattern
-                else:
-                    command = self.command_factory.create_command(
-                        action=action,
-                        player=self.player,
-                        entities=self.entities,
-                        game_map=self.game_map,
-                        fov_map=self.fov_map,
-                        fov_radius=self.fov_radius,
-                        stairs_pos=self.stairs_pos,
-                    )
+            command = input_handler.get_command()
+            if command:
+                # Execute command through executor
+                result = self.command_executor.execute(command)
 
-                    if command:
-                        result = self.command_executor.execute(command)
-
-                        # Handle command results
-                        if result.should_quit:
-                            self.running = False
-                        elif result.data:
-                            # Handle special command results
-                            if result.data.get("descend_stairs"):
-                                self._transition_to_next_level()
+                # Handle command results
+                if result.should_quit:
+                    self.running = False
+                elif result.data:
+                    # Handle special command results
+                    if result.data.get("descend_stairs"):
+                        self._transition_to_next_level()
+                    elif result.data.get("targeting_select"):
+                        # Handle targeting selection (confusion scroll, etc.)
+                        self._handle_targeting_select(input_handler)
+                    elif result.data.get("targeting_cancel"):
+                        # Targeting cancelled - message already shown by command
+                        pass
 
         renderer.close()

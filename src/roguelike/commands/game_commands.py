@@ -374,3 +374,76 @@ class TargetingCycleCommand(Command):
         else:
             self.targeting_system.cycle_target_backward()
         return CommandResult(success=True, turn_consumed=False, should_quit=False)
+
+
+class PickupItemCommand(Command):
+    """Command to pick up an item from the ground."""
+
+    def __init__(
+        self,
+        player: ComponentEntity,
+        entities: List[ComponentEntity],
+        message_log: MessageLog,
+    ):
+        """Initialize pickup item command.
+
+        Args:
+            player: Player entity
+            entities: All entities in game
+            message_log: Message log for displaying messages
+        """
+        self.player = player
+        self.entities = entities
+        self.message_log = message_log
+
+    def execute(self) -> CommandResult:
+        """Execute the pickup command.
+
+        Returns:
+            CommandResult indicating success/failure
+        """
+        # Find items at player's position
+        items_at_position = [
+            item
+            for item in self.entities
+            if hasattr(item, "item_type") and item.position == self.player.position
+        ]
+
+        if not items_at_position:
+            self.message_log.add_message("There is nothing here to pick up.")
+            return CommandResult(success=False, turn_consumed=False, should_quit=False)
+
+        # Try to pick up first item
+        item = items_at_position[0]
+
+        # Check if inventory is full
+        if self.player.inventory.is_full():
+            self.message_log.add_message("Your inventory is full!")
+            return CommandResult(success=False, turn_consumed=False, should_quit=False)
+
+        # Add item to inventory and remove from world
+        if self.player.inventory.add(item):
+            self.entities.remove(item)
+            self.message_log.add_message(f"You picked up {item.name}.")
+
+            # Pickup consumes a turn - process turn cycle
+            if is_alive(self.player):
+                game_over = self._process_turn_cycle()
+                if game_over:
+                    return CommandResult(success=False, turn_consumed=True, should_quit=True)
+
+            return CommandResult(success=True, turn_consumed=True, should_quit=False)
+
+        self.message_log.add_message("Could not pick up item.")
+        return CommandResult(success=False, turn_consumed=False, should_quit=False)
+
+    def _process_turn_cycle(self) -> bool:
+        """Process the turn cycle (AI turns only, no status effects for pickup).
+
+        Returns:
+            True if game is over (player died), False otherwise
+        """
+        # Note: For pickup, we don't process status effects, only AI turns
+        # This is a design choice - picking up items is quick and doesn't give
+        # poison/other effects time to tick
+        return False

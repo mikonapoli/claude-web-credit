@@ -19,6 +19,7 @@ from roguelike.engine.events import (
 from roguelike.entities.item import Item, ItemType
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.crafting import CraftingSystem
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
@@ -72,6 +73,11 @@ class GameEngine:
             self.combat_system, self.movement_system, game_map, self.status_effects_system
         )
 
+        # Create crafting system
+        from roguelike.data.recipe_loader import RecipeLoader
+        recipe_loader = RecipeLoader()
+        self.crafting_system = CraftingSystem(recipe_loader, self.event_bus)
+
         # Subscribe to events for message logging
         self._setup_event_subscribers()
 
@@ -101,6 +107,8 @@ class GameEngine:
         self.event_bus.subscribe("status_effect_applied", self._on_status_effect_applied)
         self.event_bus.subscribe("status_effect_expired", self._on_status_effect_expired)
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
+        self.event_bus.subscribe("crafting_attempt", self._on_crafting_attempt)
+        self.event_bus.subscribe("recipe_discovered", self._on_recipe_discovered)
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
@@ -144,6 +152,25 @@ class GameEngine:
             self.message_log.add_message(
                 f"{event.entity_name} takes {event.power} poison damage!"
             )
+
+    def _on_crafting_attempt(self, event: "CraftingAttemptEvent") -> None:
+        """Handle crafting attempt event."""
+        from roguelike.engine.events import CraftingAttemptEvent
+        if event.success:
+            self.message_log.add_message(
+                f"You successfully craft a {event.result_name}!"
+            )
+        else:
+            self.message_log.add_message(
+                "You cannot craft anything with these items."
+            )
+
+    def _on_recipe_discovered(self, event: "RecipeDiscoveredEvent") -> None:
+        """Handle recipe discovered event."""
+        from roguelike.engine.events import RecipeDiscoveredEvent
+        self.message_log.add_message(
+            f"Recipe discovered: {event.recipe_name}!"
+        )
 
     def _process_turn_after_action(self) -> None:
         """Process turn effects after an action that consumes a turn.

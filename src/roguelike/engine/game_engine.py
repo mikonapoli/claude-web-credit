@@ -252,7 +252,7 @@ class GameEngine:
         self.entities.extend(monsters)
 
         # Re-register monsters with AI system
-        self.ai_system.monsters.clear()
+        self.ai_system.monster_ais.clear()
         for entity in self.entities:
             if isinstance(entity, Monster):
                 self.ai_system.register_monster(entity)

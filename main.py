@@ -41,7 +41,13 @@ def main():
     renderer = Renderer(screen_width, screen_height, "Roguelike Adventure")
 
     # Create and run the game engine
-    engine = GameEngine(game_map=game_map, player=player, entities=monsters)
+    engine = GameEngine(
+        game_map=game_map,
+        player=player,
+        entities=monsters,
+        level_system=level_system,
+        stairs_pos=stairs_pos,
+    )
     engine.run(renderer)
 
 

@@ -1,8 +1,8 @@
 """Main entry point for the roguelike game."""
 
-from roguelike.engine.game_engine import GameEngine
+from roguelike.components.factories import create_player
 from roguelike.engine.events import EventBus
-from roguelike.entities.player import Player
+from roguelike.engine.game_engine import GameEngine
 from roguelike.systems.level_system import DungeonLevelSystem
 from roguelike.ui.renderer import Renderer
 from roguelike.world.procgen import generate_dungeon
@@ -35,7 +35,7 @@ def main():
 
     # Place player in the center of the first room
     player_start = rooms[0].center
-    player = Player(position=player_start)
+    player = create_player(position=player_start)
 
     # Create renderer
     renderer = Renderer(screen_width, screen_height, "Roguelike Adventure")

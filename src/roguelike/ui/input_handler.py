@@ -98,8 +98,7 @@ class InputHandler:
 
         # Test: Confusion scroll targeting (C key)
         elif key == tcod.event.KeySym.C:
-            # TODO: Create confusion targeting command
-            self.last_command = None
+            self.last_command = self.command_factory.create_start_targeting_command()
 
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:

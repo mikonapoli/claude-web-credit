@@ -376,6 +376,74 @@ class TargetingCycleCommand(Command):
         return CommandResult(success=True, turn_consumed=False, should_quit=False)
 
 
+class StartTargetingCommand(Command):
+    """Command to start targeting mode for confusion scrolls or other targeted items."""
+
+    def __init__(
+        self,
+        player: ComponentEntity,
+        entities: List[ComponentEntity],
+        fov_map: FOVMap,
+        targeting_system: TargetingSystem,
+        message_log: MessageLog,
+        game_map: GameMap,
+    ):
+        """Initialize start targeting command.
+
+        Args:
+            player: Player entity
+            entities: All entities in game
+            fov_map: Field of view map
+            targeting_system: Targeting system
+            message_log: Message log for displaying messages
+            game_map: Game map for map dimensions
+        """
+        self.player = player
+        self.entities = entities
+        self.fov_map = fov_map
+        self.targeting_system = targeting_system
+        self.message_log = message_log
+        self.game_map = game_map
+
+    def execute(self) -> CommandResult:
+        """Execute the start targeting command."""
+        # Get all living monsters that are visible
+        monsters = [
+            e
+            for e in self.entities
+            if is_monster(e) and is_alive(e) and self.fov_map.is_visible(e.position)
+        ]
+
+        if not monsters:
+            self.message_log.add_message("No visible targets!")
+            return CommandResult(success=False, turn_consumed=False, should_quit=False)
+
+        # Start targeting with max range of 10
+        max_range = 10
+        started = self.targeting_system.start_targeting(
+            origin=self.player.position,
+            max_range=max_range,
+            valid_targets=monsters,
+            map_width=self.game_map.width,
+            map_height=self.game_map.height,
+        )
+
+        if started:
+            self.message_log.add_message(
+                "Select a target (Tab to cycle, Enter to select, Escape to cancel)"
+            )
+            # Signal to game loop that targeting mode should be activated
+            return CommandResult(
+                success=True,
+                turn_consumed=False,
+                should_quit=False,
+                data={"start_targeting": True},
+            )
+        else:
+            self.message_log.add_message("No targets in range!")
+            return CommandResult(success=False, turn_consumed=False, should_quit=False)
+
+
 class PickupItemCommand(Command):
     """Command to pick up an item from the ground."""
 

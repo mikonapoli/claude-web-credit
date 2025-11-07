@@ -9,6 +9,7 @@ from roguelike.commands.game_commands import (
     QuitCommand,
     DescendStairsCommand,
     PickupItemCommand,
+    StartTargetingCommand,
     TargetingMoveCommand,
     TargetingSelectCommand,
     TargetingCancelCommand,
@@ -233,4 +234,19 @@ class CommandFactory:
         return TargetingCycleCommand(
             targeting_system=self.targeting_system,
             forward=forward,
+        )
+
+    def create_start_targeting_command(self) -> StartTargetingCommand:
+        """Create a start targeting command for confusion scrolls.
+
+        Returns:
+            StartTargetingCommand instance
+        """
+        return StartTargetingCommand(
+            player=self.player,
+            entities=self.entities,
+            fov_map=self.fov_map,
+            targeting_system=self.targeting_system,
+            message_log=self.message_log,
+            game_map=self.game_map,
         )

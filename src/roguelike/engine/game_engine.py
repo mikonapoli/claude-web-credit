@@ -322,5 +322,15 @@ class GameEngine:
                     # Handle special command results
                     if result.data.get("descend_stairs"):
                         self._transition_to_next_level()
+                    elif result.data.get("start_targeting"):
+                        # Activate targeting mode in input handler
+                        input_handler.set_targeting_mode(True)
+                    elif result.data.get("targeting_select"):
+                        # Targeting selection made - exit targeting mode
+                        input_handler.set_targeting_mode(False)
+                        # TODO: Use the targeted item on the selected target
+                    elif result.data.get("targeting_cancel"):
+                        # Targeting cancelled - exit targeting mode
+                        input_handler.set_targeting_mode(False)
 
         renderer.close()

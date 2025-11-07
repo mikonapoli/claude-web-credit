@@ -341,7 +341,7 @@ class TargetingCancelCommand(Command):
 
     def execute(self) -> CommandResult:
         """Execute the targeting cancel command."""
-        self.targeting_system.cancel()
+        self.targeting_system.cancel_targeting()
         return CommandResult(
             success=True,
             turn_consumed=False,
@@ -370,9 +370,9 @@ class TargetingCycleCommand(Command):
     def execute(self) -> CommandResult:
         """Execute the targeting cycle command."""
         if self.forward:
-            self.targeting_system.cycle_target_forward()
+            self.targeting_system.cycle_target(1)
         else:
-            self.targeting_system.cycle_target_backward()
+            self.targeting_system.cycle_target(-1)
         return CommandResult(success=True, turn_consumed=False, should_quit=False)
 
 

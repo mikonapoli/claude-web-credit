@@ -276,14 +276,29 @@ class GameEngine:
             monsters_to_render = [e for e in living_entities if is_monster(e)]
             renderer.render_health_bars(monsters_to_render, self.fov_map)
 
-            # Render player stats as text in the top-right area of the map viewport
-            # Get active status effects for display
-            status_effects_display = self.status_effects_system.get_effect_display(self.player)
+            # Render player stats panel in the top-right area of the map viewport
+            stats_x = renderer.width - 35  # Position in top-right with more space
+            stats_y = 0
             renderer.render_player_stats(
                 self.player,
-                x=renderer.width - 20,  # Position in top-right
-                y=0,
-                status_effects=status_effects_display,
+                x=stats_x,
+                y=stats_y,
+            )
+
+            # Render status effects below stats (if any)
+            effects_y = stats_y + 12  # Position below stats panel
+            lines_rendered = renderer.render_status_effects(
+                self.player,
+                x=stats_x,
+                y=effects_y,
+            )
+
+            # Render equipment below status effects (if any)
+            equipment_y = effects_y + lines_rendered + (1 if lines_rendered > 0 else 0)
+            renderer.render_equipment(
+                self.player,
+                x=stats_x,
+                y=equipment_y,
             )
 
             # Render targeting cursor if in targeting mode

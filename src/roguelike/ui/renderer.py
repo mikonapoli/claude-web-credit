@@ -4,9 +4,15 @@ from typing import Optional
 
 import tcod
 
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.equipment import EquipmentComponent
+from roguelike.components.helpers import get_equipment_bonuses
+from roguelike.components.mana import ManaComponent
+from roguelike.components.status_effects import StatusEffectsComponent
 from roguelike.entities.entity import Entity
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.health_bar_renderer import HealthBarRenderer
+from roguelike.ui.stats_bar_renderer import StatsBarRenderer
 from roguelike.utils.position import Position
 from roguelike.utils.protocols import HealthBarRenderable
 from roguelike.world.fov import FOVMap
@@ -56,6 +62,9 @@ class Renderer:
 
         # Create health bar renderer with smaller width for less invasive display
         self.health_bar_renderer = HealthBarRenderer(bar_width=5)
+
+        # Create stats bar renderer for player stats panel
+        self.stats_bar_renderer = StatsBarRenderer(bar_width=15)
 
     def clear(self) -> None:
         """Clear the console."""
@@ -249,39 +258,190 @@ class Renderer:
             self.console.print(name_x, name_y, target_name, fg=(255, 255, 0))
     def render_player_stats(
         self,
-        player: HealthBarRenderable,
+        player: ComponentEntity,
         x: int,
         y: int,
-        status_effects: list[str] | None = None,
     ) -> None:
-        """Render player stats as text (health, etc.).
+        """Render comprehensive player stats panel.
+
+        Displays:
+        - Level and XP
+        - HP bar with numeric values
+        - Mana bar (if player has ManaComponent)
+        - Base and effective Power/Defense stats
+        - Equipment bonuses
 
         Args:
-            player: Player entity with health stats
-            x: X position for stats display
-            y: Y position for stats display
-            status_effects: Optional list of active status effects to display
+            player: Player entity
+            x: X position for stats display (left edge)
+            y: Y position for stats display (top edge)
         """
-        # Render health as "Health: X/Y"
-        health_text = f"Health: {player.hp}/{player.max_hp}"
+        current_y = y
 
-        # Color based on health percentage
-        fill_percentage = self.health_bar_renderer.calculate_fill_percentage(
-            player.hp, player.max_hp
+        # Title
+        self.console.print(x, current_y, "=== PLAYER ===", fg=(255, 255, 100))
+        current_y += 1
+
+        # Level and XP
+        level_text = f"Level: {player.level}"
+        xp_text = f"XP: {player.xp}"
+        self.console.print(x, current_y, level_text, fg=(200, 200, 200))
+        current_y += 1
+        self.console.print(x, current_y, xp_text, fg=(200, 200, 200))
+        current_y += 1
+
+        # Blank line
+        current_y += 1
+
+        # Health bar
+        self.stats_bar_renderer.render_health_bar(
+            self.console, x, current_y, player.hp, player.max_hp
         )
-        color = self.health_bar_renderer.get_health_color(fill_percentage)
+        current_y += 1
 
-        self.console.print(x, y, health_text, fg=color)
+        # Mana bar (if player has mana)
+        mana = player.get_component(ManaComponent)
+        if mana:
+            self.stats_bar_renderer.render_mana_bar(
+                self.console, x, current_y, mana.mp, mana.max_mp
+            )
+            current_y += 1
 
-        # Render status effects below health
-        if status_effects:
-            effects_y = y + 1
-            effects_text = "Effects: " + ", ".join(status_effects)
+        # Blank line
+        current_y += 1
+
+        # Combat stats with equipment bonuses
+        # Note: player.power and player.defense already include equipment bonuses
+        # (applied by EquipmentSystem), so we subtract to get the true base values
+        power_bonus, defense_bonus, hp_bonus = get_equipment_bonuses(player)
+
+        current_power = player.power  # Already includes bonuses
+        current_defense = player.defense  # Already includes bonuses
+        base_power = current_power - power_bonus
+        base_defense = current_defense - defense_bonus
+
+        # Show base stats with bonuses
+        if power_bonus > 0:
+            power_text = f"Power: {base_power} (+{power_bonus}) = {current_power}"
+            self.console.print(x, current_y, power_text, fg=(255, 150, 150))
+        else:
+            power_text = f"Power: {current_power}"
+            self.console.print(x, current_y, power_text, fg=(200, 200, 200))
+        current_y += 1
+
+        if defense_bonus > 0:
+            defense_text = f"Defense: {base_defense} (+{defense_bonus}) = {current_defense}"
+            self.console.print(x, current_y, defense_text, fg=(150, 150, 255))
+        else:
+            defense_text = f"Defense: {current_defense}"
+            self.console.print(x, current_y, defense_text, fg=(200, 200, 200))
+        current_y += 1
+
+        if hp_bonus > 0:
+            hp_bonus_text = f"Max HP Bonus: +{hp_bonus}"
+            self.console.print(x, current_y, hp_bonus_text, fg=(150, 255, 150))
+            current_y += 1
+
+    def render_status_effects(
+        self,
+        entity: ComponentEntity,
+        x: int,
+        y: int,
+        max_width: int = 30,
+    ) -> int:
+        """Render active status effects for an entity.
+
+        Args:
+            entity: Entity to display status effects for
+            x: X position for display
+            y: Y position for display (top)
+            max_width: Maximum width for status effect display
+
+        Returns:
+            Number of lines rendered
+        """
+        status_effects = entity.get_component(StatusEffectsComponent)
+        if not status_effects:
+            return 0
+
+        effects = status_effects.get_all_effects()
+        if not effects:
+            return 0
+
+        current_y = y
+        self.console.print(x, current_y, "Status Effects:", fg=(200, 200, 100))
+        current_y += 1
+
+        # Define colors for different effect types
+        effect_colors = {
+            "poison": (100, 255, 100),  # Green
+            "confusion": (255, 100, 255),  # Magenta
+            "invisibility": (150, 150, 255),  # Light blue
+        }
+
+        for effect in effects:
+            # Get appropriate color or default
+            color = effect_colors.get(effect.effect_type, (200, 200, 200))
+
+            # Format effect display
+            effect_text = f"  {effect.effect_type.capitalize()}"
+            if effect.power > 0:
+                effect_text += f" ({effect.power})"
+            effect_text += f" [{effect.duration}]"
+
             # Truncate if too long
-            max_width = self.width - x
-            if len(effects_text) > max_width:
-                effects_text = effects_text[:max_width-3] + "..."
-            self.console.print(x, effects_y, effects_text, fg=(200, 200, 100))
+            if len(effect_text) > max_width:
+                effect_text = effect_text[:max_width - 3] + "..."
+
+            self.console.print(x, current_y, effect_text, fg=color)
+            current_y += 1
+
+        return current_y - y
+
+    def render_equipment(
+        self,
+        entity: ComponentEntity,
+        x: int,
+        y: int,
+        max_width: int = 30,
+    ) -> int:
+        """Render equipped items for an entity.
+
+        Args:
+            entity: Entity to display equipment for
+            x: X position for display
+            y: Y position for display (top)
+            max_width: Maximum width for equipment display
+
+        Returns:
+            Number of lines rendered
+        """
+        equipment = entity.get_component(EquipmentComponent)
+        if not equipment:
+            return 0
+
+        equipped_items = equipment.get_all_equipped()
+        if not equipped_items:
+            return 0
+
+        current_y = y
+        self.console.print(x, current_y, "Equipment:", fg=(200, 200, 100))
+        current_y += 1
+
+        # Display each equipped item by slot
+        for slot, item in equipped_items.items():
+            slot_name = slot.value.capitalize()
+            item_name = item.name
+
+            # Truncate item name if necessary
+            display_text = f"  {slot_name}: {item_name}"
+            if len(display_text) > max_width:
+                display_text = display_text[:max_width - 3] + "..."
+
+            self.console.print(x, current_y, display_text, fg=(180, 180, 255))
+            current_y += 1
+
+        return current_y - y
 
     def present(self) -> None:
         """Present the console to the screen."""

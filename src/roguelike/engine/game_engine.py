@@ -42,6 +42,8 @@ class GameEngine:
         game_map: GameMap,
         player: Player,
         entities: List[Entity] | None = None,
+        level_system=None,
+        stairs_pos: Optional[Position] = None,
     ):
         """Initialize the game engine.
 
@@ -49,6 +51,8 @@ class GameEngine:
             game_map: The game map
             player: The player entity
             entities: List of other entities
+            level_system: Optional dungeon level system for level transitions
+            stairs_pos: Optional position of stairs down
         """
         self.game_map = game_map
         self.player = player
@@ -56,6 +60,9 @@ class GameEngine:
         self.running = False
         self.message_log = MessageLog()
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.level_system = level_system
+        self.stairs_pos = stairs_pos
+        self.current_dungeon_level = 1
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -212,6 +219,53 @@ class GameEngine:
         else:
             self.message_log.add_message("No targets in range!")
 
+    def _transition_to_next_level(self) -> None:
+        """Transition to the next dungeon level."""
+        if not self.level_system:
+            self.message_log.add_message("No more levels available!")
+            return
+
+        next_level = self.current_dungeon_level + 1
+
+        # Check if next level exists
+        if next_level > len(self.level_system.level_configs):
+            self.message_log.add_message("You have reached the deepest level!")
+            return
+
+        # Generate new level
+        game_map, rooms, monsters, stairs_pos = self.level_system.generate_level_with_monsters(next_level)
+
+        # Update game state
+        self.game_map = game_map
+        self.stairs_pos = stairs_pos
+        self.current_dungeon_level = next_level
+
+        # Update map references in subsystems
+        self.movement_system.game_map = game_map
+        self.ai_system.game_map = game_map
+
+        # Place player at start of first room
+        self.player.position = rooms[0].center
+
+        # Clear old entities and add new monsters
+        self.entities.clear()
+        self.entities.extend(monsters)
+
+        # Re-register monsters with AI system
+        self.ai_system.monster_ais.clear()
+        for entity in self.entities:
+            if isinstance(entity, Monster):
+                self.ai_system.register_monster(entity)
+
+        # Recreate FOV map for new level
+        self.fov_map = FOVMap(self.game_map)
+        self.fov_map.compute_fov(self.player.position, self.fov_radius)
+
+        # Emit level transition event and log message
+        level_name = self.level_system.level_configs[next_level].name
+        self.message_log.add_message(f"You descend to level {next_level}: {level_name}")
+        self.level_system.transition_to_level(next_level)
+
     def _handle_targeting_action(self, action: Action, input_handler: InputHandler) -> None:
         """Handle actions while in targeting mode.
 
@@ -345,6 +399,13 @@ class GameEngine:
                 # Handle TEST_CONFUSION action to start targeting
                 elif action == Action.TEST_CONFUSION:
                     self._start_confusion_targeting(input_handler)
+                # Handle descending stairs
+                elif action == Action.DESCEND_STAIRS:
+                    # Check if player is on stairs
+                    if self.stairs_pos and self.player.position == self.stairs_pos:
+                        self._transition_to_next_level()
+                    else:
+                        self.message_log.add_message("There are no stairs here!")
                 # Normal game actions
                 else:
                     self.running = self.turn_manager.process_turn(

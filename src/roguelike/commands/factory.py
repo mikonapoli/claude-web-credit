@@ -180,6 +180,9 @@ class CommandFactory:
             player=self.player,
             entities=self.entities,
             message_log=self.message_log,
+            ai_system=self.ai_system,
+            combat_system=self.combat_system,
+            status_effects_system=self.status_effects_system,
         )
 
     def create_targeting_move_command(self, dx: int, dy: int) -> TargetingMoveCommand:

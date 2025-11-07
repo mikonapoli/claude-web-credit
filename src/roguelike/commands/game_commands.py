@@ -384,6 +384,9 @@ class PickupItemCommand(Command):
         player: ComponentEntity,
         entities: List[ComponentEntity],
         message_log: MessageLog,
+        ai_system: AISystem,
+        combat_system: CombatSystem,
+        status_effects_system: Optional[StatusEffectsSystem] = None,
     ):
         """Initialize pickup item command.
 
@@ -391,10 +394,16 @@ class PickupItemCommand(Command):
             player: Player entity
             entities: All entities in game
             message_log: Message log for displaying messages
+            ai_system: AI system for processing enemy turns
+            combat_system: Combat system for handling death
+            status_effects_system: Optional status effects system
         """
         self.player = player
         self.entities = entities
         self.message_log = message_log
+        self.ai_system = ai_system
+        self.combat_system = combat_system
+        self.status_effects_system = status_effects_system
 
     def execute(self) -> CommandResult:
         """Execute the pickup command.
@@ -443,7 +452,22 @@ class PickupItemCommand(Command):
         Returns:
             True if game is over (player died), False otherwise
         """
-        # Note: For pickup, we don't process status effects, only AI turns
+        # Note: For pickup, we don't process status effects on the player, only AI turns
         # This is a design choice - picking up items is quick and doesn't give
-        # poison/other effects time to tick
+        # poison/other effects time to tick on the player
+
+        # Process enemy turns
+        player_died = self.ai_system.process_turns(self.player, self.entities)
+        if player_died:
+            return True  # Game over
+
+        # Process status effects on monsters (they still tick)
+        if self.status_effects_system:
+            for entity in self.entities:
+                if is_monster(entity) and is_alive(entity):
+                    died_from_effects = self.status_effects_system.process_effects(entity)
+                    if died_from_effects:
+                        self.combat_system.handle_death(entity, killed_by_player=False)
+                        entity.blocks_movement = False
+
         return False

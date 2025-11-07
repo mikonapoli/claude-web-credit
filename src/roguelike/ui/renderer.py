@@ -261,6 +261,7 @@ class Renderer:
         player: ComponentEntity,
         x: int,
         y: int,
+        status_effects: list[str] | None = None,
     ) -> None:
         """Render comprehensive player stats panel.
 
@@ -272,9 +273,10 @@ class Renderer:
         - Equipment bonuses
 
         Args:
-            player: Player entity
+            player: Player entity with health stats
             x: X position for stats display (left edge)
             y: Y position for stats display (top edge)
+            status_effects: Optional list of active status effects to display
         """
         current_y = y
 
@@ -441,6 +443,16 @@ class Renderer:
             current_y += 1
 
         return current_y - y
+
+        # Render status effects below health
+        if status_effects:
+            effects_y = y + 1
+            effects_text = "Effects: " + ", ".join(status_effects)
+            # Truncate if too long
+            max_width = self.width - x
+            if len(effects_text) > max_width:
+                effects_text = effects_text[:max_width-3] + "..."
+            self.console.print(x, effects_y, effects_text, fg=(200, 200, 100))
 
     def present(self) -> None:
         """Present the console to the screen."""

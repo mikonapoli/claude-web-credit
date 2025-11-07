@@ -63,9 +63,9 @@ class GameEngine:
 
         # Create event bus and systems
         self.event_bus = EventBus()
-        self.combat_system = CombatSystem(self.event_bus)
-        self.movement_system = MovementSystem(game_map)
         self.status_effects_system = StatusEffectsSystem(self.event_bus)
+        self.combat_system = CombatSystem(self.event_bus, self.status_effects_system)
+        self.movement_system = MovementSystem(game_map)
         self.item_system = ItemSystem(self.event_bus, self.status_effects_system)
         self.targeting_system = TargetingSystem()
         self.ai_system = AISystem(
@@ -279,10 +279,12 @@ class GameEngine:
             # Render player stats panel in the top-right area of the map viewport
             stats_x = renderer.width - 35  # Position in top-right with more space
             stats_y = 0
+            status_effects_display = self.status_effects_system.get_effect_display(self.player)
             renderer.render_player_stats(
                 self.player,
                 x=stats_x,
                 y=stats_y,
+                status_effects=status_effects_display,
             )
 
             # Render status effects below stats (if any)

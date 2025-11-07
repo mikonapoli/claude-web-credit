@@ -11,13 +11,15 @@ from roguelike.utils.protocols import Combatant, Levelable, XPSource
 class CombatSystem:
     """Handles combat resolution and related game events."""
 
-    def __init__(self, event_bus: EventBus):
+    def __init__(self, event_bus: EventBus, status_effects_system=None):
         """Initialize combat system.
 
         Args:
             event_bus: Event bus for publishing combat events
+            status_effects_system: Optional status effects system for modifiers
         """
         self.event_bus = event_bus
+        self.status_effects_system = status_effects_system
 
     def resolve_attack(
         self,
@@ -33,7 +35,17 @@ class CombatSystem:
         Returns:
             True if defender died
         """
-        result = attack(attacker, defender)
+        # Get status effect modifiers if available
+        attacker_power_bonus = 0
+        defender_defense_bonus = 0
+
+        if self.status_effects_system:
+            attacker_mods = self.status_effects_system.get_stat_modifiers(attacker)
+            defender_mods = self.status_effects_system.get_stat_modifiers(defender)
+            attacker_power_bonus = attacker_mods.get("power", 0)
+            defender_defense_bonus = defender_mods.get("defense", 0)
+
+        result = attack(attacker, defender, attacker_power_bonus, defender_defense_bonus)
 
         # Emit combat event
         self.event_bus.emit(
@@ -84,8 +96,21 @@ class CombatSystem:
         Returns:
             New level if level up occurred, None otherwise
         """
+        # Check for XP bonus status effect
+        from roguelike.components.status_effects import StatusEffectsComponent
+
+        actual_xp = xp_amount
+        if hasattr(recipient, "get_component"):
+            status_comp = recipient.get_component(StatusEffectsComponent)
+            if status_comp and status_comp.has_effect("xp_bonus"):
+                effect = status_comp.get_effect("xp_bonus")
+                if effect:
+                    # Apply bonus percentage (e.g., 50% bonus from lucky coin)
+                    bonus_percent = effect.power
+                    actual_xp = xp_amount + (xp_amount * bonus_percent // 100)
+
         # Award XP
-        recipient.xp += xp_amount
+        recipient.xp += actual_xp
 
         # Get recipient name safely
         recipient_name = getattr(recipient, "name", "Unknown")
@@ -94,7 +119,7 @@ class CombatSystem:
         self.event_bus.emit(
             XPGainEvent(
                 entity_name=recipient_name,
-                xp_gained=xp_amount,
+                xp_gained=actual_xp,
             )
         )
 

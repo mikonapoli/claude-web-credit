@@ -79,9 +79,3 @@ def create_troll(position: Position) -> ComponentEntity:
     troll.add_component(LevelComponent(level=2, xp=0, xp_value=100))
 
     return troll
-
-
-# Backward compatibility aliases
-create_component_player = create_player
-create_component_orc = create_orc
-create_component_troll = create_troll

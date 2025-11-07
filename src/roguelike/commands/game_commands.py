@@ -319,12 +319,15 @@ class TargetingSelectCommand(Command):
 
     def execute(self) -> CommandResult:
         """Execute the targeting select command."""
-        # Signal that target was selected (game engine handles item use)
+        # Get the selected target from targeting system
+        target = self.targeting_system.select_target()
+
+        # Signal that target was selected and return the target
         return CommandResult(
             success=True,
             turn_consumed=False,
             should_quit=False,
-            data={"targeting_select": True},
+            data={"targeting_select": True, "target": target},
         )
 
 

@@ -91,12 +91,8 @@ class InputHandler:
         elif key == tcod.event.KeySym.G:
             self.last_command = self.command_factory.create_pickup_command()
 
-        # Inventory
-        elif key == tcod.event.KeySym.I:
-            # TODO: Create inventory command once we have inventory UI
-            self.last_command = None
-
         # Test: Confusion scroll targeting (C key)
+        # Note: Inventory UI ('I' key) not yet implemented
         elif key == tcod.event.KeySym.C:
             self.last_command = self.command_factory.create_start_targeting_command()
 

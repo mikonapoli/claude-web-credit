@@ -328,7 +328,32 @@ class GameEngine:
                     elif result.data.get("targeting_select"):
                         # Targeting selection made - exit targeting mode
                         input_handler.set_targeting_mode(False)
-                        # TODO: Use the targeted item on the selected target
+
+                        # Use confusion scroll on the selected target (test feature for 'C' key)
+                        target = result.data.get("target")
+                        if target:
+                            # Find first confusion scroll in inventory
+                            from roguelike.entities.item import ItemType
+                            confusion_scroll = None
+                            for item in self.player.inventory.get_items():
+                                if hasattr(item, 'item_type') and item.item_type == ItemType.SCROLL_CONFUSION:
+                                    confusion_scroll = item
+                                    break
+
+                            if confusion_scroll:
+                                # Use the confusion scroll on the target
+                                success = self.item_system.use_item(
+                                    confusion_scroll,
+                                    self.player,
+                                    self.player.inventory,
+                                    target=target
+                                )
+                                if success:
+                                    self.message_log.add_message(f"You confuse the {target.name}!")
+                                else:
+                                    self.message_log.add_message("The confusion scroll failed!")
+                            else:
+                                self.message_log.add_message("No confusion scroll in inventory!")
                     elif result.data.get("targeting_cancel"):
                         # Targeting cancelled - exit targeting mode
                         input_handler.set_targeting_mode(False)

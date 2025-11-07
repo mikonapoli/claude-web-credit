@@ -137,6 +137,9 @@ class ItemSystem:
     def _apply_strength_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply strength buff.
 
+        Note: Currently applies permanent power boost.
+        A temporary buff system could be added in the future.
+
         Args:
             item: Strength potion
             user: ComponentEntity to buff
@@ -144,13 +147,15 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # TODO: Implement temporary buff system
-        # For now, just apply permanent boost
+        # Apply permanent power boost
         user.power += item.value
         return True
 
     def _apply_defense_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply defense buff.
+
+        Note: Currently applies permanent defense boost.
+        A temporary buff system could be added in the future.
 
         Args:
             item: Defense potion
@@ -159,21 +164,24 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # TODO: Implement temporary buff system
+        # Apply permanent defense boost
         user.defense += item.value
         return True
 
     def _apply_speed_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply speed buff.
 
+        Note: This is a stub - speed/turn system not yet implemented.
+        Currently consumes the item but has no effect.
+
         Args:
             item: Speed potion
             user: ComponentEntity to buff
 
         Returns:
-            True if buff was applied
+            True (item consumed with no effect)
         """
-        # TODO: Implement speed/turn system
+        # Speed/turn system not yet implemented
         return True
 
     def _apply_invisibility(self, item: Item, user: ComponentEntity) -> bool:
@@ -195,6 +203,9 @@ class ItemSystem:
     def _apply_gigantism(self, item: Item, user: ComponentEntity) -> bool:
         """Apply gigantism effect.
 
+        Note: Currently applies permanent power boost.
+        A temporary buff system could be added in the future.
+
         Args:
             item: Gigantism potion
             user: ComponentEntity to grow
@@ -202,12 +213,15 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # TODO: Implement temporary buff system
+        # Apply permanent power boost (representing growth)
         user.power += item.value
         return True
 
     def _apply_shrinking(self, item: Item, user: ComponentEntity) -> bool:
         """Apply shrinking effect.
+
+        Note: Currently applies permanent defense boost.
+        A temporary buff system could be added in the future.
 
         Args:
             item: Shrinking potion
@@ -216,12 +230,15 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # TODO: Implement temporary buff system
+        # Apply permanent defense boost (representing evasiveness from being small)
         user.defense += item.value
         return True
 
     def _apply_fireball(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
         """Apply fireball effect.
+
+        Note: This is a stub - AoE damage system not yet implemented.
+        Currently validates target but does no damage.
 
         Args:
             item: Fireball scroll
@@ -229,9 +246,9 @@ class ItemSystem:
             target: Target actor (required)
 
         Returns:
-            True if effect was applied
+            True if target is valid (but no damage is dealt)
         """
-        # TODO: Implement AoE damage around target
+        # AoE damage system not yet implemented
         if not target or not target.is_alive:
             return False
         return True
@@ -239,15 +256,18 @@ class ItemSystem:
     def _apply_lightning(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
         """Apply lightning effect.
 
+        Note: This is a stub - single-target damage not yet implemented.
+        Currently validates target but does no damage.
+
         Args:
             item: Lightning scroll
             user: ComponentEntity casting lightning
             target: Target actor (required)
 
         Returns:
-            True if effect was applied
+            True if target is valid (but no damage is dealt)
         """
-        # TODO: Implement single-target damage
+        # Single-target damage not yet implemented
         if not target or not target.is_alive:
             return False
         return True
@@ -275,79 +295,97 @@ class ItemSystem:
     def _apply_teleport(self, item: Item, user: ComponentEntity) -> bool:
         """Apply teleport effect.
 
+        Note: This is a stub - random teleportation not yet implemented.
+        Currently consumes the item but has no effect.
+
         Args:
             item: Teleport scroll
             user: ComponentEntity to teleport
 
         Returns:
-            True if effect was applied
+            True (item consumed with no effect)
         """
-        # TODO: Implement random teleportation
+        # Random teleportation not yet implemented
         return True
 
     def _apply_magic_mapping(self, item: Item, user: ComponentEntity) -> bool:
         """Apply magic mapping effect.
+
+        Note: This is a stub - map reveal not yet implemented.
+        Currently consumes the item but has no effect.
 
         Args:
             item: Magic mapping scroll
             user: ComponentEntity revealing map
 
         Returns:
-            True if effect was applied
+            True (item consumed with no effect)
         """
-        # TODO: Implement map reveal
+        # Map reveal not yet implemented
         return True
 
     def _apply_coffee(self, item: Item, user: ComponentEntity) -> bool:
         """Apply coffee effect.
+
+        Note: This is a stub - speed boost not yet implemented.
+        Currently consumes the item but has no effect.
 
         Args:
             item: Coffee
             user: ComponentEntity drinking coffee
 
         Returns:
-            True if effect was applied
+            True (item consumed with no effect)
         """
-        # TODO: Implement speed boost
+        # Speed boost not yet implemented
         return True
 
     def _apply_lucky_coin(self, item: Item, user: ComponentEntity) -> bool:
         """Apply lucky coin effect.
+
+        Note: This is a stub - XP boost not yet implemented.
+        Currently consumes the item but has no effect.
 
         Args:
             item: Lucky coin
             user: ComponentEntity using coin
 
         Returns:
-            True if effect was applied
+            True (item consumed with no effect)
         """
-        # TODO: Implement XP boost
+        # XP boost not yet implemented
         return True
 
     def _apply_banana_peel(self, item: Item, user: ComponentEntity) -> bool:
         """Apply banana peel effect.
+
+        Note: This is a stub - throwable trap not yet implemented.
+        Currently consumes the item but has no effect.
 
         Args:
             item: Banana peel
             user: ComponentEntity throwing banana peel
 
         Returns:
-            True if effect was applied
+            True (item consumed with no effect)
         """
-        # TODO: Implement throwable trap
+        # Throwable trap not yet implemented
         return True
 
     def _apply_rubber_chicken(self, item: Item, user: ComponentEntity) -> bool:
         """Apply rubber chicken effect.
+
+        Note: This is a stub - weak attack not yet implemented.
+        Currently consumes the item but has no effect.
 
         Args:
             item: Rubber chicken
             user: ComponentEntity using rubber chicken
 
         Returns:
-            True if effect was applied
+            True (item consumed with no effect)
         """
-        # TODO: Implement weak attack
+        # Weak attack not yet implemented
         return True
 
     def _apply_cursed_ring(self, item: Item, user: ComponentEntity) -> bool:

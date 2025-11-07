@@ -279,12 +279,10 @@ class GameEngine:
             # Render player stats panel in the top-right area of the map viewport
             stats_x = renderer.width - 35  # Position in top-right with more space
             stats_y = 0
-            status_effects_display = self.status_effects_system.get_effect_display(self.player)
             renderer.render_player_stats(
                 self.player,
                 x=stats_x,
                 y=stats_y,
-                status_effects=status_effects_display,
             )
 
             # Render status effects below stats (if any)

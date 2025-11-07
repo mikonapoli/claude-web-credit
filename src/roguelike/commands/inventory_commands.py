@@ -3,6 +3,7 @@
 from typing import List
 
 from roguelike.commands.command import Command, CommandResult
+from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.health import HealthComponent
 from roguelike.components.inventory import InventoryComponent
@@ -134,16 +135,31 @@ class UseItemCommand(Command):
             return CommandResult(success=False, turn_consumed=False)
 
         # Apply item effect based on item type
+        effect_applied = False
+
         if self.item.item_type == ItemType.HEALING_POTION:
             # Check if player has health component
             health = self.player.get_component(HealthComponent)
             if health is None:
                 return CommandResult(success=False, turn_consumed=False)
 
-            # Heal the player
-            health.heal(self.item.value)
+            # Heal the player - only succeeds if healing was actually applied
+            actual_healed = health.heal(self.item.value)
+            effect_applied = actual_healed > 0
 
-        # Remove item from inventory
-        inventory.remove_item(self.item)
+        elif self.item.item_type == ItemType.STRENGTH_POTION:
+            # Check if player has combat component
+            combat = self.player.get_component(CombatComponent)
+            if combat is None:
+                return CommandResult(success=False, turn_consumed=False)
 
-        return CommandResult(success=True, turn_consumed=True)
+            # Increase player's power
+            self.player.power += self.item.value
+            effect_applied = True
+
+        # Only remove item and succeed if effect was applied
+        if effect_applied:
+            inventory.remove_item(self.item)
+            return CommandResult(success=True, turn_consumed=True)
+        else:
+            return CommandResult(success=False, turn_consumed=False)

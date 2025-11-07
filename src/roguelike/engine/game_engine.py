@@ -350,6 +350,9 @@ class GameEngine:
                                 )
                                 if success:
                                     self.message_log.add_message(f"You confuse the {target.name}!")
+                                    # Process turn after successful item use
+                                    # This allows enemies to act and status effects to tick
+                                    self._process_turn_after_action()
                                 else:
                                     self.message_log.add_message("The confusion scroll failed!")
                             else:

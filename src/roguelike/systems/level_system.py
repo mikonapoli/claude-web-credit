@@ -40,6 +40,8 @@ class DungeonLevel:
     min_room_size: int
     max_room_size: int
     max_monsters_per_room: int
+    max_items_per_room: int
+    max_materials_per_room: int
     monster_spawn_rules: Dict[str, MonsterSpawnRule]
 
 
@@ -86,6 +88,8 @@ def load_level_config(file_path: str = None) -> Dict[int, DungeonLevel]:
             min_room_size=level_data["min_room_size"],
             max_room_size=level_data["max_room_size"],
             max_monsters_per_room=level_data["max_monsters_per_room"],
+            max_items_per_room=level_data.get("max_items_per_room", 1),
+            max_materials_per_room=level_data.get("max_materials_per_room", 2),
             monster_spawn_rules=spawn_rules,
         )
 
@@ -229,29 +233,41 @@ class DungeonLevelSystem:
     def generate_level_with_monsters(
         self, level_number: int
     ) -> Tuple[GameMap, List[Room], List[ComponentEntity], Position]:
-        """Generate a complete level with monsters and stairs.
+        """Generate a complete level with monsters, items, materials, and stairs.
 
         Args:
             level_number: Level number to generate (1-5)
 
         Returns:
-            Tuple of (game map, list of rooms, list of monsters, stairs position)
+            Tuple of (game map, list of rooms, list of entities, stairs position)
+            entities includes monsters, items, and crafting materials
         """
+        from roguelike.world.procgen import place_items, place_crafting_materials
+
         config = self.level_configs[level_number]
         game_map, rooms = self.generate_level(level_number)
 
-        # Place monsters in all rooms except the first (player spawn)
-        monsters: List[ComponentEntity] = []
+        # Place monsters, items, and materials in all rooms except the first (player spawn)
+        entities: List[ComponentEntity] = []
         for room in rooms[1:]:
+            # Place monsters
             room_monsters = place_monsters_scaled(room, config)
-            monsters.extend(room_monsters)
+            entities.extend(room_monsters)
+
+            # Place regular items
+            room_items = place_items(room, config.max_items_per_room)
+            entities.extend(room_items)
+
+            # Place crafting materials
+            room_materials = place_crafting_materials(room, config.max_materials_per_room)
+            entities.extend(room_materials)
 
         # Place stairs down in the last room (unless it's the final level)
         stairs_pos = None
         if level_number < len(self.level_configs):
             stairs_pos = place_stairs(game_map, rooms[-1], "down")
 
-        return game_map, rooms, monsters, stairs_pos
+        return game_map, rooms, entities, stairs_pos
 
     def transition_to_level(self, level_number: int) -> None:
         """Transition to a new level and emit event.

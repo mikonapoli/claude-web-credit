@@ -3,6 +3,7 @@
 import random
 from typing import List, Optional
 
+from roguelike.data.entity_loader import EntityLoader
 from roguelike.entities.item import (
     Item,
     create_banana_peel,
@@ -189,6 +190,70 @@ def place_items(room: Room, max_items: int) -> List[Item]:
                 break
 
     return items
+
+
+def place_crafting_materials(room: Room, max_materials: int) -> List["ComponentEntity"]:
+    """Place crafting materials randomly in a room.
+
+    Args:
+        room: Room to place materials in
+        max_materials: Maximum number of materials
+
+    Returns:
+        List of spawned crafting material entities
+    """
+    num_materials = random.randint(0, max_materials)
+    materials: List["ComponentEntity"] = []
+
+    # Get all inner tile positions
+    inner_positions = list(room.inner_tiles())
+
+    # Crafting material types with spawn weights
+    material_types = [
+        ("moonleaf", 15),           # Common herbal
+        ("mana_crystal", 12),       # Common magical
+        ("nightshade", 10),         # Common sinister
+        ("purifying_salt", 10),     # Common purifying
+        ("iron_ore", 8),            # Common metallic
+        ("volcanic_ash", 8),        # Uncommon volcanic
+        ("sulfur", 8),              # Uncommon sulfuric
+        ("frost_essence", 7),       # Uncommon boreal
+        ("coffee", 6),              # Uncommon energizing
+        ("blessed_water", 5),       # Rare holy
+        ("ancient_parchment", 5),   # Rare parchment
+        ("shadow_ink", 4),          # Rare sinister
+        ("dragon_scale", 3),        # Very rare magical
+        ("runic_essence", 3),       # Very rare runic
+        ("phoenix_feather", 2),     # Ultra rare fiery
+        ("thunder_stone", 2),       # Ultra rare electric
+        ("giants_tears", 2),        # Ultra rare empowering
+        ("pixie_dust", 2),          # Ultra rare ethereal
+    ]
+
+    # Calculate total weight for proper weighted selection
+    total_weight = sum(weight for _, weight in material_types)
+
+    # Create entity loader for crafting materials
+    entity_loader = EntityLoader()
+
+    for _ in range(num_materials):
+        if not inner_positions:
+            break
+
+        # Pick random position and remove it from available positions
+        pos = random.choice(inner_positions)
+        inner_positions.remove(pos)
+
+        # Choose material based on weighted random selection
+        roll = random.randint(1, total_weight)
+        cumulative = 0
+        for material_type, weight in material_types:
+            cumulative += weight
+            if roll <= cumulative:
+                materials.append(entity_loader.create_entity(material_type, pos))
+                break
+
+    return materials
 
 
 def generate_dungeon(

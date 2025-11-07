@@ -8,6 +8,8 @@
     "min_room_size": 6,
     "max_room_size": 10,
     "max_monsters_per_room": 2,
+    "max_items_per_room": 1,
+    "max_materials_per_room": 2,
     "monster_spawn_rules": {
       "orc": {
         "chance": 0.8,
@@ -32,6 +34,8 @@
     "min_room_size": 7,
     "max_room_size": 11,
     "max_monsters_per_room": 3,
+    "max_items_per_room": 1,
+    "max_materials_per_room": 2,
     "monster_spawn_rules": {
       "orc": {
         "chance": 0.6,
@@ -56,6 +60,8 @@
     "min_room_size": 8,
     "max_room_size": 12,
     "max_monsters_per_room": 3,
+    "max_items_per_room": 2,
+    "max_materials_per_room": 3,
     "monster_spawn_rules": {
       "orc": {
         "chance": 0.4,
@@ -80,6 +86,8 @@
     "min_room_size": 9,
     "max_room_size": 13,
     "max_monsters_per_room": 4,
+    "max_items_per_room": 2,
+    "max_materials_per_room": 3,
     "monster_spawn_rules": {
       "orc": {
         "chance": 0.2,
@@ -104,6 +112,8 @@
     "min_room_size": 10,
     "max_room_size": 14,
     "max_monsters_per_room": 4,
+    "max_items_per_room": 3,
+    "max_materials_per_room": 4,
     "monster_spawn_rules": {
       "orc": {
         "chance": 0.1,

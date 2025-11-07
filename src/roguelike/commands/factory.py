@@ -85,19 +85,30 @@ class CommandFactory:
         self,
         player: Optional[ComponentEntity] = None,
         entities: Optional[List[ComponentEntity]] = None,
+        game_map: Optional[GameMap] = None,
+        fov_map: Optional[FOVMap] = None,
         stairs_pos: Optional[Position] = None,
     ) -> None:
-        """Update the factory's context (player, entities, stairs position).
+        """Update the factory's context (player, entities, maps, stairs position).
+
+        This is critical for level transitions where the game_map and fov_map are replaced.
+        Without updating these references, commands would operate on stale map state.
 
         Args:
             player: The player entity
             entities: All entities in the game
+            game_map: The game map
+            fov_map: Field of view map
             stairs_pos: Position of stairs (if any)
         """
         if player is not None:
             self.player = player
         if entities is not None:
             self.entities = entities
+        if game_map is not None:
+            self.game_map = game_map
+        if fov_map is not None:
+            self.fov_map = fov_map
         if stairs_pos is not None:
             self.stairs_pos = stairs_pos
 

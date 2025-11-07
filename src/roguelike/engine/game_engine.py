@@ -238,6 +238,15 @@ class GameEngine:
         self.fov_map = FOVMap(self.game_map)
         self.fov_map.compute_fov(self.player.position, self.fov_radius)
 
+        # Update CommandFactory with new map references
+        # Critical: Without this, commands would operate on stale map/FOV state
+        self.command_factory.update_context(
+            entities=self.entities,
+            game_map=self.game_map,
+            fov_map=self.fov_map,
+            stairs_pos=self.stairs_pos,
+        )
+
         # Emit level transition event and log message
         level_name = self.level_system.level_configs[next_level].name
         self.message_log.add_message(f"You descend to level {next_level}: {level_name}")

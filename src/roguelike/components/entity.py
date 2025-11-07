@@ -277,6 +277,16 @@ class ComponentEntity:
             raise AttributeError(f"Entity {self.name} has no HealthComponent")
         return health.heal(amount)
 
+    @property
+    def inventory(self):
+        """Get inventory (delegates to InventoryComponent)."""
+        from roguelike.components.inventory import InventoryComponent
+
+        inv_comp = self.get_component(InventoryComponent)
+        if inv_comp is None:
+            raise AttributeError(f"Entity {self.name} has no InventoryComponent")
+        return inv_comp._inventory
+
     def __repr__(self) -> str:
         """Return string representation."""
         components = ", ".join([c.__class__.__name__ for c in self._components.values()])

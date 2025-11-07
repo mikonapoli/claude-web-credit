@@ -2,7 +2,7 @@
 
 from roguelike.engine.events import EventBus
 from roguelike.components.factories import create_orc, create_troll
-# from roguelike.entities.player import Player
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem

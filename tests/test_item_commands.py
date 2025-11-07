@@ -19,7 +19,7 @@ def event_bus():
 @pytest.fixture
 def player():
     """Create a test player."""
-    return Player(position=Position(5, 5))
+    return create_test_player(Position(5, 5))
 
 
 @pytest.fixture

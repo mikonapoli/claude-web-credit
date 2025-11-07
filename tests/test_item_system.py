@@ -31,14 +31,7 @@ def item_system(event_bus):
 @pytest.fixture
 def player():
     """Create a test player."""
-    return Actor(
-        position=Position(5, 5),
-        char="@",
-        name="Player",
-        max_hp=30,
-        defense=2,
-        power=5,
-    )
+    return create_test_player(Position(5, 5))
 
 
 @pytest.fixture

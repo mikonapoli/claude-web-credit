@@ -7,8 +7,11 @@ Note: For simple property access (hp, power, defense, etc.), use the
 ComponentEntity properties directly (e.g., entity.hp, entity.power).
 """
 
+from typing import Tuple
+
 from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
+from roguelike.components.equipment import EquipmentComponent
 from roguelike.components.health import HealthComponent
 
 
@@ -85,4 +88,77 @@ def is_monster(entity) -> bool:
         and entity.has_component(CombatComponent)
         and not is_player(entity)
         and entity.blocks_movement
+    )
+
+
+def get_effective_power(entity: ComponentEntity) -> int:
+    """Calculate effective power (base power + equipment bonuses).
+
+    Args:
+        entity: Entity to calculate effective power for
+
+    Returns:
+        Total effective power including equipment bonuses
+
+    Note:
+        If entity has no CombatComponent, returns 0.
+        If entity has no EquipmentComponent, returns base power.
+    """
+    combat = entity.get_component(CombatComponent)
+    if not combat:
+        return 0
+
+    base_power = combat.power
+    equipment = entity.get_component(EquipmentComponent)
+
+    if equipment:
+        return base_power + equipment.get_total_power_bonus()
+    return base_power
+
+
+def get_effective_defense(entity: ComponentEntity) -> int:
+    """Calculate effective defense (base defense + equipment bonuses).
+
+    Args:
+        entity: Entity to calculate effective defense for
+
+    Returns:
+        Total effective defense including equipment bonuses
+
+    Note:
+        If entity has no CombatComponent, returns 0.
+        If entity has no EquipmentComponent, returns base defense.
+    """
+    combat = entity.get_component(CombatComponent)
+    if not combat:
+        return 0
+
+    base_defense = combat.defense
+    equipment = entity.get_component(EquipmentComponent)
+
+    if equipment:
+        return base_defense + equipment.get_total_defense_bonus()
+    return base_defense
+
+
+def get_equipment_bonuses(entity: ComponentEntity) -> Tuple[int, int, int]:
+    """Get all equipment bonuses for an entity.
+
+    Args:
+        entity: Entity to get equipment bonuses for
+
+    Returns:
+        Tuple of (power_bonus, defense_bonus, max_hp_bonus)
+
+    Note:
+        Returns (0, 0, 0) if entity has no EquipmentComponent.
+    """
+    equipment = entity.get_component(EquipmentComponent)
+    if not equipment:
+        return (0, 0, 0)
+
+    return (
+        equipment.get_total_power_bonus(),
+        equipment.get_total_defense_bonus(),
+        equipment.get_total_max_hp_bonus(),
     )

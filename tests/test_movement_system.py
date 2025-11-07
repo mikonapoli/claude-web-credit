@@ -1,7 +1,7 @@
 """Tests for MovementSystem."""
 
 from roguelike.entities.monster import create_orc
-from roguelike.entities.player import Player
+# from roguelike.entities.player import Player
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
@@ -49,7 +49,7 @@ def test_can_move_ignoring_self():
     game_map.set_tile(Position(5, 5), Tiles.FLOOR)
     system = MovementSystem(game_map)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     assert system.can_move_to(Position(5, 5), [player], ignore_entity=player)
 
 
@@ -80,7 +80,7 @@ def test_move_entity_success():
     game_map.set_tile(Position(5, 6), Tiles.FLOOR)
     system = MovementSystem(game_map)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     success = system.move_entity(player, 0, 1, [player])
 
     assert success
@@ -93,7 +93,7 @@ def test_move_entity_blocked_by_wall():
     game_map.set_tile(Position(5, 5), Tiles.FLOOR)
     system = MovementSystem(game_map)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     success = system.move_entity(player, 0, 1, [player])
 
     assert not success
@@ -107,7 +107,7 @@ def test_move_entity_blocked_by_entity():
     game_map.set_tile(Position(5, 6), Tiles.FLOOR)
     system = MovementSystem(game_map)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     orc = create_orc(Position(5, 6))
 
     success = system.move_entity(player, 0, 1, [player, orc])
@@ -123,7 +123,7 @@ def test_move_entity_to_absolute_position():
     game_map.set_tile(Position(10, 10), Tiles.FLOOR)
     system = MovementSystem(game_map)
 
-    player = Player(Position(5, 5))
+    player = create_test_player(Position(5, 5))
     success = system.move_entity_to(player, Position(10, 10), [player])
 
     assert success

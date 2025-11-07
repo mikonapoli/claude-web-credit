@@ -1,8 +1,8 @@
 """Tests for protocol interfaces."""
 
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.entities.monster import create_orc
-from roguelike.entities.player import Player
+# from roguelike.entities.player import Player
 from roguelike.utils.position import Position
 from roguelike.utils.protocols import (
     AIControlled,
@@ -58,6 +58,6 @@ def test_monster_implements_xp_source():
 
 def test_player_implements_levelable():
     """Player implements Levelable protocol."""
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     levelable: Levelable = player
     assert levelable.level == 1

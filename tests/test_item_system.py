@@ -3,7 +3,7 @@
 import pytest
 
 from roguelike.engine.events import EventBus, HealingEvent, ItemUseEvent
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.entities.item import (
     create_cheese_wheel,
     create_cursed_ring,

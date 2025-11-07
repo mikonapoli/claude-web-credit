@@ -3,7 +3,7 @@
 from roguelike.commands.actions import MoveCommand, QuitCommand, WaitCommand
 from roguelike.commands.executor import CommandExecutor
 from roguelike.engine.events import EventBus
-from roguelike.entities.player import Player
+# from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
@@ -39,7 +39,7 @@ def test_wait_command_execution():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     cmd = WaitCommand(turn_manager, player, [player], game_map, fov_map, 8)
@@ -63,7 +63,7 @@ def test_move_command_execution():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     cmd = MoveCommand(
@@ -89,7 +89,7 @@ def test_move_command_undo():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     cmd = MoveCommand(
@@ -111,7 +111,7 @@ def test_move_command_invalid_direction():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     cmd = MoveCommand(
@@ -147,7 +147,7 @@ def test_command_executor_history():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
@@ -172,7 +172,7 @@ def test_command_executor_undo():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
@@ -199,7 +199,7 @@ def test_command_executor_redo():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
@@ -227,7 +227,7 @@ def test_command_executor_clear_history():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
@@ -254,7 +254,7 @@ def test_command_executor_max_history():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor(max_history=2)
@@ -294,7 +294,7 @@ def test_use_item_command_rejects_targeted_items():
     event_bus = EventBus()
     status_effects_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_effects_system)
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
 
     # Add a confusion scroll to inventory
     scroll = create_scroll_confusion(Position(0, 0))
@@ -320,7 +320,7 @@ def test_use_item_command_allows_non_targeted_items():
     event_bus = EventBus()
     status_effects_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_effects_system)
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
 
     # Damage player so healing works
     player.take_damage(10)

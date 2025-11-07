@@ -2,7 +2,7 @@
 
 from roguelike.engine.events import EventBus
 from roguelike.entities.monster import create_orc, create_troll
-from roguelike.entities.player import Player
+# from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
@@ -90,7 +90,7 @@ def test_process_turns_no_monsters():
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     player_died = ai_system.process_turns(player, [player])
 
     assert not player_died
@@ -108,7 +108,7 @@ def test_process_turns_skips_dead_monster():
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     orc = create_orc(Position(5, 5))
     orc.take_damage(100)  # Kill the orc
 
@@ -131,7 +131,7 @@ def test_process_turns_monster_moves():
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     # Place orc 5 tiles away (within chase range of 10)
     orc = create_orc(Position(7, 7))
     original_pos = orc.position
@@ -155,7 +155,7 @@ def test_process_turns_monster_attacks():
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     original_hp = player.hp
 
     # Place orc adjacent to player
@@ -180,7 +180,7 @@ def test_process_turns_player_death():
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     player.hp = 1  # Set to low HP
 
     # Place strong troll adjacent
@@ -212,7 +212,7 @@ def test_process_turns_emits_combat_events():
 
     event_bus.subscribe("combat", on_combat)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     orc = create_orc(Position(10, 11))
 
     ai_system.register_monster(orc)
@@ -235,7 +235,7 @@ def test_process_turns_skips_unregistered_monster():
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     orc = create_orc(Position(10, 11))
     original_hp = player.hp
 

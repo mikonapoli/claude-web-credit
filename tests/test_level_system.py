@@ -10,7 +10,7 @@ from roguelike.systems.level_system import (
 )
 from roguelike.utils.position import Position
 from roguelike.engine.events import EventBus
-from roguelike.entities.monster import Monster
+# from roguelike.entities.monster import Monster
 
 
 def test_load_level_config_returns_dict():

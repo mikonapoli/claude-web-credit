@@ -9,7 +9,7 @@ from roguelike.engine.events import (
     StatusEffectExpiredEvent,
     StatusEffectTickEvent,
 )
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.utils.position import Position
 

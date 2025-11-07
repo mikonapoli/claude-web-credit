@@ -12,7 +12,7 @@ from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
-from roguelike.world.procgen import generate_dungeon, place_stairs
+from roguelike.world.procgen import generate_dungeon, place_equipment, place_stairs
 from roguelike.world.room import Room
 from roguelike.engine.events import EventBus, LevelTransitionEvent
 
@@ -229,29 +229,36 @@ class DungeonLevelSystem:
     def generate_level_with_monsters(
         self, level_number: int
     ) -> Tuple[GameMap, List[Room], List[ComponentEntity], Position]:
-        """Generate a complete level with monsters and stairs.
+        """Generate a complete level with monsters, equipment, and stairs.
 
         Args:
             level_number: Level number to generate (1-5)
 
         Returns:
-            Tuple of (game map, list of rooms, list of monsters, stairs position)
+            Tuple of (game map, list of rooms, list of entities (monsters + equipment), stairs position)
         """
         config = self.level_configs[level_number]
         game_map, rooms = self.generate_level(level_number)
 
         # Place monsters in all rooms except the first (player spawn)
-        monsters: List[ComponentEntity] = []
+        entities: List[ComponentEntity] = []
         for room in rooms[1:]:
             room_monsters = place_monsters_scaled(room, config)
-            monsters.extend(room_monsters)
+            entities.extend(room_monsters)
+
+        # Place equipment in all rooms except the first (player spawn)
+        # Equipment spawn rate: 0-2 items per room, scales with dungeon level
+        max_equipment_per_room = min(2, 1 + (level_number // 2))
+        for room in rooms[1:]:
+            room_equipment = place_equipment(room, max_equipment_per_room, level_number)
+            entities.extend(room_equipment)
 
         # Place stairs down in the last room (unless it's the final level)
         stairs_pos = None
         if level_number < len(self.level_configs):
             stairs_pos = place_stairs(game_map, rooms[-1], "down")
 
-        return game_map, rooms, monsters, stairs_pos
+        return game_map, rooms, entities, stairs_pos
 
     def transition_to_level(self, level_number: int) -> None:
         """Transition to a new level and emit event.

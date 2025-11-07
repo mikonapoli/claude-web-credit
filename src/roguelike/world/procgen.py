@@ -26,7 +26,40 @@ from roguelike.entities.item import (
     create_strength_potion,
 )
 from roguelike.components.entity import ComponentEntity
-from roguelike.components.factories import create_orc, create_troll
+from roguelike.components.factories import (
+    create_orc,
+    create_troll,
+    # Weapons
+    create_wooden_club,
+    create_iron_sword,
+    create_steel_sword,
+    create_enchanted_blade,
+    create_battle_axe,
+    # Armor
+    create_leather_armor,
+    create_chainmail,
+    create_plate_armor,
+    create_dragon_scale_armor,
+    # Helmets
+    create_leather_helmet,
+    create_steel_helmet,
+    create_crown_of_kings,
+    # Boots
+    create_leather_boots,
+    create_steel_boots,
+    create_boots_of_speed,
+    # Gloves
+    create_leather_gloves,
+    create_gauntlets,
+    # Rings
+    create_ring_of_power,
+    create_ring_of_protection,
+    create_ring_of_vitality,
+    # Amulets
+    create_amulet_of_strength,
+    create_amulet_of_defense,
+    create_amulet_of_life,
+)
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
 from roguelike.world.room import Room
@@ -189,6 +222,102 @@ def place_items(room: Room, max_items: int) -> List[Item]:
                 break
 
     return items
+
+
+def place_equipment(room: Room, max_equipment: int, dungeon_level: int = 1) -> List[ComponentEntity]:
+    """Place equipment items randomly in a room.
+
+    Args:
+        room: Room to place equipment in
+        max_equipment: Maximum number of equipment items
+        dungeon_level: Current dungeon level (affects rarity)
+
+    Returns:
+        List of spawned equipment items
+    """
+    num_equipment = random.randint(0, max_equipment)
+    equipment_items: List[ComponentEntity] = []
+
+    # Get all inner tile positions
+    inner_positions = list(room.inner_tiles())
+
+    # Equipment spawn chances with weights, adjusted by level
+    # Early game: Common equipment (leather, wooden, iron)
+    # Mid game: Uncommon equipment (steel, chainmail)
+    # Late game: Rare equipment (enchanted, plate, dragon scale, crowns, rings, amulets)
+
+    # Define equipment spawners by tier
+    common_equipment = [
+        (create_wooden_club, 15),
+        (create_iron_sword, 12),
+        (create_leather_armor, 12),
+        (create_leather_helmet, 10),
+        (create_leather_boots, 10),
+        (create_leather_gloves, 10),
+    ]
+
+    uncommon_equipment = [
+        (create_steel_sword, 8),
+        (create_chainmail, 8),
+        (create_steel_helmet, 6),
+        (create_steel_boots, 6),
+        (create_gauntlets, 5),
+        (create_ring_of_power, 3),
+        (create_ring_of_protection, 3),
+    ]
+
+    rare_equipment = [
+        (create_enchanted_blade, 4),
+        (create_battle_axe, 3),
+        (create_plate_armor, 4),
+        (create_crown_of_kings, 2),
+        (create_boots_of_speed, 3),
+        (create_ring_of_vitality, 3),
+        (create_amulet_of_strength, 2),
+        (create_amulet_of_defense, 2),
+        (create_amulet_of_life, 2),
+    ]
+
+    legendary_equipment = [
+        (create_dragon_scale_armor, 1),
+    ]
+
+    # Build equipment pool based on dungeon level
+    equipment_spawners = []
+
+    if dungeon_level >= 1:
+        equipment_spawners.extend(common_equipment)
+    if dungeon_level >= 2:
+        equipment_spawners.extend(uncommon_equipment)
+    if dungeon_level >= 3:
+        equipment_spawners.extend(rare_equipment)
+    if dungeon_level >= 4:
+        equipment_spawners.extend(legendary_equipment)
+
+    # Calculate total weight
+    total_weight = sum(weight for _, weight in equipment_spawners)
+
+    if total_weight == 0:
+        return equipment_items
+
+    for _ in range(num_equipment):
+        if not inner_positions:
+            break
+
+        # Pick random position and remove it from available positions
+        pos = random.choice(inner_positions)
+        inner_positions.remove(pos)
+
+        # Choose equipment based on weighted random selection
+        roll = random.randint(1, total_weight)
+        cumulative = 0
+        for spawner, weight in equipment_spawners:
+            cumulative += weight
+            if roll <= cumulative:
+                equipment_items.append(spawner(pos))
+                break
+
+    return equipment_items
 
 
 def generate_dungeon(

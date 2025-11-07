@@ -428,11 +428,13 @@ class PickupItemCommand(Command):
         Returns:
             CommandResult indicating success/failure
         """
-        # Find items at player's position
+        from roguelike.components.equipment import EquipmentStats
+
+        # Find items at player's position (both old Item entities and equipment ComponentEntities)
         items_at_position = [
             item
             for item in self.entities
-            if hasattr(item, "item_type") and item.position == self.player.position
+            if (hasattr(item, "item_type") or item.get_component(EquipmentStats)) and item.position == self.player.position
         ]
 
         if not items_at_position:

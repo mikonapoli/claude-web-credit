@@ -6,11 +6,14 @@ import json
 import os
 import random
 
-from roguelike.entities.monster import Monster
+from roguelike.components.combat import CombatComponent
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.health import HealthComponent
+from roguelike.components.level import LevelComponent
+from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
 from roguelike.world.procgen import generate_dungeon, place_stairs
 from roguelike.world.room import Room
-from roguelike.utils.position import Position
 from roguelike.engine.events import EventBus, LevelTransitionEvent
 
 
@@ -91,7 +94,7 @@ def load_level_config(file_path: str = None) -> Dict[int, DungeonLevel]:
 
 def create_scaled_monster(
     monster_type: str, position: Position, spawn_rule: MonsterSpawnRule
-) -> Monster:
+) -> ComponentEntity:
     """Create a monster with scaled stats based on spawn rule.
 
     Args:
@@ -100,7 +103,7 @@ def create_scaled_monster(
         spawn_rule: Spawn rule with scaling factors
 
     Returns:
-        Monster with scaled stats
+        Monster entity with scaled stats
     """
     # Base stats for monster types
     base_stats = {
@@ -118,20 +121,25 @@ def create_scaled_monster(
     scaled_power = int(stats["power"] * spawn_rule.power_scale)
     scaled_defense = int(stats["defense"] * spawn_rule.defense_scale)
 
-    return Monster(
+    # Create monster entity with components
+    monster = ComponentEntity(
         position=position,
         char=stats["char"],
         name=stats["name"],
-        max_hp=scaled_hp,
-        power=scaled_power,
-        defense=scaled_defense,
-        xp_value=stats["xp_value"],
+        blocks_movement=True,
     )
+
+    # Add components with scaled stats
+    monster.add_component(HealthComponent(max_hp=scaled_hp))
+    monster.add_component(CombatComponent(power=scaled_power, defense=scaled_defense))
+    monster.add_component(LevelComponent(level=1, xp=0, xp_value=stats["xp_value"]))
+
+    return monster
 
 
 def place_monsters_scaled(
     room: Room, level_config: DungeonLevel
-) -> List[Monster]:
+) -> List[ComponentEntity]:
     """Place monsters in a room with difficulty scaling.
 
     Args:
@@ -142,7 +150,7 @@ def place_monsters_scaled(
         List of spawned monsters
     """
     num_monsters = random.randint(0, level_config.max_monsters_per_room)
-    monsters: List[Monster] = []
+    monsters: List[ComponentEntity] = []
 
     # Get all inner tile positions
     inner_positions = list(room.inner_tiles())
@@ -220,7 +228,7 @@ class DungeonLevelSystem:
 
     def generate_level_with_monsters(
         self, level_number: int
-    ) -> Tuple[GameMap, List[Room], List[Monster], Position]:
+    ) -> Tuple[GameMap, List[Room], List[ComponentEntity], Position]:
         """Generate a complete level with monsters and stairs.
 
         Args:
@@ -233,7 +241,7 @@ class DungeonLevelSystem:
         game_map, rooms = self.generate_level(level_number)
 
         # Place monsters in all rooms except the first (player spawn)
-        monsters: List[Monster] = []
+        monsters: List[ComponentEntity] = []
         for room in rooms[1:]:
             room_monsters = place_monsters_scaled(room, config)
             monsters.extend(room_monsters)

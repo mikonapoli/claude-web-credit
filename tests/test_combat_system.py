@@ -1,8 +1,9 @@
 """Tests for CombatSystem."""
 
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.engine.events import EventBus
-from roguelike.entities.monster import create_orc
-from roguelike.entities.player import Player
+from roguelike.components.factories import create_orc
+# from roguelike.entities.player import Player
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.utils.position import Position
 
@@ -19,7 +20,7 @@ def test_resolve_attack_reduces_defender_hp():
     event_bus = EventBus()
     system = CombatSystem(event_bus)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     orc = create_orc(Position(1, 1))
     initial_hp = orc.hp
 
@@ -35,7 +36,7 @@ def test_resolve_attack_emits_combat_event():
 
     event_bus.subscribe("combat", lambda e: events.append(e))
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     orc = create_orc(Position(1, 1))
 
     system.resolve_attack(player, orc)
@@ -47,7 +48,7 @@ def test_resolve_attack_returns_death_status():
     event_bus = EventBus()
     system = CombatSystem(event_bus)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     orc = create_orc(Position(1, 1))
 
     # Attack multiple times until orc dies
@@ -93,7 +94,7 @@ def test_award_xp_increases_recipient_xp():
     event_bus = EventBus()
     system = CombatSystem(event_bus)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     initial_xp = player.xp
 
     system.award_xp(player, 50)
@@ -108,7 +109,7 @@ def test_award_xp_emits_xp_gain_event():
 
     event_bus.subscribe("xp_gain", lambda e: events.append(e))
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     system.award_xp(player, 50)
 
     assert len(events) == 1
@@ -119,7 +120,7 @@ def test_award_xp_triggers_level_up():
     event_bus = EventBus()
     system = CombatSystem(event_bus)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     initial_level = player.level
 
     # Award enough XP to level up (level 2 requires 400 XP: 100 * 2^2)
@@ -137,7 +138,7 @@ def test_level_up_emits_event():
 
     event_bus.subscribe("level_up", lambda e: events.append(e))
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     system.award_xp(player, 400)  # Level 2 requires 400 XP
 
     # Should emit level_up event
@@ -149,7 +150,7 @@ def test_award_xp_without_level_up_returns_none():
     event_bus = EventBus()
     system = CombatSystem(event_bus)
 
-    player = Player(Position(0, 0))
+    player = create_test_player(Position(0, 0))
     new_level = system.award_xp(player, 50)
 
     assert new_level is None

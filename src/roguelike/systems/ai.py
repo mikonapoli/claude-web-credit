@@ -4,8 +4,7 @@ from typing import Optional
 
 import tcod.path
 
-from roguelike.entities.actor import Actor
-from roguelike.entities.monster import Monster
+from roguelike.components.entity import ComponentEntity
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
 
@@ -13,7 +12,7 @@ from roguelike.world.game_map import GameMap
 class MonsterAI:
     """Simple AI for monsters."""
 
-    def __init__(self, monster: Monster):
+    def __init__(self, monster: ComponentEntity):
         """Initialize AI for a monster.
 
         Args:
@@ -23,14 +22,14 @@ class MonsterAI:
 
     def take_turn(
         self,
-        player: Actor,
+        player: ComponentEntity,
         game_map: GameMap,
-        entities: list[Actor],
+        entities: list[ComponentEntity],
     ) -> Optional[Position]:
         """Take a turn for this monster.
 
         Args:
-            player: The player actor
+            player: The player entity
             game_map: The game map
             entities: List of all entities (for blocking checks)
 

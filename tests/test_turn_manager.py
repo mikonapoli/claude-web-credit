@@ -1,8 +1,8 @@
 """Tests for TurnManager."""
 
 from roguelike.engine.events import EventBus
-from roguelike.entities.monster import create_orc, create_troll
-from roguelike.entities.player import Player
+from roguelike.components.factories import create_orc, create_troll
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
@@ -38,7 +38,7 @@ def test_handle_quit_action():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     turn_consumed, should_quit = turn_manager.handle_player_action(
@@ -58,7 +58,7 @@ def test_handle_wait_action():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     turn_consumed, should_quit = turn_manager.handle_player_action(
@@ -82,7 +82,7 @@ def test_handle_movement_action():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     turn_consumed, should_quit = turn_manager.handle_player_action(
@@ -106,7 +106,7 @@ def test_handle_movement_blocked_by_wall():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     turn_consumed, should_quit = turn_manager.handle_player_action(
@@ -131,7 +131,7 @@ def test_handle_attack_monster():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     orc = create_orc(Position(10, 11))
     fov_map = FOVMap(game_map)
 
@@ -154,7 +154,7 @@ def test_process_turn_with_quit():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     continue_game = turn_manager.process_turn(
@@ -177,7 +177,7 @@ def test_process_turn_with_movement():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     orc = create_orc(Position(7, 7))
     ai_system.register_monster(orc)
     fov_map = FOVMap(game_map)
@@ -207,7 +207,7 @@ def test_process_turn_player_death():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     player.hp = 1  # Low HP
 
     troll = create_troll(Position(10, 11))
@@ -235,7 +235,7 @@ def test_process_turn_no_enemy_turns_on_invalid_action():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     original_hp = player.hp
 
     # Place orc adjacent that would attack if turn processed
@@ -272,7 +272,7 @@ def test_player_can_move_through_dead_monster():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     # Create orc with low HP so player can kill it in one hit
     orc = create_orc(Position(10, 11))
     orc.hp = 1  # Player power (5) - orc defense (0) = 5 damage, kills it
@@ -316,7 +316,7 @@ def test_diagonal_down_left_movement():
     ai_system = AISystem(combat_system, movement_system, game_map)
     turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
-    player = Player(Position(10, 10))
+    player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     # Move down-left should move to (9, 11) not (9, 9)

@@ -8,7 +8,7 @@ from roguelike.components.level import LevelComponent
 from roguelike.utils.position import Position
 
 
-def create_component_player(position: Position) -> ComponentEntity:
+def create_player(position: Position) -> ComponentEntity:
     """Create a player entity using components.
 
     Args:
@@ -33,7 +33,7 @@ def create_component_player(position: Position) -> ComponentEntity:
     return player
 
 
-def create_component_orc(position: Position) -> ComponentEntity:
+def create_orc(position: Position) -> ComponentEntity:
     """Create an orc entity using components.
 
     Args:
@@ -57,7 +57,7 @@ def create_component_orc(position: Position) -> ComponentEntity:
     return orc
 
 
-def create_component_troll(position: Position) -> ComponentEntity:
+def create_troll(position: Position) -> ComponentEntity:
     """Create a troll entity using components.
 
     Args:

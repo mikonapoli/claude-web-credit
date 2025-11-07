@@ -6,7 +6,7 @@ from roguelike.commands.command import Command, CommandResult
 from roguelike.engine.events import EventBus, ItemPickupEvent
 from roguelike.entities.entity import Entity
 from roguelike.entities.item import Item
-from roguelike.entities.player import Player
+from roguelike.components.entity import ComponentEntity
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.turn_manager import TurnManager
 from roguelike.utils.position import Position
@@ -20,7 +20,7 @@ class MoveCommand(Command):
     def __init__(
         self,
         turn_manager: TurnManager,
-        player: Player,
+        player: ComponentEntity,
         dx: int,
         dy: int,
         entities: List[Entity],
@@ -32,7 +32,7 @@ class MoveCommand(Command):
 
         Args:
             turn_manager: Turn manager for processing actions
-            player: Player entity
+            player: ComponentEntity entity
             dx: X direction to move
             dy: Y direction to move
             entities: All entities in game
@@ -110,7 +110,7 @@ class WaitCommand(Command):
     def __init__(
         self,
         turn_manager: TurnManager,
-        player: Player,
+        player: ComponentEntity,
         entities: List[Entity],
         game_map: GameMap,
         fov_map: FOVMap,
@@ -120,7 +120,7 @@ class WaitCommand(Command):
 
         Args:
             turn_manager: Turn manager for processing actions
-            player: Player entity
+            player: ComponentEntity entity
             entities: All entities in game
             game_map: The game map
             fov_map: Field of view map
@@ -166,14 +166,14 @@ class PickupItemCommand(Command):
 
     def __init__(
         self,
-        player: Player,
+        player: ComponentEntity,
         items: List[Item],
         event_bus: EventBus,
     ):
         """Initialize pickup item command.
 
         Args:
-            player: Player entity
+            player: ComponentEntity entity
             items: All items in game
             event_bus: Event bus for publishing events
         """
@@ -219,14 +219,14 @@ class UseItemCommand(Command):
 
     def __init__(
         self,
-        player: Player,
+        player: ComponentEntity,
         item_index: int,
         item_system: ItemSystem,
     ):
         """Initialize use item command.
 
         Args:
-            player: Player entity
+            player: ComponentEntity entity
             item_index: Index of item in inventory to use
             item_system: Item system for handling effects
         """

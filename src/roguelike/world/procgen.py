@@ -25,7 +25,8 @@ from roguelike.entities.item import (
     create_speed_potion,
     create_strength_potion,
 )
-from roguelike.entities.monster import Monster, create_orc, create_troll
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.factories import create_orc, create_troll
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
 from roguelike.world.room import Room
@@ -74,7 +75,7 @@ def carve_room(game_map: GameMap, room: Room) -> None:
             game_map.set_tile(pos, Tiles.FLOOR)
 
 
-def place_monsters(room: Room, max_monsters: int) -> List[Monster]:
+def place_monsters(room: Room, max_monsters: int) -> List[ComponentEntity]:
     """Place monsters randomly in a room.
 
     Args:
@@ -85,7 +86,7 @@ def place_monsters(room: Room, max_monsters: int) -> List[Monster]:
         List of spawned monsters
     """
     num_monsters = random.randint(0, max_monsters)
-    monsters: List[Monster] = []
+    monsters: List[ComponentEntity] = []
 
     # Get all inner tile positions
     inner_positions = list(room.inner_tiles())

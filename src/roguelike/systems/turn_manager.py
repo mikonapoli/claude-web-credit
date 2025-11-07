@@ -2,10 +2,8 @@
 
 from typing import List, Tuple, Optional
 
-from roguelike.entities.actor import Actor
-from roguelike.entities.entity import Entity
-from roguelike.entities.monster import Monster
-from roguelike.entities.player import Player
+from roguelike.components.entity import ComponentEntity
+from roguelike.components.helpers import is_alive, is_monster
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
@@ -42,8 +40,8 @@ class TurnManager:
     def handle_player_action(
         self,
         action: Action,
-        player: Player,
-        entities: List[Entity],
+        player: ComponentEntity,
+        entities: List[ComponentEntity],
         game_map: GameMap,
         fov_map: FOVMap,
         fov_radius: int,
@@ -90,10 +88,10 @@ class TurnManager:
 
     def _try_move_player(
         self,
-        player: Player,
+        player: ComponentEntity,
         dx: int,
         dy: int,
-        entities: List[Entity],
+        entities: List[ComponentEntity],
         fov_map: FOVMap,
         fov_radius: int,
     ) -> bool:
@@ -119,10 +117,7 @@ class TurnManager:
 
         if blocking_entity:
             # If it's a living monster, attack it
-            if (
-                isinstance(blocking_entity, Monster)
-                and blocking_entity.is_alive
-            ):
+            if is_monster(blocking_entity) and is_alive(blocking_entity):
                 # Use combat system to resolve attack
                 defender_died = self.combat_system.resolve_attack(
                     player, blocking_entity
@@ -154,8 +149,8 @@ class TurnManager:
     def process_turn(
         self,
         action: Action,
-        player: Player,
-        entities: List[Entity],
+        player: ComponentEntity,
+        entities: List[ComponentEntity],
         game_map: GameMap,
         fov_map: FOVMap,
         fov_radius: int,
@@ -182,7 +177,7 @@ class TurnManager:
             return False
 
         # If turn was consumed and player is alive, process turn effects
-        if turn_consumed and player.is_alive:
+        if turn_consumed and is_alive(player):
             # Process status effects on player
             if self.status_effects_system:
                 player_died_from_poison = self.status_effects_system.process_effects(player)
@@ -203,7 +198,7 @@ class TurnManager:
             # Process status effects on monsters only (player already processed above)
             if self.status_effects_system:
                 for entity in entities:
-                    if isinstance(entity, Monster) and entity.is_alive:
+                    if is_monster(entity) and is_alive(entity):
                         died_from_poison = self.status_effects_system.process_effects(entity)
                         if died_from_poison:
                             # Handle death from poison

@@ -9,7 +9,7 @@ from roguelike.engine.events import (
     StatusEffectExpiredEvent,
     StatusEffectTickEvent,
 )
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.utils.position import Position
 
@@ -59,7 +59,7 @@ def test_apply_effect_to_actor_returns_true():
     """apply_effect returns True for valid Actor."""
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
-    actor = Actor(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
+    actor = create_test_entity(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
 
     result = system.apply_effect(actor, "poison", duration=5, power=2)
 
@@ -67,14 +67,18 @@ def test_apply_effect_to_actor_returns_true():
 
 
 def test_apply_effect_to_actor_stores_effects():
-    """Applying effect to Actor stores effects internally."""
+    """Applying effect to ComponentEntity stores effects in StatusEffectsComponent."""
+    from roguelike.components.status_effects import StatusEffectsComponent
+
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
-    actor = Actor(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
+    actor = create_test_entity(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
 
     system.apply_effect(actor, "poison", duration=5, power=2)
 
-    assert hasattr(actor, "_status_effects")
+    # Check that the entity has a StatusEffectsComponent with the effect
+    assert actor.has_component(StatusEffectsComponent)
+    assert system.has_effect(actor, "poison")
 
 
 def test_apply_effect_emits_applied_event():
@@ -157,7 +161,7 @@ def test_has_effect_returns_true_for_actor():
     """has_effect returns True for Actor with effect."""
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
-    actor = Actor(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
+    actor = create_test_entity(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
 
     system.apply_effect(actor, "poison", duration=5, power=2)
 
@@ -168,7 +172,7 @@ def test_has_effect_returns_false_for_actor_without_effect():
     """has_effect returns False for Actor without effect."""
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
-    actor = Actor(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
+    actor = create_test_entity(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
 
     assert system.has_effect(actor, "poison") is False
 
@@ -281,7 +285,7 @@ def test_process_poison_damages_actor():
     """Poison effect damages Actor."""
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
-    actor = Actor(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
+    actor = create_test_entity(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
 
     system.apply_effect(actor, "poison", duration=5, power=2)
     system.process_effects(actor)
@@ -422,7 +426,7 @@ def test_process_effects_works_on_actor():
     """process_effects works on Actor entities."""
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
-    actor = Actor(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
+    actor = create_test_entity(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
 
     system.apply_effect(actor, "poison", duration=5, power=2)
 

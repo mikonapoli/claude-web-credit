@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from roguelike.engine.events import EventBus, HealingEvent, ItemUseEvent
-from roguelike.entities.actor import Actor
+from roguelike.components.entity import ComponentEntity
 from roguelike.entities.item import Item, ItemType
 from roguelike.systems.inventory import Inventory
 from roguelike.systems.status_effects import StatusEffectsSystem
@@ -24,12 +24,12 @@ class ItemSystem:
         self.event_bus = event_bus
         self.status_effects_system = status_effects_system
 
-    def use_item(self, item: Item, user: Actor, inventory: Inventory, target: Optional[Actor] = None) -> bool:
+    def use_item(self, item: Item, user: ComponentEntity, inventory: Inventory, target: Optional[ComponentEntity] = None) -> bool:
         """Use an item and apply its effects.
 
         Args:
             item: Item to use
-            user: Actor using the item
+            user: ComponentEntity using the item
             inventory: User's inventory
             target: Optional target actor for targeted items
 
@@ -54,12 +54,12 @@ class ItemSystem:
 
         return success
 
-    def _apply_item_effect(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
+    def _apply_item_effect(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
         """Apply the effect of an item.
 
         Args:
             item: Item being used
-            user: Actor using the item
+            user: ComponentEntity using the item
             target: Optional target actor for targeted items
 
         Returns:
@@ -117,12 +117,12 @@ class ItemSystem:
 
         return False
 
-    def _apply_healing(self, item: Item, user: Actor) -> bool:
+    def _apply_healing(self, item: Item, user: ComponentEntity) -> bool:
         """Apply healing effect.
 
         Args:
             item: Healing item
-            user: Actor to heal
+            user: ComponentEntity to heal
 
         Returns:
             True if healing was applied
@@ -134,12 +134,12 @@ class ItemSystem:
         self.event_bus.emit(HealingEvent(entity_name=user.name, amount_healed=amount_healed))
         return True
 
-    def _apply_strength_buff(self, item: Item, user: Actor) -> bool:
+    def _apply_strength_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply strength buff.
 
         Args:
             item: Strength potion
-            user: Actor to buff
+            user: ComponentEntity to buff
 
         Returns:
             True if buff was applied
@@ -149,12 +149,12 @@ class ItemSystem:
         user.power += item.value
         return True
 
-    def _apply_defense_buff(self, item: Item, user: Actor) -> bool:
+    def _apply_defense_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply defense buff.
 
         Args:
             item: Defense potion
-            user: Actor to buff
+            user: ComponentEntity to buff
 
         Returns:
             True if buff was applied
@@ -163,12 +163,12 @@ class ItemSystem:
         user.defense += item.value
         return True
 
-    def _apply_speed_buff(self, item: Item, user: Actor) -> bool:
+    def _apply_speed_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply speed buff.
 
         Args:
             item: Speed potion
-            user: Actor to buff
+            user: ComponentEntity to buff
 
         Returns:
             True if buff was applied
@@ -176,12 +176,12 @@ class ItemSystem:
         # TODO: Implement speed/turn system
         return True
 
-    def _apply_invisibility(self, item: Item, user: Actor) -> bool:
+    def _apply_invisibility(self, item: Item, user: ComponentEntity) -> bool:
         """Apply invisibility effect.
 
         Args:
             item: Invisibility potion
-            user: Actor to make invisible
+            user: ComponentEntity to make invisible
 
         Returns:
             True if effect was applied
@@ -192,12 +192,12 @@ class ItemSystem:
             )
         return False
 
-    def _apply_gigantism(self, item: Item, user: Actor) -> bool:
+    def _apply_gigantism(self, item: Item, user: ComponentEntity) -> bool:
         """Apply gigantism effect.
 
         Args:
             item: Gigantism potion
-            user: Actor to grow
+            user: ComponentEntity to grow
 
         Returns:
             True if effect was applied
@@ -206,12 +206,12 @@ class ItemSystem:
         user.power += item.value
         return True
 
-    def _apply_shrinking(self, item: Item, user: Actor) -> bool:
+    def _apply_shrinking(self, item: Item, user: ComponentEntity) -> bool:
         """Apply shrinking effect.
 
         Args:
             item: Shrinking potion
-            user: Actor to shrink
+            user: ComponentEntity to shrink
 
         Returns:
             True if effect was applied
@@ -220,12 +220,12 @@ class ItemSystem:
         user.defense += item.value
         return True
 
-    def _apply_fireball(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
+    def _apply_fireball(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
         """Apply fireball effect.
 
         Args:
             item: Fireball scroll
-            user: Actor casting fireball
+            user: ComponentEntity casting fireball
             target: Target actor (required)
 
         Returns:
@@ -236,12 +236,12 @@ class ItemSystem:
             return False
         return True
 
-    def _apply_lightning(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
+    def _apply_lightning(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
         """Apply lightning effect.
 
         Args:
             item: Lightning scroll
-            user: Actor casting lightning
+            user: ComponentEntity casting lightning
             target: Target actor (required)
 
         Returns:
@@ -252,12 +252,12 @@ class ItemSystem:
             return False
         return True
 
-    def _apply_confusion(self, item: Item, user: Actor, target: Optional[Actor] = None) -> bool:
+    def _apply_confusion(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
         """Apply confusion effect.
 
         Args:
             item: Confusion scroll
-            user: Actor casting confusion
+            user: ComponentEntity casting confusion
             target: Target actor (required for targeted use)
 
         Returns:
@@ -272,12 +272,12 @@ class ItemSystem:
             )
         return False
 
-    def _apply_teleport(self, item: Item, user: Actor) -> bool:
+    def _apply_teleport(self, item: Item, user: ComponentEntity) -> bool:
         """Apply teleport effect.
 
         Args:
             item: Teleport scroll
-            user: Actor to teleport
+            user: ComponentEntity to teleport
 
         Returns:
             True if effect was applied
@@ -285,12 +285,12 @@ class ItemSystem:
         # TODO: Implement random teleportation
         return True
 
-    def _apply_magic_mapping(self, item: Item, user: Actor) -> bool:
+    def _apply_magic_mapping(self, item: Item, user: ComponentEntity) -> bool:
         """Apply magic mapping effect.
 
         Args:
             item: Magic mapping scroll
-            user: Actor revealing map
+            user: ComponentEntity revealing map
 
         Returns:
             True if effect was applied
@@ -298,12 +298,12 @@ class ItemSystem:
         # TODO: Implement map reveal
         return True
 
-    def _apply_coffee(self, item: Item, user: Actor) -> bool:
+    def _apply_coffee(self, item: Item, user: ComponentEntity) -> bool:
         """Apply coffee effect.
 
         Args:
             item: Coffee
-            user: Actor drinking coffee
+            user: ComponentEntity drinking coffee
 
         Returns:
             True if effect was applied
@@ -311,12 +311,12 @@ class ItemSystem:
         # TODO: Implement speed boost
         return True
 
-    def _apply_lucky_coin(self, item: Item, user: Actor) -> bool:
+    def _apply_lucky_coin(self, item: Item, user: ComponentEntity) -> bool:
         """Apply lucky coin effect.
 
         Args:
             item: Lucky coin
-            user: Actor using coin
+            user: ComponentEntity using coin
 
         Returns:
             True if effect was applied
@@ -324,12 +324,12 @@ class ItemSystem:
         # TODO: Implement XP boost
         return True
 
-    def _apply_banana_peel(self, item: Item, user: Actor) -> bool:
+    def _apply_banana_peel(self, item: Item, user: ComponentEntity) -> bool:
         """Apply banana peel effect.
 
         Args:
             item: Banana peel
-            user: Actor throwing banana peel
+            user: ComponentEntity throwing banana peel
 
         Returns:
             True if effect was applied
@@ -337,12 +337,12 @@ class ItemSystem:
         # TODO: Implement throwable trap
         return True
 
-    def _apply_rubber_chicken(self, item: Item, user: Actor) -> bool:
+    def _apply_rubber_chicken(self, item: Item, user: ComponentEntity) -> bool:
         """Apply rubber chicken effect.
 
         Args:
             item: Rubber chicken
-            user: Actor using rubber chicken
+            user: ComponentEntity using rubber chicken
 
         Returns:
             True if effect was applied
@@ -350,12 +350,12 @@ class ItemSystem:
         # TODO: Implement weak attack
         return True
 
-    def _apply_cursed_ring(self, item: Item, user: Actor) -> bool:
+    def _apply_cursed_ring(self, item: Item, user: ComponentEntity) -> bool:
         """Apply cursed ring effect.
 
         Args:
             item: Cursed ring
-            user: Actor using ring
+            user: ComponentEntity using ring
 
         Returns:
             True if effect was applied

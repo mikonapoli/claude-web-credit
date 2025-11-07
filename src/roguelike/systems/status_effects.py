@@ -11,7 +11,6 @@ from roguelike.engine.events import (
     StatusEffectExpiredEvent,
     StatusEffectTickEvent,
 )
-from roguelike.entities.actor import Actor
 
 
 class StatusEffectsSystem:
@@ -31,7 +30,7 @@ class StatusEffectsSystem:
 
     def apply_effect(
         self,
-        entity: ComponentEntity | Actor,
+        entity: ComponentEntity,
         effect_type: str,
         duration: int,
         power: int = 0,
@@ -39,8 +38,7 @@ class StatusEffectsSystem:
     ) -> bool:
         """Apply a status effect to an entity.
 
-        If entity is a ComponentEntity, adds StatusEffectsComponent if needed.
-        If entity is an Actor, stores effects in a temporary dict (for compatibility).
+        Adds StatusEffectsComponent if needed.
 
         Args:
             entity: Entity to apply effect to
@@ -52,50 +50,25 @@ class StatusEffectsSystem:
         Returns:
             True if effect was applied successfully
         """
-        # Handle ComponentEntity
-        if isinstance(entity, ComponentEntity):
-            status_comp = entity.get_component(StatusEffectsComponent)
-            if status_comp is None:
-                status_comp = StatusEffectsComponent()
-                entity.add_component(status_comp)
+        status_comp = entity.get_component(StatusEffectsComponent)
+        if status_comp is None:
+            status_comp = StatusEffectsComponent()
+            entity.add_component(status_comp)
 
-            result = status_comp.add_effect(effect_type, duration, power, source)
+        result = status_comp.add_effect(effect_type, duration, power, source)
 
-            if result:
-                self.event_bus.emit(
-                    StatusEffectAppliedEvent(
-                        entity_name=entity.name,
-                        effect_type=effect_type,
-                        duration=duration,
-                        power=power,
-                    )
+        if result:
+            self.event_bus.emit(
+                StatusEffectAppliedEvent(
+                    entity_name=entity.name,
+                    effect_type=effect_type,
+                    duration=duration,
+                    power=power,
                 )
-            return result
-
-        # Handle Actor (legacy compatibility)
-        if isinstance(entity, Actor):
-            # Add temporary storage for status effects on Actor
-            if not hasattr(entity, "_status_effects"):
-                entity._status_effects = StatusEffectsComponent()
-
-            result = entity._status_effects.add_effect(
-                effect_type, duration, power, source
             )
+        return result
 
-            if result:
-                self.event_bus.emit(
-                    StatusEffectAppliedEvent(
-                        entity_name=entity.name,
-                        effect_type=effect_type,
-                        duration=duration,
-                        power=power,
-                    )
-                )
-            return result
-
-        return False
-
-    def process_effects(self, entity: ComponentEntity | Actor) -> bool:
+    def process_effects(self, entity: ComponentEntity) -> bool:
         """Process all status effects on an entity for one turn.
 
         Applies per-turn effects (like poison damage), emits tick events,
@@ -107,13 +80,7 @@ class StatusEffectsSystem:
         Returns:
             True if the entity died from status effects
         """
-        # Get status effects component
-        status_comp = None
-        if isinstance(entity, ComponentEntity):
-            status_comp = entity.get_component(StatusEffectsComponent)
-        elif isinstance(entity, Actor) and hasattr(entity, "_status_effects"):
-            status_comp = entity._status_effects
-
+        status_comp = entity.get_component(StatusEffectsComponent)
         if status_comp is None:
             return False
 
@@ -157,7 +124,7 @@ class StatusEffectsSystem:
         return False
 
     def _apply_effect_behavior(
-        self, entity: ComponentEntity | Actor, effect_type: str, power: int
+        self, entity: ComponentEntity, effect_type: str, power: int
     ) -> bool:
         """Apply effect-specific behavior each turn.
 
@@ -175,7 +142,7 @@ class StatusEffectsSystem:
         # They are handled by checking has_effect in other systems
         return False
 
-    def _apply_poison(self, entity: ComponentEntity | Actor, damage: int) -> bool:
+    def _apply_poison(self, entity: ComponentEntity, damage: int) -> bool:
         """Apply poison damage to an entity.
 
         Args:
@@ -188,20 +155,14 @@ class StatusEffectsSystem:
         if damage <= 0:
             return False
 
-        # Try ComponentEntity with HealthComponent
-        if isinstance(entity, ComponentEntity):
-            health = entity.get_component(HealthComponent)
-            if health:
-                health.take_damage(damage)
-                return not health.is_alive
-        # Try Actor with take_damage method
-        elif isinstance(entity, Actor):
-            entity.take_damage(damage)
-            return not entity.is_alive
+        health = entity.get_component(HealthComponent)
+        if health:
+            health.take_damage(damage)
+            return not health.is_alive
 
         return False
 
-    def has_effect(self, entity: ComponentEntity | Actor, effect_type: str) -> bool:
+    def has_effect(self, entity: ComponentEntity, effect_type: str) -> bool:
         """Check if entity has a specific status effect.
 
         Args:
@@ -211,16 +172,10 @@ class StatusEffectsSystem:
         Returns:
             True if entity has this effect active
         """
-        if isinstance(entity, ComponentEntity):
-            status_comp = entity.get_component(StatusEffectsComponent)
-            return status_comp is not None and status_comp.has_effect(effect_type)
-        elif isinstance(entity, Actor) and hasattr(entity, "_status_effects"):
-            return entity._status_effects.has_effect(effect_type)
-        return False
+        status_comp = entity.get_component(StatusEffectsComponent)
+        return status_comp is not None and status_comp.has_effect(effect_type)
 
-    def remove_effect(
-        self, entity: ComponentEntity | Actor, effect_type: str
-    ) -> bool:
+    def remove_effect(self, entity: ComponentEntity, effect_type: str) -> bool:
         """Remove a status effect from an entity immediately.
 
         Args:
@@ -230,12 +185,7 @@ class StatusEffectsSystem:
         Returns:
             True if effect was removed
         """
-        status_comp = None
-        if isinstance(entity, ComponentEntity):
-            status_comp = entity.get_component(StatusEffectsComponent)
-        elif isinstance(entity, Actor) and hasattr(entity, "_status_effects"):
-            status_comp = entity._status_effects
-
+        status_comp = entity.get_component(StatusEffectsComponent)
         if status_comp is None:
             return False
 
@@ -250,7 +200,7 @@ class StatusEffectsSystem:
 
         return result
 
-    def get_effect_display(self, entity: ComponentEntity | Actor) -> list[str]:
+    def get_effect_display(self, entity: ComponentEntity) -> list[str]:
         """Get display strings for all active effects.
 
         Args:
@@ -259,12 +209,7 @@ class StatusEffectsSystem:
         Returns:
             List of effect display strings (e.g., ["Poison (3)", "Confused (5)"])
         """
-        status_comp = None
-        if isinstance(entity, ComponentEntity):
-            status_comp = entity.get_component(StatusEffectsComponent)
-        elif isinstance(entity, Actor) and hasattr(entity, "_status_effects"):
-            status_comp = entity._status_effects
-
+        status_comp = entity.get_component(StatusEffectsComponent)
         if status_comp is None:
             return []
 

@@ -73,6 +73,8 @@ class Item(Entity):
             ItemType.SCROLL_CONFUSION,
             ItemType.SCROLL_FIREBALL,
             ItemType.SCROLL_LIGHTNING,
+            ItemType.BANANA_PEEL,
+            ItemType.RUBBER_CHICKEN,
         )
 
 
@@ -378,7 +380,7 @@ def create_banana_peel(position: Position) -> Item:
         char=")",
         name="Banana Peel",
         item_type=ItemType.BANANA_PEEL,
-        value=0,  # Throwable trap item
+        value=5,  # 5 turns of confusion when hit
     )
 
 
@@ -396,7 +398,7 @@ def create_rubber_chicken(position: Position) -> Item:
         char="&",
         name="Rubber Chicken",
         item_type=ItemType.RUBBER_CHICKEN,
-        value=1,  # Weak comedic weapon
+        value=3,  # 3 damage
     )
 
 

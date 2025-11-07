@@ -42,9 +42,9 @@ class StatusEffectsSystem:
 
         Args:
             entity: Entity to apply effect to
-            effect_type: Type of effect (poison, confusion, invisibility)
+            effect_type: Type of effect (poison, confusion, invisibility, gigantism, shrinking, xp_bonus)
             duration: Number of turns the effect should last
-            power: Effect strength (e.g., poison damage per turn)
+            power: Effect strength (e.g., poison damage per turn, stat boost amount)
             source: Optional source of the effect
 
         Returns:
@@ -55,9 +55,19 @@ class StatusEffectsSystem:
             status_comp = StatusEffectsComponent()
             entity.add_component(status_comp)
 
+        # Check if this is a new effect (not a refresh)
+        is_new = not status_comp.has_effect(effect_type)
+
         result = status_comp.add_effect(effect_type, duration, power, source)
 
         if result:
+            # Apply immediate stat changes for stat-modifying effects (only on new application)
+            if is_new:
+                if effect_type == "gigantism":
+                    entity.power += power
+                elif effect_type == "shrinking":
+                    entity.defense += power
+
             self.event_bus.emit(
                 StatusEffectAppliedEvent(
                     entity_name=entity.name,
@@ -110,11 +120,24 @@ class StatusEffectsSystem:
             status_comp.clear_all_effects()
             return True
 
+        # Get effect data before ticking (for stat removal on expiration)
+        effect_data = {
+            effect.effect_type: effect.power
+            for effect in status_comp.get_all_effects()
+        }
+
         # Tick durations and get expired effects
         expired = status_comp.tick_durations()
 
-        # Emit expiration events
+        # Handle stat removal and emit expiration events
         for effect_type in expired:
+            # Remove stat changes for stat-modifying effects
+            power = effect_data.get(effect_type, 0)
+            if effect_type == "gigantism":
+                entity.power -= power
+            elif effect_type == "shrinking":
+                entity.defense -= power
+
             self.event_bus.emit(
                 StatusEffectExpiredEvent(
                     entity_name=entity.name, effect_type=effect_type
@@ -189,9 +212,19 @@ class StatusEffectsSystem:
         if status_comp is None:
             return False
 
+        # Get the effect power before removing (for stat removal)
+        effect = status_comp.get_effect(effect_type)
+        power = effect.power if effect else 0
+
         result = status_comp.remove_effect(effect_type)
 
         if result:
+            # Remove stat changes for stat-modifying effects
+            if effect_type == "gigantism":
+                entity.power -= power
+            elif effect_type == "shrinking":
+                entity.defense -= power
+
             self.event_bus.emit(
                 StatusEffectExpiredEvent(
                     entity_name=entity.name, effect_type=effect_type

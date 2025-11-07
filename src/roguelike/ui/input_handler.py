@@ -29,13 +29,27 @@ class Action(Enum):
     TEST_CONFUSION = "test_confusion"
 
 
-class InputHandler(tcod.event.EventDispatch):
-    """Handles keyboard input."""
+class InputHandler:
+    """Handles keyboard input.
+
+    Uses manual event dispatching instead of deprecated EventDispatch.
+    """
 
     def __init__(self):
         """Initialize the input handler."""
         self.last_action: Optional[Action] = None
         self.targeting_mode: bool = False
+
+    def dispatch(self, event: tcod.event.Event) -> None:
+        """Dispatch events to appropriate handlers.
+
+        Args:
+            event: Event to dispatch
+        """
+        if isinstance(event, tcod.event.Quit):
+            self.ev_quit(event)
+        elif isinstance(event, tcod.event.KeyDown):
+            self.ev_keydown(event)
 
     def ev_quit(self, event: tcod.event.Quit) -> None:
         """Handle quit event.

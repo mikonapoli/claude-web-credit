@@ -1,7 +1,7 @@
 """Tests for command pattern."""
 
 from tests.test_helpers import create_test_entity, create_test_player, create_test_monster
-from roguelike.commands.actions import MoveCommand, QuitCommand, WaitCommand
+from roguelike.commands.game_commands import MoveCommand, QuitCommand, WaitCommand
 from roguelike.commands.executor import CommandExecutor
 from roguelike.engine.events import EventBus
 # from roguelike.entities.player import Player
@@ -38,12 +38,16 @@ def test_wait_command_execution():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
     player = create_test_player(Position(10, 10))
-    fov_map = FOVMap(game_map)
 
-    cmd = WaitCommand(turn_manager, player, [player], game_map, fov_map, 8)
+    cmd = WaitCommand(
+        player=player,
+        entities=[player],
+        ai_system=ai_system,
+        combat_system=combat_system,
+        status_effects_system=None,
+    )
     result = cmd.execute()
 
     assert result.success
@@ -62,13 +66,22 @@ def test_move_command_execution():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     cmd = MoveCommand(
-        turn_manager, player, 0, 1, [player], game_map, fov_map, 8
+        player=player,
+        dx=0,
+        dy=1,
+        entities=[player],
+        game_map=game_map,
+        fov_map=fov_map,
+        fov_radius=8,
+        movement_system=movement_system,
+        combat_system=combat_system,
+        ai_system=ai_system,
+        status_effects_system=None,
     )
     result = cmd.execute()
 
@@ -88,13 +101,22 @@ def test_move_command_undo():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     cmd = MoveCommand(
-        turn_manager, player, 0, 1, [player], game_map, fov_map, 8
+        player=player,
+        dx=0,
+        dy=1,
+        entities=[player],
+        game_map=game_map,
+        fov_map=fov_map,
+        fov_radius=8,
+        movement_system=movement_system,
+        combat_system=combat_system,
+        ai_system=ai_system,
+        status_effects_system=None,
     )
     cmd.execute()
 
@@ -104,19 +126,30 @@ def test_move_command_undo():
 
 
 def test_move_command_invalid_direction():
-    """MoveCommand with invalid direction fails."""
+    """MoveCommand with invalid direction returns false when blocked."""
     game_map = GameMap(20, 20)
+    # Set all tiles to walls (blocking)
     event_bus = EventBus()
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
 
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
+    # Try to move into a wall
     cmd = MoveCommand(
-        turn_manager, player, 2, 2, [player], game_map, fov_map, 8
+        player=player,
+        dx=1,
+        dy=0,
+        entities=[player],
+        game_map=game_map,
+        fov_map=fov_map,
+        fov_radius=8,
+        movement_system=movement_system,
+        combat_system=combat_system,
+        ai_system=ai_system,
+        status_effects_system=None,
     )
     result = cmd.execute()
 
@@ -146,14 +179,22 @@ def test_command_executor_history():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
-
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
     cmd = MoveCommand(
-        turn_manager, player, 0, 1, [player], game_map, fov_map, 8
+        player=player,
+        dx=0,
+        dy=1,
+        entities=[player],
+        game_map=game_map,
+        fov_map=fov_map,
+        fov_radius=8,
+        movement_system=movement_system,
+        combat_system=combat_system,
+        ai_system=ai_system,
+        status_effects_system=None,
     )
     executor.execute(cmd)
 
@@ -171,14 +212,22 @@ def test_command_executor_undo():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
-
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
     cmd = MoveCommand(
-        turn_manager, player, 0, 1, [player], game_map, fov_map, 8
+        player=player,
+        dx=0,
+        dy=1,
+        entities=[player],
+        game_map=game_map,
+        fov_map=fov_map,
+        fov_radius=8,
+        movement_system=movement_system,
+        combat_system=combat_system,
+        ai_system=ai_system,
+        status_effects_system=None,
     )
     executor.execute(cmd)
 
@@ -198,14 +247,22 @@ def test_command_executor_redo():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
-
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
     cmd = MoveCommand(
-        turn_manager, player, 0, 1, [player], game_map, fov_map, 8
+        player=player,
+        dx=0,
+        dy=1,
+        entities=[player],
+        game_map=game_map,
+        fov_map=fov_map,
+        fov_radius=8,
+        movement_system=movement_system,
+        combat_system=combat_system,
+        ai_system=ai_system,
+        status_effects_system=None,
     )
     executor.execute(cmd)
     executor.undo()
@@ -226,14 +283,22 @@ def test_command_executor_clear_history():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
-
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
     executor = CommandExecutor()
     cmd = MoveCommand(
-        turn_manager, player, 0, 1, [player], game_map, fov_map, 8
+        player=player,
+        dx=0,
+        dy=1,
+        entities=[player],
+        game_map=game_map,
+        fov_map=fov_map,
+        fov_radius=8,
+        movement_system=movement_system,
+        combat_system=combat_system,
+        ai_system=ai_system,
+        status_effects_system=None,
     )
     executor.execute(cmd)
 
@@ -253,8 +318,6 @@ def test_command_executor_max_history():
     combat_system = CombatSystem(event_bus)
     movement_system = MovementSystem(game_map)
     ai_system = AISystem(combat_system, movement_system, game_map)
-    turn_manager = TurnManager(combat_system, movement_system, ai_system)
-
     player = create_test_player(Position(10, 10))
     fov_map = FOVMap(game_map)
 
@@ -263,7 +326,17 @@ def test_command_executor_max_history():
     # Execute 3 commands
     for i in range(3):
         cmd = MoveCommand(
-            turn_manager, player, 1, 0, [player], game_map, fov_map, 8
+            player=player,
+            dx=1,
+            dy=0,
+            entities=[player],
+            game_map=game_map,
+            fov_map=fov_map,
+            fov_radius=8,
+            movement_system=movement_system,
+            combat_system=combat_system,
+            ai_system=ai_system,
+            status_effects_system=None,
         )
         executor.execute(cmd)
 
@@ -287,7 +360,7 @@ def test_command_executor_no_redo_when_empty():
 
 def test_use_item_command_rejects_targeted_items():
     """UseItemCommand rejects items that require targeting."""
-    from roguelike.commands.actions import UseItemCommand
+    from roguelike.commands.inventory_commands import UseItemCommand
     from roguelike.entities.item import create_scroll_confusion
     from roguelike.systems.item_system import ItemSystem
     from roguelike.systems.status_effects import StatusEffectsSystem
@@ -302,7 +375,7 @@ def test_use_item_command_rejects_targeted_items():
     player.inventory.add(scroll)
 
     # Try to use it via UseItemCommand (should fail - requires targeting)
-    cmd = UseItemCommand(player, 0, item_system)
+    cmd = UseItemCommand(player, scroll)
     result = cmd.execute()
 
     assert not result.success
@@ -313,7 +386,7 @@ def test_use_item_command_rejects_targeted_items():
 
 def test_use_item_command_allows_non_targeted_items():
     """UseItemCommand works for items that don't require targeting."""
-    from roguelike.commands.actions import UseItemCommand
+    from roguelike.commands.inventory_commands import UseItemCommand
     from roguelike.entities.item import create_healing_potion
     from roguelike.systems.item_system import ItemSystem
     from roguelike.systems.status_effects import StatusEffectsSystem
@@ -331,7 +404,7 @@ def test_use_item_command_allows_non_targeted_items():
     player.inventory.add(potion)
 
     # Use it via UseItemCommand (should succeed - doesn't require targeting)
-    cmd = UseItemCommand(player, 0, item_system)
+    cmd = UseItemCommand(player, potion)
     result = cmd.execute()
 
     assert result.success

@@ -1,43 +1,30 @@
 """Input handling for the game."""
 
-from enum import Enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import tcod.event
 
-
-class Action(Enum):
-    """Possible player actions."""
-
-    MOVE_UP = "move_up"
-    MOVE_DOWN = "move_down"
-    MOVE_LEFT = "move_left"
-    MOVE_RIGHT = "move_right"
-    MOVE_UP_LEFT = "move_up_left"
-    MOVE_UP_RIGHT = "move_up_right"
-    MOVE_DOWN_LEFT = "move_down_left"
-    MOVE_DOWN_RIGHT = "move_down_right"
-    WAIT = "wait"
-    DESCEND_STAIRS = "descend_stairs"
-    PICKUP = "pickup"
-    INVENTORY = "inventory"
-    QUIT = "quit"
-    TARGETING_SELECT = "targeting_select"
-    TARGETING_CANCEL = "targeting_cancel"
-    TARGETING_CYCLE_NEXT = "targeting_cycle_next"
-    TARGETING_CYCLE_PREV = "targeting_cycle_prev"
-    TEST_CONFUSION = "test_confusion"
+if TYPE_CHECKING:
+    from roguelike.commands.command import Command
+    from roguelike.commands.factory import CommandFactory
 
 
 class InputHandler:
-    """Handles keyboard input.
+    """Handles keyboard input and creates Command objects.
 
     Uses manual event dispatching instead of deprecated EventDispatch.
+    Follows the Command pattern by creating Command objects directly
+    from input, eliminating the Action enum middleman.
     """
 
-    def __init__(self):
-        """Initialize the input handler."""
-        self.last_action: Optional[Action] = None
+    def __init__(self, command_factory: "CommandFactory"):
+        """Initialize the input handler.
+
+        Args:
+            command_factory: Factory for creating Command objects
+        """
+        self.command_factory = command_factory
+        self.last_command: Optional["Command"] = None
         self.targeting_mode: bool = False
 
     def dispatch(self, event: tcod.event.Event) -> None:
@@ -57,7 +44,7 @@ class InputHandler:
         Args:
             event: Quit event
         """
-        self.last_action = Action.QUIT
+        self.last_command = self.command_factory.create_quit_command()
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> None:
         """Handle keydown event.
@@ -74,46 +61,44 @@ class InputHandler:
 
         # Movement keys (vi keys and arrow keys)
         if key in (tcod.event.KeySym.UP, tcod.event.KeySym.K):
-            self.last_action = Action.MOVE_UP
+            self.last_command = self.command_factory.create_move_command(0, -1)
         elif key in (tcod.event.KeySym.DOWN, tcod.event.KeySym.J):
-            self.last_action = Action.MOVE_DOWN
+            self.last_command = self.command_factory.create_move_command(0, 1)
         elif key in (tcod.event.KeySym.LEFT, tcod.event.KeySym.H):
-            self.last_action = Action.MOVE_LEFT
+            self.last_command = self.command_factory.create_move_command(-1, 0)
         elif key in (tcod.event.KeySym.RIGHT, tcod.event.KeySym.L):
-            self.last_action = Action.MOVE_RIGHT
+            self.last_command = self.command_factory.create_move_command(1, 0)
 
         # Diagonal movement (vi keys)
         elif key == tcod.event.KeySym.Y:
-            self.last_action = Action.MOVE_UP_LEFT
+            self.last_command = self.command_factory.create_move_command(-1, -1)
         elif key == tcod.event.KeySym.U:
-            self.last_action = Action.MOVE_UP_RIGHT
+            self.last_command = self.command_factory.create_move_command(1, -1)
         elif key == tcod.event.KeySym.B:
-            self.last_action = Action.MOVE_DOWN_LEFT
+            self.last_command = self.command_factory.create_move_command(-1, 1)
         elif key == tcod.event.KeySym.N:
-            self.last_action = Action.MOVE_DOWN_RIGHT
+            self.last_command = self.command_factory.create_move_command(1, 1)
 
         # Wait/skip turn
         elif key == tcod.event.KeySym.PERIOD and not event.mod & tcod.event.KMOD_SHIFT:
-            self.last_action = Action.WAIT
+            self.last_command = self.command_factory.create_wait_command()
 
         # Descend stairs (> key, which is shift + period)
         elif key == tcod.event.KeySym.PERIOD and event.mod & tcod.event.KMOD_SHIFT:
-            self.last_action = Action.DESCEND_STAIRS
+            self.last_command = self.command_factory.create_descend_stairs_command()
+
         # Pickup item
         elif key == tcod.event.KeySym.G:
-            self.last_action = Action.PICKUP
-
-        # Inventory
-        elif key == tcod.event.KeySym.I:
-            self.last_action = Action.INVENTORY
+            self.last_command = self.command_factory.create_pickup_command()
 
         # Test: Confusion scroll targeting (C key)
+        # Note: Inventory UI ('I' key) not yet implemented
         elif key == tcod.event.KeySym.C:
-            self.last_action = Action.TEST_CONFUSION
+            self.last_command = self.command_factory.create_start_targeting_command()
 
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:
-            self.last_action = Action.QUIT
+            self.last_command = self.command_factory.create_quit_command()
 
     def _handle_targeting_keys(self, event: tcod.event.KeyDown) -> None:
         """Handle keydown in targeting mode.
@@ -125,38 +110,38 @@ class InputHandler:
 
         # Movement keys move cursor
         if key in (tcod.event.KeySym.UP, tcod.event.KeySym.K):
-            self.last_action = Action.MOVE_UP
+            self.last_command = self.command_factory.create_targeting_move_command(0, -1)
         elif key in (tcod.event.KeySym.DOWN, tcod.event.KeySym.J):
-            self.last_action = Action.MOVE_DOWN
+            self.last_command = self.command_factory.create_targeting_move_command(0, 1)
         elif key in (tcod.event.KeySym.LEFT, tcod.event.KeySym.H):
-            self.last_action = Action.MOVE_LEFT
+            self.last_command = self.command_factory.create_targeting_move_command(-1, 0)
         elif key in (tcod.event.KeySym.RIGHT, tcod.event.KeySym.L):
-            self.last_action = Action.MOVE_RIGHT
+            self.last_command = self.command_factory.create_targeting_move_command(1, 0)
 
         # Diagonal movement
         elif key == tcod.event.KeySym.Y:
-            self.last_action = Action.MOVE_UP_LEFT
+            self.last_command = self.command_factory.create_targeting_move_command(-1, -1)
         elif key == tcod.event.KeySym.U:
-            self.last_action = Action.MOVE_UP_RIGHT
+            self.last_command = self.command_factory.create_targeting_move_command(1, -1)
         elif key == tcod.event.KeySym.B:
-            self.last_action = Action.MOVE_DOWN_LEFT
+            self.last_command = self.command_factory.create_targeting_move_command(-1, 1)
         elif key == tcod.event.KeySym.N:
-            self.last_action = Action.MOVE_DOWN_RIGHT
+            self.last_command = self.command_factory.create_targeting_move_command(1, 1)
 
         # Tab cycles through targets
         elif key == tcod.event.KeySym.TAB:
             if event.mod & tcod.event.KMOD_SHIFT:
-                self.last_action = Action.TARGETING_CYCLE_PREV
+                self.last_command = self.command_factory.create_targeting_cycle_command(forward=False)
             else:
-                self.last_action = Action.TARGETING_CYCLE_NEXT
+                self.last_command = self.command_factory.create_targeting_cycle_command(forward=True)
 
         # Enter/Return selects target
         elif key in (tcod.event.KeySym.RETURN, tcod.event.KeySym.RETURN2):
-            self.last_action = Action.TARGETING_SELECT
+            self.last_command = self.command_factory.create_targeting_select_command()
 
         # Escape cancels targeting
         elif key == tcod.event.KeySym.ESCAPE:
-            self.last_action = Action.TARGETING_CANCEL
+            self.last_command = self.command_factory.create_targeting_cancel_command()
 
     def set_targeting_mode(self, enabled: bool) -> None:
         """Enable or disable targeting mode.
@@ -166,12 +151,12 @@ class InputHandler:
         """
         self.targeting_mode = enabled
 
-    def get_action(self) -> Optional[Action]:
-        """Get the last action and clear it.
+    def get_command(self) -> Optional["Command"]:
+        """Get the last command and clear it.
 
         Returns:
-            Last action or None
+            Last command or None
         """
-        action = self.last_action
-        self.last_action = None
-        return action
+        command = self.last_command
+        self.last_command = None
+        return command

@@ -76,6 +76,20 @@ class GameEngine:
             self.combat_system, self.movement_system, self.ai_system, self.status_effects_system
         )
 
+        # Create command factory and executor
+        from roguelike.commands import CommandFactory, CommandExecutor
+
+        self.command_factory = CommandFactory(
+            combat_system=self.combat_system,
+            movement_system=self.movement_system,
+            ai_system=self.ai_system,
+            status_effects_system=self.status_effects_system,
+            targeting_system=self.targeting_system,
+            message_log=self.message_log,
+            event_bus=self.event_bus,
+        )
+        self.command_executor = CommandExecutor(max_history=100)
+
         # Subscribe to events for message logging
         self._setup_event_subscribers()
 
@@ -175,6 +189,35 @@ class GameEngine:
                     if died_from_effects:
                         self.combat_system.handle_death(entity, killed_by_player=False)
                         entity.blocks_movement = False
+
+    def _handle_pickup_action(self) -> None:
+        """Handle pickup action for items at player's position."""
+        from roguelike.commands.inventory_commands import PickupItemCommand
+
+        # Get all items (need to filter for items at player position)
+        items_at_position = [
+            item for item in self.entities
+            if hasattr(item, 'item_type') and item.position == self.player.position
+        ]
+
+        if not items_at_position:
+            self.message_log.add_message("There is nothing here to pick up.")
+            return
+
+        # Try to pick up first item
+        cmd = PickupItemCommand(self.player, self.entities)
+        result = cmd.execute()
+
+        if result.success:
+            item_name = items_at_position[0].name if items_at_position else "item"
+            self.message_log.add_message(f"You picked up {item_name}.")
+            # Pickup consumes a turn - process turn effects
+            self._process_turn_after_action()
+        else:
+            if self.player.inventory.is_full():
+                self.message_log.add_message("Your inventory is full!")
+            else:
+                self.message_log.add_message("Could not pick up item.")
 
     def _start_confusion_targeting(self, input_handler: InputHandler) -> None:
         """Start targeting mode for confusion scroll.
@@ -391,28 +434,38 @@ class GameEngine:
 
             action = input_handler.get_action()
             if action:
-                # Handle targeting mode actions
+                # Handle targeting mode with old flow (temporary)
                 if self.targeting_system.is_active:
                     self._handle_targeting_action(action, input_handler)
-                # Handle TEST_CONFUSION action to start targeting
+                # Handle special actions that still need old flow
                 elif action == Action.TEST_CONFUSION:
                     self._start_confusion_targeting(input_handler)
-                # Handle descending stairs
-                elif action == Action.DESCEND_STAIRS:
-                    # Check if player is on stairs
-                    if self.stairs_pos and self.player.position == self.stairs_pos:
-                        self._transition_to_next_level()
-                    else:
-                        self.message_log.add_message("There are no stairs here!")
-                # Normal game actions
+                elif action == Action.PICKUP:
+                    self._handle_pickup_action()
+                elif action == Action.INVENTORY:
+                    # TODO: Show inventory UI
+                    self.message_log.add_message("Inventory (not yet implemented)")
+                # Normal game actions via Command pattern
                 else:
-                    self.running = self.turn_manager.process_turn(
-                        action,
-                        self.player,
-                        self.entities,
-                        self.game_map,
-                        self.fov_map,
-                        self.fov_radius,
+                    command = self.command_factory.create_command(
+                        action=action,
+                        player=self.player,
+                        entities=self.entities,
+                        game_map=self.game_map,
+                        fov_map=self.fov_map,
+                        fov_radius=self.fov_radius,
+                        stairs_pos=self.stairs_pos,
                     )
+
+                    if command:
+                        result = self.command_executor.execute(command)
+
+                        # Handle command results
+                        if result.should_quit:
+                            self.running = False
+                        elif result.data:
+                            # Handle special command results
+                            if result.data.get("descend_stairs"):
+                                self._transition_to_next_level()
 
         renderer.close()

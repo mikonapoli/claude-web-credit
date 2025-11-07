@@ -74,6 +74,8 @@ def test_confusion_scroll_fails_on_dead_target():
 
 def test_confusion_scroll_with_correct_duration():
     """Confusion scroll applies effect with correct duration."""
+    from roguelike.components.status_effects import StatusEffectsComponent
+
     event_bus = EventBus()
     status_system = StatusEffectsSystem(event_bus)
     item_system = ItemSystem(event_bus, status_system)
@@ -86,7 +88,9 @@ def test_confusion_scroll_with_correct_duration():
     item_system.use_item(scroll, player, player.inventory, target=orc)
 
     # Check effect duration matches scroll value (10 turns)
-    effect = orc._status_effects.get_effect("confusion")
+    status_comp = orc.get_component(StatusEffectsComponent)
+    assert status_comp is not None
+    effect = status_comp.get_effect("confusion")
     assert effect is not None
     assert effect.duration == 10
 

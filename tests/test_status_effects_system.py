@@ -67,14 +67,18 @@ def test_apply_effect_to_actor_returns_true():
 
 
 def test_apply_effect_to_actor_stores_effects():
-    """Applying effect to Actor stores effects internally."""
+    """Applying effect to ComponentEntity stores effects in StatusEffectsComponent."""
+    from roguelike.components.status_effects import StatusEffectsComponent
+
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
     actor = create_test_entity(Position(5, 5), "o", "Orc", max_hp=10, defense=0, power=3)
 
     system.apply_effect(actor, "poison", duration=5, power=2)
 
-    assert hasattr(actor, "_status_effects")
+    # Check that the entity has a StatusEffectsComponent with the effect
+    assert actor.has_component(StatusEffectsComponent)
+    assert system.has_effect(actor, "poison")
 
 
 def test_apply_effect_emits_applied_event():

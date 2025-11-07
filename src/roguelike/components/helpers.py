@@ -112,27 +112,34 @@ def get_xp_value(entity: ComponentEntity) -> Optional[int]:
     return level_comp.xp_value if level_comp else None
 
 
-def is_player(entity: ComponentEntity) -> bool:
+def is_player(entity) -> bool:
     """Check if an entity is the player.
 
     Args:
-        entity: Entity to check
+        entity: Entity to check (any type)
 
     Returns:
         True if entity is the player
     """
+    # Check if it's a ComponentEntity and has player attributes
+    if not isinstance(entity, ComponentEntity):
+        return False
     return entity.name == "Player" and entity.char == "@"
 
 
-def is_monster(entity: ComponentEntity) -> bool:
+def is_monster(entity) -> bool:
     """Check if an entity is a monster (has combat and health but not player).
 
     Args:
-        entity: Entity to check
+        entity: Entity to check (any type)
 
     Returns:
         True if entity is a monster
     """
+    # Only ComponentEntity can be a monster
+    if not isinstance(entity, ComponentEntity):
+        return False
+
     return (
         entity.has_component(HealthComponent)
         and entity.has_component(CombatComponent)

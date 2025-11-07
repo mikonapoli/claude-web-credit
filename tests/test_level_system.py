@@ -150,12 +150,18 @@ def test_level_two_stats_scaled():
 
 # Tests for scaled monster creation
 def test_create_scaled_orc_returns_monster():
-    """Creating a scaled orc returns a Monster instance."""
+    """Creating a scaled orc returns a ComponentEntity with monster components."""
+    from roguelike.components.entity import ComponentEntity
+    from roguelike.components.health import HealthComponent
+    from roguelike.components.combat import CombatComponent
+
     rule = MonsterSpawnRule(
         chance=1.0, hp_scale=1.0, power_scale=1.0, defense_scale=1.0
     )
     monster = create_scaled_monster("orc", Position(5, 5), rule)
-    assert isinstance(monster, Monster)
+    assert isinstance(monster, ComponentEntity)
+    assert monster.has_component(HealthComponent)
+    assert monster.has_component(CombatComponent)
 
 
 def test_create_scaled_orc_has_base_stats():
@@ -196,12 +202,18 @@ def test_create_scaled_orc_scales_defense():
 
 
 def test_create_scaled_troll_returns_monster():
-    """Creating a scaled troll returns a Monster instance."""
+    """Creating a scaled troll returns a ComponentEntity with monster components."""
+    from roguelike.components.entity import ComponentEntity
+    from roguelike.components.health import HealthComponent
+    from roguelike.components.combat import CombatComponent
+
     rule = MonsterSpawnRule(
         chance=1.0, hp_scale=1.0, power_scale=1.0, defense_scale=1.0
     )
     monster = create_scaled_monster("troll", Position(10, 10), rule)
-    assert isinstance(monster, Monster)
+    assert isinstance(monster, ComponentEntity)
+    assert monster.has_component(HealthComponent)
+    assert monster.has_component(CombatComponent)
 
 
 def test_create_scaled_troll_has_base_stats():

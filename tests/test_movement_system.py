@@ -1,6 +1,6 @@
 """Tests for MovementSystem."""
 
-from roguelike.entities.monster import create_orc
+from roguelike.components.factories import create_orc
 # from roguelike.entities.player import Player
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.utils.position import Position

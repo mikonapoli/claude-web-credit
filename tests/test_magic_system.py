@@ -4,7 +4,7 @@ import pytest
 from roguelike.components.mana import ManaComponent
 from roguelike.components.spells import SpellComponent
 from roguelike.engine.events import EventBus
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity
 from roguelike.magic.effects import DamageEffect, HealEffect
 from roguelike.magic.spell import Spell, SpellSchool, TargetType
 from roguelike.systems.magic_system import MagicSystem

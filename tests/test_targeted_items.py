@@ -4,8 +4,8 @@ import pytest
 
 from roguelike.engine.events import EventBus
 from roguelike.entities.item import create_scroll_confusion, create_healing_potion, ItemType
-from roguelike.entities.monster import create_orc, create_troll
-from roguelike.entities.player import Player
+from roguelike.components.factories import create_orc, create_troll
+from tests.test_helpers import create_test_player
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.utils.position import Position

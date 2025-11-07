@@ -5,7 +5,7 @@ import pytest
 from roguelike.commands.actions import PickupItemCommand, UseItemCommand
 from roguelike.engine.events import EventBus
 from roguelike.entities.item import create_healing_potion, create_strength_potion
-from roguelike.entities.player import Player
+from tests.test_helpers import create_test_player
 from roguelike.systems.item_system import ItemSystem
 from roguelike.utils.position import Position
 

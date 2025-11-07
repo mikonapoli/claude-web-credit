@@ -1,7 +1,7 @@
 """Tests for GameEngine."""
 
 from roguelike.engine.game_engine import GameEngine
-from roguelike.entities.player import Player
+from tests.test_helpers import create_test_player
 from roguelike.ui.input_handler import Action
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap

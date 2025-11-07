@@ -1,7 +1,7 @@
 """Tests for spell effects."""
 
 import pytest
-from roguelike.entities.actor import Actor
+from tests.test_helpers import create_test_entity
 from roguelike.magic.effects import BuffEffect, DamageEffect, EffectResult, HealEffect
 from roguelike.utils.position import Position
 

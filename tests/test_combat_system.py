@@ -1,7 +1,7 @@
 """Tests for CombatSystem."""
 
 from roguelike.engine.events import EventBus
-from roguelike.entities.monster import create_orc
+from roguelike.components.factories import create_orc
 # from roguelike.entities.player import Player
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.utils.position import Position

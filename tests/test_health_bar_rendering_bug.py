@@ -3,8 +3,8 @@
 import pytest
 
 from roguelike.entities.item import create_healing_potion
-from roguelike.entities.monster import Monster, create_orc
-from roguelike.entities.player import Player
+from roguelike.components.factories import create_orc
+from tests.test_helpers import create_test_player
 from roguelike.utils.position import Position
 
 

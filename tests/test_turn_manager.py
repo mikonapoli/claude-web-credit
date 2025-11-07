@@ -1,7 +1,7 @@
 """Tests for TurnManager."""
 
 from roguelike.engine.events import EventBus
-from roguelike.entities.monster import create_orc, create_troll
+from roguelike.components.factories import create_orc, create_troll
 # from roguelike.entities.player import Player
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem

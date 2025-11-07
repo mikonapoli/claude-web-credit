@@ -5,10 +5,11 @@ from typing import List, Optional
 from roguelike.commands.command import Command, CommandResult
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.helpers import is_alive, is_monster
+from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.movement_system import MovementSystem
+from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
-from roguelike.systems.turn_cycle_processor import TurnCycleProcessor
 from roguelike.ui.message_log import MessageLog
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
@@ -29,7 +30,8 @@ class MoveCommand(Command):
         fov_radius: int,
         movement_system: MovementSystem,
         combat_system: CombatSystem,
-        turn_cycle_processor: TurnCycleProcessor,
+        ai_system: AISystem,
+        status_effects_system: Optional[StatusEffectsSystem],
     ):
         """Initialize move command.
 
@@ -43,7 +45,8 @@ class MoveCommand(Command):
             fov_radius: FOV radius
             movement_system: Movement system for entity movement
             combat_system: Combat system for resolving attacks
-            turn_cycle_processor: Processor for turn cycle logic
+            ai_system: AI system for enemy behavior
+            status_effects_system: Status effects system for managing effects
         """
         self.player = player
         self.dx = dx
@@ -54,7 +57,8 @@ class MoveCommand(Command):
         self.fov_radius = fov_radius
         self.movement_system = movement_system
         self.combat_system = combat_system
-        self.turn_cycle_processor = turn_cycle_processor
+        self.ai_system = ai_system
+        self.status_effects_system = status_effects_system
         self.previous_position: Optional[Position] = None
 
     def execute(self) -> CommandResult:
@@ -92,7 +96,7 @@ class MoveCommand(Command):
 
         # If turn was consumed, process turn cycle
         if turn_consumed and is_alive(self.player):
-            game_over = self.turn_cycle_processor.process_turn_cycle(self.player, self.entities)
+            game_over = self._process_turn_cycle()
             if game_over:
                 return CommandResult(success=False, turn_consumed=True, should_quit=True)
 
@@ -101,6 +105,39 @@ class MoveCommand(Command):
             turn_consumed=turn_consumed,
             should_quit=False,
         )
+
+    def _process_turn_cycle(self) -> bool:
+        """Process the turn cycle (status effects and AI).
+
+        Returns:
+            True if game is over (player died), False otherwise
+        """
+        # Process status effects on player
+        if self.status_effects_system:
+            player_died_from_poison = self.status_effects_system.process_effects(self.player)
+
+            if player_died_from_poison:
+                # Handle death from poison
+                self.combat_system.handle_death(self.player, killed_by_player=False)
+                self.player.blocks_movement = False
+                return True  # Game over
+
+        # Process enemy turns
+        player_died = self.ai_system.process_turns(self.player, self.entities)
+        if player_died:
+            return True  # Game over
+
+        # Process status effects on monsters
+        if self.status_effects_system:
+            for entity in self.entities:
+                if is_monster(entity) and is_alive(entity):
+                    died_from_poison = self.status_effects_system.process_effects(entity)
+                    if died_from_poison:
+                        # Handle death from poison
+                        self.combat_system.handle_death(entity, killed_by_player=False)
+                        entity.blocks_movement = False
+
+        return False
 
     def can_undo(self) -> bool:
         """Move commands can be undone."""
@@ -122,28 +159,67 @@ class WaitCommand(Command):
         self,
         player: ComponentEntity,
         entities: List[ComponentEntity],
-        turn_cycle_processor: TurnCycleProcessor,
+        ai_system: AISystem,
+        combat_system: CombatSystem,
+        status_effects_system: Optional[StatusEffectsSystem],
     ):
         """Initialize wait command.
 
         Args:
             player: Player entity
             entities: All entities in game
-            turn_cycle_processor: Processor for turn cycle logic
+            ai_system: AI system for enemy behavior
+            combat_system: Combat system for handling death
+            status_effects_system: Status effects system for managing effects
         """
         self.player = player
         self.entities = entities
-        self.turn_cycle_processor = turn_cycle_processor
+        self.ai_system = ai_system
+        self.combat_system = combat_system
+        self.status_effects_system = status_effects_system
 
     def execute(self) -> CommandResult:
         """Execute the wait command and process turn cycle."""
         # Process turn cycle
         if is_alive(self.player):
-            game_over = self.turn_cycle_processor.process_turn_cycle(self.player, self.entities)
+            game_over = self._process_turn_cycle()
             if game_over:
                 return CommandResult(success=False, turn_consumed=True, should_quit=True)
 
         return CommandResult(success=True, turn_consumed=True, should_quit=False)
+
+    def _process_turn_cycle(self) -> bool:
+        """Process the turn cycle (status effects and AI).
+
+        Returns:
+            True if game is over (player died), False otherwise
+        """
+        # Process status effects on player
+        if self.status_effects_system:
+            player_died_from_poison = self.status_effects_system.process_effects(self.player)
+
+            if player_died_from_poison:
+                # Handle death from poison
+                self.combat_system.handle_death(self.player, killed_by_player=False)
+                self.player.blocks_movement = False
+                return True  # Game over
+
+        # Process enemy turns
+        player_died = self.ai_system.process_turns(self.player, self.entities)
+        if player_died:
+            return True  # Game over
+
+        # Process status effects on monsters
+        if self.status_effects_system:
+            for entity in self.entities:
+                if is_monster(entity) and is_alive(entity):
+                    died_from_poison = self.status_effects_system.process_effects(entity)
+                    if died_from_poison:
+                        # Handle death from poison
+                        self.combat_system.handle_death(entity, killed_by_player=False)
+                        entity.blocks_movement = False
+
+        return False
 
 
 class QuitCommand(Command):

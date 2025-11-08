@@ -12,6 +12,8 @@ from roguelike.engine.events import (
     DeathEvent,
     EquipEvent,
     LevelUpEvent,
+    ManaChangedEvent,
+    SpellCastEvent,
     UnequipEvent,
     XPGainEvent,
     StatusEffectAppliedEvent,
@@ -19,11 +21,13 @@ from roguelike.engine.events import (
     StatusEffectTickEvent,
 )
 from roguelike.entities.item import Item, ItemType
+from roguelike.magic.effects import DamageEffect, HealEffect, BuffEffect
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.crafting import CraftingSystem
 from roguelike.systems.equipment_system import EquipmentSystem
 from roguelike.systems.item_system import ItemSystem
+from roguelike.systems.magic_system import MagicSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
@@ -82,6 +86,10 @@ class GameEngine:
         recipe_loader = RecipeLoader()
         self.crafting_system = CraftingSystem(recipe_loader, self.event_bus)
 
+        # Create magic system and register spell effects
+        self.magic_system = MagicSystem(self.event_bus)
+        self._register_spell_effects()
+
         # Subscribe to events for message logging
         self._setup_event_subscribers()
 
@@ -102,6 +110,21 @@ class GameEngine:
         # Compute initial FOV
         self.fov_map.compute_fov(self.player.position, self.fov_radius)
 
+    def _register_spell_effects(self) -> None:
+        """Register spell effects with the magic system."""
+        # Damage spells
+        self.magic_system.register_spell_effect("magic_missile", DamageEffect())
+        self.magic_system.register_spell_effect("fireball", DamageEffect())
+        self.magic_system.register_spell_effect("lightning_bolt", DamageEffect())
+        self.magic_system.register_spell_effect("frost_nova", DamageEffect())
+
+        # Healing spells
+        self.magic_system.register_spell_effect("heal", HealEffect())
+
+        # Buff spells
+        self.magic_system.register_spell_effect("shield", BuffEffect(buff_amount=3))
+        self.magic_system.register_spell_effect("strength", BuffEffect(buff_amount=4))
+
     def _setup_event_subscribers(self) -> None:
         """Set up event subscribers for message logging."""
         self.event_bus.subscribe("combat", self._on_combat_event)
@@ -115,6 +138,8 @@ class GameEngine:
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
         self.event_bus.subscribe("crafting_attempt", self._on_crafting_attempt)
         self.event_bus.subscribe("recipe_discovered", self._on_recipe_discovered)
+        self.event_bus.subscribe("spell_cast", self._on_spell_cast)
+        self.event_bus.subscribe("mana_changed", self._on_mana_changed)
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
@@ -198,6 +223,22 @@ class GameEngine:
         self.message_log.add_message(
             f"Recipe discovered: {event.recipe_name}!"
         )
+
+    def _on_spell_cast(self, event: SpellCastEvent) -> None:
+        """Handle spell cast event."""
+        # Show the effect message which contains the details
+        self.message_log.add_message(event.effect_message)
+
+    def _on_mana_changed(self, event: ManaChangedEvent) -> None:
+        """Handle mana changed event."""
+        # Only show mana regeneration messages for the player
+        # and only when mana is actually gained (not consumed)
+        if event.entity_name == "Player" and event.new_mp > event.old_mp:
+            mp_gained = event.new_mp - event.old_mp
+            if mp_gained > 0:
+                self.message_log.add_message(
+                    f"You regenerate {mp_gained} MP ({event.new_mp}/{event.max_mp})"
+                )
 
     def _process_turn_after_action(self) -> None:
         """Process turn effects after an action that consumes a turn.

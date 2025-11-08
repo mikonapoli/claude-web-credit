@@ -6,6 +6,9 @@ from roguelike.components.equipment import EquipmentComponent, EquipmentSlot, Eq
 from roguelike.components.health import HealthComponent
 from roguelike.components.inventory import InventoryComponent
 from roguelike.components.level import LevelComponent
+from roguelike.components.mana import ManaComponent
+from roguelike.components.spells import SpellComponent
+from roguelike.data.spell_loader import SpellLoader
 from roguelike.utils.position import Position
 
 
@@ -31,6 +34,22 @@ def create_player(position: Position) -> ComponentEntity:
     player.add_component(LevelComponent(level=1, xp=0, xp_value=0))
     player.add_component(InventoryComponent(capacity=26))
     player.add_component(EquipmentComponent())
+
+    # Add magic components
+    player.add_component(ManaComponent(max_mp=50, mp_regen_rate=2))
+    spell_component = SpellComponent()
+
+    # Load and learn starting spells
+    spell_loader = SpellLoader()
+    magic_missile = spell_loader.get_spell("magic_missile")
+    heal = spell_loader.get_spell("heal")
+
+    if magic_missile:
+        spell_component.learn_spell(magic_missile)
+    if heal:
+        spell_component.learn_spell(heal)
+
+    player.add_component(spell_component)
 
     return player
 

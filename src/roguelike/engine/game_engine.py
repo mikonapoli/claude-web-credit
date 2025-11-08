@@ -12,6 +12,8 @@ from roguelike.engine.events import (
     DeathEvent,
     EquipEvent,
     LevelUpEvent,
+    ManaChangedEvent,
+    SpellCastEvent,
     UnequipEvent,
     XPGainEvent,
     StatusEffectAppliedEvent,
@@ -19,17 +21,20 @@ from roguelike.engine.events import (
     StatusEffectTickEvent,
 )
 from roguelike.entities.item import Item, ItemType
+from roguelike.magic.effects import DamageEffect, HealEffect, BuffEffect
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.crafting import CraftingSystem
 from roguelike.systems.equipment_system import EquipmentSystem
 from roguelike.systems.item_system import ItemSystem
+from roguelike.systems.magic_system import MagicSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
 from roguelike.ui.input_handler import InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
+from roguelike.ui.spell_menu import SpellMenu
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
@@ -60,7 +65,9 @@ class GameEngine:
         self.entities = entities or []
         self.running = False
         self.message_log = MessageLog()
+        self.spell_menu = SpellMenu()  # Spell menu for spell selection
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.active_spell = None  # Track spell being cast with targeting
         self.level_system = level_system
         self.stairs_pos = stairs_pos
         self.current_dungeon_level = 1
@@ -84,6 +91,10 @@ class GameEngine:
         recipe_loader = RecipeLoader()
         self.crafting_system = CraftingSystem(recipe_loader, self.event_bus)
 
+        # Create magic system and register spell effects
+        self.magic_system = MagicSystem(self.event_bus)
+        self._register_spell_effects()
+
         # Subscribe to events for message logging
         self._setup_event_subscribers()
 
@@ -104,6 +115,21 @@ class GameEngine:
         # Compute initial FOV
         self.fov_map.compute_fov(self.player.position, self.fov_radius)
 
+    def _register_spell_effects(self) -> None:
+        """Register spell effects with the magic system."""
+        # Damage spells
+        self.magic_system.register_spell_effect("magic_missile", DamageEffect())
+        self.magic_system.register_spell_effect("fireball", DamageEffect())
+        self.magic_system.register_spell_effect("lightning_bolt", DamageEffect())
+        self.magic_system.register_spell_effect("frost_nova", DamageEffect())
+
+        # Healing spells
+        self.magic_system.register_spell_effect("heal", HealEffect())
+
+        # Buff spells
+        self.magic_system.register_spell_effect("shield", BuffEffect(buff_amount=3))
+        self.magic_system.register_spell_effect("strength", BuffEffect(buff_amount=4))
+
     def _setup_event_subscribers(self) -> None:
         """Set up event subscribers for message logging."""
         self.event_bus.subscribe("combat", self._on_combat_event)
@@ -117,6 +143,8 @@ class GameEngine:
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
         self.event_bus.subscribe("crafting_attempt", self._on_crafting_attempt)
         self.event_bus.subscribe("recipe_discovered", self._on_recipe_discovered)
+        self.event_bus.subscribe("spell_cast", self._on_spell_cast)
+        self.event_bus.subscribe("mana_changed", self._on_mana_changed)
 
     def _on_combat_event(self, event: CombatEvent) -> None:
         """Handle combat event."""
@@ -201,11 +229,30 @@ class GameEngine:
             f"Recipe discovered: {event.recipe_name}!"
         )
 
+    def _on_spell_cast(self, event: SpellCastEvent) -> None:
+        """Handle spell cast event."""
+        # Show the effect message which contains the details
+        self.message_log.add_message(event.effect_message)
+
+    def _on_mana_changed(self, event: ManaChangedEvent) -> None:
+        """Handle mana changed event."""
+        # Only show mana regeneration messages for the player
+        # and only when mana is actually gained (not consumed)
+        if event.entity_name == "Player" and event.new_mp > event.old_mp:
+            mp_gained = event.new_mp - event.old_mp
+            if mp_gained > 0:
+                self.message_log.add_message(
+                    f"You regenerate {mp_gained} MP ({event.new_mp}/{event.max_mp})"
+                )
+
     def _process_turn_after_action(self) -> None:
         """Process turn effects after an action that consumes a turn.
 
         This handles status effects and AI turns without requiring
         the full turn manager flow.
+
+        Note: Mana regeneration is now handled centrally in the game loop
+        after any turn-consuming command.
         """
         # Process status effects on player
         if self.status_effects_system:
@@ -303,6 +350,8 @@ class GameEngine:
             equipment_system=self.equipment_system,
             targeting_system=self.targeting_system,
             crafting_system=self.crafting_system,
+            magic_system=self.magic_system,
+            spell_menu=self.spell_menu,
             message_log=self.message_log,
             stairs_pos=self.stairs_pos,
         )
@@ -373,7 +422,22 @@ class GameEngine:
                     if cursor_pos:
                         renderer.render_targeting_cursor(cursor_pos, target_name)
 
-                renderer.present()
+            # Render spell menu if open
+            if self.spell_menu.is_open:
+                menu_x = renderer.width // 4
+                menu_y = renderer.height // 4
+                menu_width = renderer.width // 2
+                menu_height = renderer.height // 2
+                renderer.render_spell_menu(
+                    self.spell_menu,
+                    self.player,
+                    menu_x,
+                    menu_y,
+                    menu_width,
+                    menu_height
+                )
+
+            renderer.present()
 
             # Handle input
             for event in tcod.event.wait():
@@ -394,6 +458,13 @@ class GameEngine:
                 # Execute command through executor
                 result = self.command_executor.execute(command)
 
+                # Regenerate mana after any turn-consuming action
+                if result.turn_consumed:
+                    from roguelike.components.mana import ManaComponent
+                    mana = self.player.get_component(ManaComponent)
+                    if mana:
+                        self.magic_system.regenerate_mana(self.player.name, mana)
+
                 # Handle command results
                 if result.should_quit:
                     self.running = False
@@ -411,8 +482,9 @@ class GameEngine:
                     elif result.data.get("start_targeting"):
                         # Activate targeting mode in input handler
                         input_handler.set_targeting_mode(True)
-                    elif result.data.get("targeting_select"):
-                        # Targeting selection made - exit targeting mode
+                    elif result.data.get("targeting_select") and not self.active_spell:
+                        # Targeting selection made (confusion scroll test) - exit targeting mode
+                        # Note: Skip this if we're casting a spell (handled separately below)
                         input_handler.set_targeting_mode(False)
 
                         # Use confusion scroll on the selected target (test feature for 'C' key)
@@ -436,9 +508,18 @@ class GameEngine:
                                 )
                                 if success:
                                     self.message_log.add_message(f"You confuse the {target.name}!")
-                                    # Process turn after successful item use
-                                    # This allows enemies to act and status effects to tick
+
+                                    # Process turn cycle: regenerate mana, status effects, enemy AI
+                                    from roguelike.components.mana import ManaComponent
+                                    mana = self.player.get_component(ManaComponent)
+                                    if mana:
+                                        self.magic_system.regenerate_mana(self.player.name, mana)
+
                                     self._process_turn_after_action()
+
+                                    # Check if player died during enemy turns
+                                    if not self.running:
+                                        return
                                 else:
                                     self.message_log.add_message("The confusion scroll failed!")
                             else:
@@ -446,9 +527,82 @@ class GameEngine:
                     elif result.data.get("targeting_cancel"):
                         # Targeting cancelled - exit targeting mode
                         input_handler.set_targeting_mode(False)
+                        # Clear active spell if we were casting one
+                        if self.active_spell:
+                            self.active_spell = None
+                    elif result.data.get("spell_menu_opened"):
+                        # Spell menu opened - enter spell menu mode
+                        input_handler.set_spell_menu_mode(True)
+                    elif result.data.get("spell_menu_closed"):
+                        # Spell menu closed - exit spell menu mode
+                        input_handler.set_spell_menu_mode(False)
+                    elif result.data.get("cast_spell_on_self"):
+                        # Self-targeting spell selected - cast immediately
+                        input_handler.set_spell_menu_mode(False)
+                        spell = result.data.get("spell")
+                        if spell:
+                            from roguelike.commands.spell_commands import CastSpellCommand
+                            cast_cmd = CastSpellCommand(
+                                self.player,
+                                self.player,  # Cast on self
+                                spell,
+                                self.entities,
+                                self.magic_system,
+                                self.combat_system,
+                                self.ai_system,
+                                self.status_effects_system,
+                                self.message_log,
+                            )
+                            cast_result = self.command_executor.execute(cast_cmd)
+
+                            # Regenerate mana after spell casting if turn was consumed
+                            if cast_result.turn_consumed:
+                                from roguelike.components.mana import ManaComponent
+                                mana = self.player.get_component(ManaComponent)
+                                if mana:
+                                    self.magic_system.regenerate_mana(self.player.name, mana)
+
+                            if cast_result.should_quit:
+                                self.running = False
+                    elif result.data.get("start_spell_targeting"):
+                        # Targeted spell selected - enter targeting mode
+                        input_handler.set_spell_menu_mode(False)
+                        input_handler.set_targeting_mode(True)
+                        self.active_spell = result.data.get("spell")
                     elif result.data.get("show_recipe_book"):
                         # Show recipe book UI
                         self.recipe_book_mode = True
                         self.recipe_book_data = result.data.get("recipes", [])
+
+                # Handle spell targeting selection (when active_spell is set)
+                if result.data and result.data.get("targeting_select") and self.active_spell:
+                    # Targeting selection made - cast spell on target
+                    input_handler.set_targeting_mode(False)
+                    target = result.data.get("target")
+                    if target:
+                        from roguelike.commands.spell_commands import CastSpellCommand
+                        cast_cmd = CastSpellCommand(
+                            self.player,
+                            target,
+                            self.active_spell,
+                            self.entities,
+                            self.magic_system,
+                            self.combat_system,
+                            self.ai_system,
+                            self.status_effects_system,
+                            self.message_log,
+                        )
+                        cast_result = self.command_executor.execute(cast_cmd)
+
+                        # Regenerate mana after spell casting if turn was consumed
+                        if cast_result.turn_consumed:
+                            from roguelike.components.mana import ManaComponent
+                            mana = self.player.get_component(ManaComponent)
+                            if mana:
+                                self.magic_system.regenerate_mana(self.player.name, mana)
+
+                        if cast_result.should_quit:
+                            self.running = False
+                    self.active_spell = None
 
         renderer.close()

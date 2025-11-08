@@ -250,13 +250,10 @@ class GameEngine:
 
         This handles status effects and AI turns without requiring
         the full turn manager flow.
-        """
-        # Regenerate player mana
-        from roguelike.components.mana import ManaComponent
-        mana = self.player.get_component(ManaComponent)
-        if mana:
-            self.magic_system.regenerate_mana(self.player.name, mana)
 
+        Note: Mana regeneration is now handled centrally in the game loop
+        after any turn-consuming command.
+        """
         # Process status effects on player
         if self.status_effects_system:
             player_died = self.status_effects_system.process_effects(self.player)
@@ -461,6 +458,13 @@ class GameEngine:
                 # Execute command through executor
                 result = self.command_executor.execute(command)
 
+                # Regenerate mana after any turn-consuming action
+                if result.turn_consumed:
+                    from roguelike.components.mana import ManaComponent
+                    mana = self.player.get_component(ManaComponent)
+                    if mana:
+                        self.magic_system.regenerate_mana(self.player.name, mana)
+
                 # Handle command results
                 if result.should_quit:
                     self.running = False
@@ -478,8 +482,9 @@ class GameEngine:
                     elif result.data.get("start_targeting"):
                         # Activate targeting mode in input handler
                         input_handler.set_targeting_mode(True)
-                    elif result.data.get("targeting_select"):
-                        # Targeting selection made - exit targeting mode
+                    elif result.data.get("targeting_select") and not self.active_spell:
+                        # Targeting selection made (confusion scroll test) - exit targeting mode
+                        # Note: Skip this if we're casting a spell (handled separately below)
                         input_handler.set_targeting_mode(False)
 
                         # Use confusion scroll on the selected target (test feature for 'C' key)
@@ -503,9 +508,7 @@ class GameEngine:
                                 )
                                 if success:
                                     self.message_log.add_message(f"You confuse the {target.name}!")
-                                    # Process turn after successful item use
-                                    # This allows enemies to act and status effects to tick
-                                    self._process_turn_after_action()
+                                    # Note: Turn processing (mana regen, enemy AI) already handled above
                                 else:
                                     self.message_log.add_message("The confusion scroll failed!")
                             else:
@@ -513,6 +516,9 @@ class GameEngine:
                     elif result.data.get("targeting_cancel"):
                         # Targeting cancelled - exit targeting mode
                         input_handler.set_targeting_mode(False)
+                        # Clear active spell if we were casting one
+                        if self.active_spell:
+                            self.active_spell = None
                     elif result.data.get("spell_menu_opened"):
                         # Spell menu opened - enter spell menu mode
                         input_handler.set_spell_menu_mode(True)

@@ -1,6 +1,11 @@
 """Command pattern for game actions."""
 
 from roguelike.commands.command import Command, CommandResult
+from roguelike.commands.crafting_commands import (
+    AutoCraftCommand,
+    CraftCommand,
+    StartCraftingCommand,
+)
 from roguelike.commands.executor import CommandExecutor
 from roguelike.commands.game_commands import (
     MoveCommand,
@@ -29,4 +34,7 @@ __all__ = [
     "TargetingSelectCommand",
     "TargetingCancelCommand",
     "TargetingCycleCommand",
+    "AutoCraftCommand",
+    "CraftCommand",
+    "StartCraftingCommand",
 ]

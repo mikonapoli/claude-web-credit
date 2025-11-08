@@ -1,10 +1,13 @@
 """Inventory component for entities."""
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from roguelike.components.component import Component
 from roguelike.entities.item import Item
-from roguelike.systems.inventory import Inventory
+from roguelike.systems.inventory import Inventory, InventoryItem
+
+if TYPE_CHECKING:
+    from roguelike.components.entity import ComponentEntity
 
 
 class InventoryComponent(Component):
@@ -24,18 +27,18 @@ class InventoryComponent(Component):
         """Maximum inventory capacity."""
         return self._inventory.capacity
 
-    def add_item(self, item: Item) -> bool:
+    def add_item(self, item: InventoryItem) -> bool:
         """Add item to inventory.
 
         Args:
-            item: Item to add
+            item: Item to add (Item or ComponentEntity with CraftingComponent)
 
         Returns:
             True if item was added
         """
         return self._inventory.add(item)
 
-    def remove_item(self, item: Item) -> bool:
+    def remove_item(self, item: InventoryItem) -> bool:
         """Remove item from inventory.
 
         Args:
@@ -46,7 +49,7 @@ class InventoryComponent(Component):
         """
         return self._inventory.remove(item)
 
-    def get_item_by_index(self, index: int) -> Optional[Item]:
+    def get_item_by_index(self, index: int) -> Optional[InventoryItem]:
         """Get item by index.
 
         Args:
@@ -57,11 +60,11 @@ class InventoryComponent(Component):
         """
         return self._inventory.get_item_by_index(index)
 
-    def get_items(self) -> List[Item]:
+    def get_items(self) -> List[InventoryItem]:
         """Get all items in inventory.
 
         Returns:
-            List of items
+            List of items (both Item objects and ComponentEntity with CraftingComponent)
         """
         return self._inventory.items.copy()
 

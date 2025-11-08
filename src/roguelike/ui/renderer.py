@@ -443,6 +443,89 @@ class Renderer:
 
         return current_y - y
 
+    def render_recipe_book(
+        self,
+        recipes_data: list[dict],
+        title: str = "Recipe Book",
+    ) -> None:
+        """Render the recipe book UI showing discovered/undiscovered recipes.
+
+        Args:
+            recipes_data: List of dicts with 'recipe' and 'discovered' keys
+            title: Title for the recipe book display
+        """
+        # Clear screen for recipe book display
+        self.console.clear()
+
+        # Calculate layout
+        start_y = 2
+        current_y = start_y
+
+        # Render title
+        title_x = (self.width - len(title)) // 2
+        self.console.print(title_x, 0, title, fg=(255, 255, 100))
+
+        # Render instructions
+        instructions = "Press ESC to close | Discovered recipes show ingredients"
+        inst_x = (self.width - len(instructions)) // 2
+        self.console.print(inst_x, 1, instructions, fg=(150, 150, 150))
+
+        # Render recipes
+        for data in recipes_data:
+            recipe = data["recipe"]
+            discovered = data["discovered"]
+
+            if current_y >= self.height - 2:
+                # Near bottom of screen, show "more recipes..." message
+                self.console.print(2, current_y, "... more recipes ...", fg=(128, 128, 128))
+                break
+
+            # Recipe name with discovery indicator
+            if discovered:
+                name_color = (100, 255, 100)  # Green for discovered
+                prefix = "[+] "
+            else:
+                name_color = (128, 128, 128)  # Gray for undiscovered
+                prefix = "[ ] "
+
+            recipe_name = f"{prefix}{recipe.name}"
+            self.console.print(2, current_y, recipe_name, fg=name_color)
+            current_y += 1
+
+            # Show description and ingredients only if discovered
+            if discovered:
+                # Description
+                desc_text = f"    {recipe.description}"
+                if len(desc_text) > self.width - 4:
+                    desc_text = desc_text[:self.width - 7] + "..."
+                self.console.print(2, current_y, desc_text, fg=(200, 200, 200))
+                current_y += 1
+
+                # Ingredients (show required tags)
+                ingredients_text = "    Ingredients: "
+                tag_parts = []
+                for tag_set in recipe.required_tags:
+                    tag_str = " or ".join(sorted(tag_set))
+                    tag_parts.append(f"[{tag_str}]")
+                ingredients_text += ", ".join(tag_parts)
+
+                # Handle long ingredient lists
+                if len(ingredients_text) > self.width - 4:
+                    ingredients_text = ingredients_text[:self.width - 7] + "..."
+
+                self.console.print(2, current_y, ingredients_text, fg=(150, 200, 255))
+                current_y += 1
+
+            # Blank line between recipes
+            current_y += 1
+
+        # Show discovery count at bottom
+        discovered_count = sum(1 for d in recipes_data if d["discovered"])
+        total_count = len(recipes_data)
+        count_text = f"Discovered: {discovered_count}/{total_count}"
+        count_x = (self.width - len(count_text)) // 2
+        self.console.print(count_x, self.height - 1, count_text, fg=(255, 255, 100))
+
     def present(self) -> None:
         """Present the console to the screen."""
         self.context.present(self.console)

@@ -64,6 +64,8 @@ class GameEngine:
         self.level_system = level_system
         self.stairs_pos = stairs_pos
         self.current_dungeon_level = 1
+        self.recipe_book_mode = False  # Track if recipe book UI is open
+        self.recipe_book_data: Optional[list] = None  # Recipe data for UI display
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -312,63 +314,79 @@ class GameEngine:
         message_log_height = renderer.height - self.game_map.height
 
         while self.running:
-            # Render
-            renderer.clear()
-            renderer.render_map(self.game_map, self.fov_map, max_height=map_viewport_height)
-            # Only render living monsters
-            living_entities = [e for e in self.entities if not is_monster(e) or is_alive(e)]
-            renderer.render_entities(living_entities, self.fov_map, max_height=map_viewport_height)
-            renderer.render_entity(self.player, self.fov_map, max_height=map_viewport_height)
-            # Render message log at bottom of screen
-            renderer.render_message_log(
-                self.message_log,
-                x=0,
-                y=message_log_y,
-                width=renderer.width,
-                height=message_log_height
-            )
+            # Render based on current mode
+            if self.recipe_book_mode and self.recipe_book_data:
+                # Render recipe book UI
+                renderer.render_recipe_book(self.recipe_book_data)
+                renderer.present()
+            else:
+                # Render normal game view
+                renderer.clear()
+                renderer.render_map(self.game_map, self.fov_map, max_height=map_viewport_height)
+                # Only render living monsters
+                living_entities = [e for e in self.entities if not is_monster(e) or is_alive(e)]
+                renderer.render_entities(living_entities, self.fov_map, max_height=map_viewport_height)
+                renderer.render_entity(self.player, self.fov_map, max_height=map_viewport_height)
+                # Render message log at bottom of screen
+                renderer.render_message_log(
+                    self.message_log,
+                    x=0,
+                    y=message_log_y,
+                    width=renderer.width,
+                    height=message_log_height
+                )
 
-            # Render health bars for monsters with health (entities that are monsters)
-            monsters_to_render = [e for e in living_entities if is_monster(e)]
-            renderer.render_health_bars(monsters_to_render, self.fov_map)
+                # Render health bars for monsters with health (entities that are monsters)
+                monsters_to_render = [e for e in living_entities if is_monster(e)]
+                renderer.render_health_bars(monsters_to_render, self.fov_map)
 
-            # Render player stats panel in the top-right area of the map viewport
-            stats_x = renderer.width - 35  # Position in top-right with more space
-            stats_y = 0
-            renderer.render_player_stats(
-                self.player,
-                x=stats_x,
-                y=stats_y,
-            )
+                # Render player stats panel in the top-right area of the map viewport
+                stats_x = renderer.width - 35  # Position in top-right with more space
+                stats_y = 0
+                renderer.render_player_stats(
+                    self.player,
+                    x=stats_x,
+                    y=stats_y,
+                )
 
-            # Render status effects below stats (if any)
-            effects_y = stats_y + 12  # Position below stats panel
-            lines_rendered = renderer.render_status_effects(
-                self.player,
-                x=stats_x,
-                y=effects_y,
-            )
+                # Render status effects below stats (if any)
+                effects_y = stats_y + 12  # Position below stats panel
+                lines_rendered = renderer.render_status_effects(
+                    self.player,
+                    x=stats_x,
+                    y=effects_y,
+                )
 
-            # Render equipment below status effects (if any)
-            equipment_y = effects_y + lines_rendered + (1 if lines_rendered > 0 else 0)
-            renderer.render_equipment(
-                self.player,
-                x=stats_x,
-                y=equipment_y,
-            )
+                # Render equipment below status effects (if any)
+                equipment_y = effects_y + lines_rendered + (1 if lines_rendered > 0 else 0)
+                renderer.render_equipment(
+                    self.player,
+                    x=stats_x,
+                    y=equipment_y,
+                )
 
-            # Render targeting cursor if in targeting mode
-            if self.targeting_system.is_active:
-                cursor_pos = self.targeting_system.get_cursor_position()
-                target = self.targeting_system.get_current_target()
-                target_name = target.name if target else None
-                if cursor_pos:
-                    renderer.render_targeting_cursor(cursor_pos, target_name)
+                # Render targeting cursor if in targeting mode
+                if self.targeting_system.is_active:
+                    cursor_pos = self.targeting_system.get_cursor_position()
+                    target = self.targeting_system.get_current_target()
+                    target_name = target.name if target else None
+                    if cursor_pos:
+                        renderer.render_targeting_cursor(cursor_pos, target_name)
 
-            renderer.present()
+                renderer.present()
 
             # Handle input
             for event in tcod.event.wait():
+                # Special handling for recipe book mode
+                if self.recipe_book_mode:
+                    # Check for ESC key to close recipe book
+                    if isinstance(event, tcod.event.KeyDown) and event.sym == tcod.event.KeySym.ESCAPE:
+                        self.recipe_book_mode = False
+                        self.recipe_book_data = None
+                        continue  # Don't process as normal command
+                    # Ignore other input in recipe book mode
+                    continue
+
                 input_handler.dispatch(event)
 
             command = input_handler.get_command()
@@ -428,5 +446,9 @@ class GameEngine:
                     elif result.data.get("targeting_cancel"):
                         # Targeting cancelled - exit targeting mode
                         input_handler.set_targeting_mode(False)
+                    elif result.data.get("show_recipe_book"):
+                        # Show recipe book UI
+                        self.recipe_book_mode = True
+                        self.recipe_book_data = result.data.get("recipes", [])
 
         renderer.close()

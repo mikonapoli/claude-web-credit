@@ -34,6 +34,7 @@ from roguelike.systems.targeting import TargetingSystem
 from roguelike.ui.input_handler import InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
+from roguelike.ui.spell_menu import SpellMenu
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
@@ -64,7 +65,9 @@ class GameEngine:
         self.entities = entities or []
         self.running = False
         self.message_log = MessageLog()
+        self.spell_menu = SpellMenu()  # Spell menu for spell selection
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
+        self.active_spell = None  # Track spell being cast with targeting
         self.level_system = level_system
         self.stairs_pos = stairs_pos
         self.current_dungeon_level = 1

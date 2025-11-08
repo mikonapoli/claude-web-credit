@@ -12,6 +12,7 @@ from roguelike.components.status_effects import StatusEffectsComponent
 from roguelike.entities.entity import Entity
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.health_bar_renderer import HealthBarRenderer
+from roguelike.ui.spell_menu import SpellMenu
 from roguelike.ui.stats_bar_renderer import StatsBarRenderer
 from roguelike.utils.position import Position
 from roguelike.utils.protocols import HealthBarRenderable
@@ -442,6 +443,50 @@ class Renderer:
             current_y += 1
 
         return current_y - y
+
+    def render_spell_menu(
+        self,
+        spell_menu: SpellMenu,
+        player: ComponentEntity,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+    ) -> None:
+        """Render the spell menu overlay.
+
+        Args:
+            spell_menu: Spell menu to render
+            player: Player entity (for current MP)
+            x: X position for menu
+            y: Y position for menu
+            width: Width of menu area
+            height: Height of menu area
+        """
+        if not spell_menu.is_open:
+            return
+
+        # Get player's current mana
+        mana = player.get_component(ManaComponent)
+        current_mp = mana.mp if mana else 0
+
+        # Get menu lines
+        lines = spell_menu.get_menu_lines(current_mp)
+
+        # Render background box
+        for dy in range(min(len(lines) + 2, height)):
+            for dx in range(width):
+                self.console.print(x + dx, y + dy, " ", bg=(0, 0, 64))
+
+        # Render menu lines
+        for i, line in enumerate(lines[:height - 2]):
+            # Highlight selected spell line
+            if i >= 3 and ">" in line:  # Lines after header
+                fg_color = (255, 255, 100)  # Yellow for selected
+            else:
+                fg_color = (255, 255, 255)
+
+            self.console.print(x + 1, y + i + 1, line[:width - 2], fg=fg_color)
 
     def present(self) -> None:
         """Present the console to the screen."""

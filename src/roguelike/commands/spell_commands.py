@@ -191,6 +191,8 @@ class SelectSpellCommand(Command):
 
     def execute(self) -> CommandResult:
         """Select spell and start targeting or cast immediately."""
+        from roguelike.components.helpers import is_monster, is_alive
+
         spell = self.spell_menu.get_selected_spell()
 
         if not spell:
@@ -211,21 +213,38 @@ class SelectSpellCommand(Command):
                 }
             )
         else:
-            # Start targeting mode for other spells
-            self.targeting_system.activate(
-                start_pos=self.player.position,
-                entities=self.entities,
-                fov_map=self.fov_map,
-                game_map=self.game_map,
+            # Get valid targets (living monsters in FOV)
+            valid_targets = [
+                e
+                for e in self.entities
+                if is_monster(e) and is_alive(e) and self.fov_map.is_visible(e.position)
+            ]
+
+            if not valid_targets:
+                self.message_log.add_message("No visible targets!")
+                return CommandResult(success=False, turn_consumed=False)
+
+            # Start targeting mode for targeted spells
+            started = self.targeting_system.start_targeting(
+                origin=self.player.position,
+                max_range=spell.range,
+                valid_targets=valid_targets,
+                map_width=self.game_map.width,
+                map_height=self.game_map.height,
             )
-            self.message_log.add_message(
-                f"Select target for {spell.name}. [ESC] to cancel."
-            )
-            return CommandResult(
-                success=True,
-                turn_consumed=False,
-                data={
-                    "start_spell_targeting": True,
-                    "spell": spell,
-                }
-            )
+
+            if started:
+                self.message_log.add_message(
+                    f"Select target for {spell.name}. [ESC] to cancel."
+                )
+                return CommandResult(
+                    success=True,
+                    turn_consumed=False,
+                    data={
+                        "start_spell_targeting": True,
+                        "spell": spell,
+                    }
+                )
+            else:
+                self.message_log.add_message("No targets in range!")
+                return CommandResult(success=False, turn_consumed=False)

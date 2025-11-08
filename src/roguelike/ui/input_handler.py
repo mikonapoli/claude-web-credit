@@ -18,15 +18,23 @@ from roguelike.commands.game_commands import (
     TargetingCancelCommand,
     TargetingCycleCommand,
 )
+from roguelike.commands.spell_commands import (
+    CastSpellCommand,
+    OpenSpellMenuCommand,
+    CloseSpellMenuCommand,
+    SelectSpellCommand,
+)
 from roguelike.components.entity import ComponentEntity
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.crafting import CraftingSystem
 from roguelike.systems.equipment_system import EquipmentSystem
+from roguelike.systems.magic_system import MagicSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
 from roguelike.ui.message_log import MessageLog
+from roguelike.ui.spell_menu import SpellMenu
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
@@ -54,6 +62,8 @@ class InputHandler:
         equipment_system: EquipmentSystem,
         targeting_system: TargetingSystem,
         crafting_system: CraftingSystem,
+        magic_system: MagicSystem,
+        spell_menu: SpellMenu,
         message_log: MessageLog,
         stairs_pos: Optional[Position] = None,
     ):
@@ -72,6 +82,8 @@ class InputHandler:
             equipment_system: Equipment system for managing equipment
             targeting_system: Targeting system for targeted abilities
             crafting_system: Crafting system for recipe matching
+            magic_system: Magic system for spell casting
+            spell_menu: Spell menu for spell selection
             message_log: Message log for displaying messages
             stairs_pos: Position of stairs (if any)
         """
@@ -87,10 +99,13 @@ class InputHandler:
         self.equipment_system = equipment_system
         self.targeting_system = targeting_system
         self.crafting_system = crafting_system
+        self.magic_system = magic_system
+        self.spell_menu = spell_menu
         self.message_log = message_log
         self.stairs_pos = stairs_pos
         self.last_command: Optional[Command] = None
         self.targeting_mode: bool = False
+        self.spell_menu_mode: bool = False
 
     def update_context(
         self,
@@ -149,6 +164,11 @@ class InputHandler:
             event: KeyDown event
         """
         key = event.sym
+
+        # Spell menu mode has different key bindings
+        if self.spell_menu_mode:
+            self._handle_spell_menu_keys(event)
+            return
 
         # Targeting mode has different key bindings
         if self.targeting_mode:
@@ -247,6 +267,12 @@ class InputHandler:
                 self.message_log, self.game_map
             )
 
+        # Open spell menu (lowercase 'm' key)
+        elif key == tcod.event.KeySym.M and not event.mod & tcod.event.KMOD_SHIFT:
+            self.last_command = OpenSpellMenuCommand(
+                self.player, self.spell_menu, self.message_log
+            )
+
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:
             self.last_command = QuitCommand()
@@ -294,6 +320,36 @@ class InputHandler:
         elif key == tcod.event.KeySym.ESCAPE:
             self.last_command = TargetingCancelCommand(self.targeting_system)
 
+    def _handle_spell_menu_keys(self, event: tcod.event.KeyDown) -> None:
+        """Handle keydown in spell menu mode.
+
+        Args:
+            event: KeyDown event
+        """
+        key = event.sym
+
+        # Up/Down to navigate spells
+        if key in (tcod.event.KeySym.UP, tcod.event.KeySym.K):
+            self.spell_menu.select_previous()
+        elif key in (tcod.event.KeySym.DOWN, tcod.event.KeySym.J):
+            self.spell_menu.select_next()
+
+        # Enter to select spell
+        elif key in (tcod.event.KeySym.RETURN, tcod.event.KeySym.RETURN2):
+            self.last_command = SelectSpellCommand(
+                self.player,
+                self.spell_menu,
+                self.targeting_system,
+                self.entities,
+                self.fov_map,
+                self.game_map,
+                self.message_log,
+            )
+
+        # Escape to close menu
+        elif key == tcod.event.KeySym.ESCAPE:
+            self.last_command = CloseSpellMenuCommand(self.spell_menu)
+
     def set_targeting_mode(self, enabled: bool) -> None:
         """Enable or disable targeting mode.
 
@@ -301,6 +357,14 @@ class InputHandler:
             enabled: True to enable targeting mode
         """
         self.targeting_mode = enabled
+
+    def set_spell_menu_mode(self, enabled: bool) -> None:
+        """Enable or disable spell menu mode.
+
+        Args:
+            enabled: True to enable spell menu mode
+        """
+        self.spell_menu_mode = enabled
 
     def get_command(self) -> Optional[Command]:
         """Get the last command and clear it.

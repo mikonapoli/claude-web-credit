@@ -6,12 +6,16 @@ from roguelike.commands.command import Command, CommandResult
 from roguelike.components.entity import ComponentEntity
 from roguelike.components.mana import ManaComponent
 from roguelike.components.spells import SpellComponent
-from roguelike.magic.spell import Spell
+from roguelike.magic.spell import Spell, TargetType
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.magic_system import MagicSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
+from roguelike.systems.targeting import TargetingSystem
 from roguelike.ui.message_log import MessageLog
+from roguelike.ui.spell_menu import SpellMenu
+from roguelike.world.fov import FOVMap
+from roguelike.world.game_map import GameMap
 
 
 class CastSpellCommand(Command):
@@ -89,3 +93,139 @@ class CastSpellCommand(Command):
         return CommandResult(
             success=True, turn_consumed=True, should_quit=game_over
         )
+
+
+class OpenSpellMenuCommand(Command):
+    """Command to open the spell menu."""
+
+    def __init__(
+        self,
+        player: ComponentEntity,
+        spell_menu: SpellMenu,
+        message_log: MessageLog,
+    ):
+        """Initialize open spell menu command.
+
+        Args:
+            player: Player entity
+            spell_menu: Spell menu to open
+            message_log: Message log for displaying messages
+        """
+        self.player = player
+        self.spell_menu = spell_menu
+        self.message_log = message_log
+
+    def execute(self) -> CommandResult:
+        """Open the spell menu."""
+        spell_component = self.player.get_component(SpellComponent)
+
+        if not spell_component:
+            self.message_log.add_message("You don't know any spells!")
+            return CommandResult(success=False, turn_consumed=False)
+
+        spells = spell_component.get_all_spells()
+        if not spells:
+            self.message_log.add_message("You don't know any spells!")
+            return CommandResult(success=False, turn_consumed=False)
+
+        self.spell_menu.open(spells)
+        return CommandResult(
+            success=True,
+            turn_consumed=False,
+            data={"spell_menu_opened": True}
+        )
+
+
+class CloseSpellMenuCommand(Command):
+    """Command to close the spell menu."""
+
+    def __init__(self, spell_menu: SpellMenu):
+        """Initialize close spell menu command.
+
+        Args:
+            spell_menu: Spell menu to close
+        """
+        self.spell_menu = spell_menu
+
+    def execute(self) -> CommandResult:
+        """Close the spell menu."""
+        self.spell_menu.close()
+        return CommandResult(
+            success=True,
+            turn_consumed=False,
+            data={"spell_menu_closed": True}
+        )
+
+
+class SelectSpellCommand(Command):
+    """Command to select a spell from the menu and start targeting."""
+
+    def __init__(
+        self,
+        player: ComponentEntity,
+        spell_menu: SpellMenu,
+        targeting_system: TargetingSystem,
+        entities: List[ComponentEntity],
+        fov_map: FOVMap,
+        game_map: GameMap,
+        message_log: MessageLog,
+    ):
+        """Initialize select spell command.
+
+        Args:
+            player: Player entity
+            spell_menu: Spell menu
+            targeting_system: Targeting system for targeted spells
+            entities: All entities in game
+            fov_map: Field of view map
+            game_map: Game map
+            message_log: Message log for displaying messages
+        """
+        self.player = player
+        self.spell_menu = spell_menu
+        self.targeting_system = targeting_system
+        self.entities = entities
+        self.fov_map = fov_map
+        self.game_map = game_map
+        self.message_log = message_log
+
+    def execute(self) -> CommandResult:
+        """Select spell and start targeting or cast immediately."""
+        spell = self.spell_menu.get_selected_spell()
+
+        if not spell:
+            return CommandResult(success=False, turn_consumed=False)
+
+        # Close the spell menu
+        self.spell_menu.close()
+
+        # Handle self-targeting spells (heal, buffs)
+        if spell.target_type == TargetType.SELF:
+            # Return data to trigger immediate cast on self
+            return CommandResult(
+                success=True,
+                turn_consumed=False,
+                data={
+                    "cast_spell_on_self": True,
+                    "spell": spell,
+                }
+            )
+        else:
+            # Start targeting mode for other spells
+            self.targeting_system.activate(
+                start_pos=self.player.position,
+                entities=self.entities,
+                fov_map=self.fov_map,
+                game_map=self.game_map,
+            )
+            self.message_log.add_message(
+                f"Select target for {spell.name}. [ESC] to cancel."
+            )
+            return CommandResult(
+                success=True,
+                turn_consumed=False,
+                data={
+                    "start_spell_targeting": True,
+                    "spell": spell,
+                }
+            )

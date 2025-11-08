@@ -431,37 +431,37 @@ class GameEngine:
                     if cursor_pos:
                         renderer.render_targeting_cursor(cursor_pos, target_name)
 
-            # Render spell menu if open
-            if self.spell_menu.is_open:
-                menu_x = renderer.width // 4
-                menu_y = renderer.height // 4
-                menu_width = renderer.width // 2
-                menu_height = renderer.height // 2
-                renderer.render_spell_menu(
-                    self.spell_menu,
-                    self.player,
-                    menu_x,
-                    menu_y,
-                    menu_width,
-                    menu_height
-                )
+                # Render spell menu if open (only in normal game view)
+                if self.spell_menu.is_open:
+                    menu_x = renderer.width // 4
+                    menu_y = renderer.height // 4
+                    menu_width = renderer.width // 2
+                    menu_height = renderer.height // 2
+                    renderer.render_spell_menu(
+                        self.spell_menu,
+                        self.player,
+                        menu_x,
+                        menu_y,
+                        menu_width,
+                        menu_height
+                    )
 
-            # Render inventory menu if open
-            if self.inventory_menu.is_open:
-                menu_x = renderer.width // 4
-                menu_y = renderer.height // 4
-                menu_width = renderer.width // 2
-                menu_height = renderer.height // 2
-                renderer.render_inventory_menu(
-                    self.inventory_menu,
-                    self.player,
-                    menu_x,
-                    menu_y,
-                    menu_width,
-                    menu_height
-                )
+                # Render inventory menu if open (only in normal game view)
+                if self.inventory_menu.is_open:
+                    menu_x = renderer.width // 4
+                    menu_y = renderer.height // 4
+                    menu_width = renderer.width // 2
+                    menu_height = renderer.height // 2
+                    renderer.render_inventory_menu(
+                        self.inventory_menu,
+                        self.player,
+                        menu_x,
+                        menu_y,
+                        menu_width,
+                        menu_height
+                    )
 
-            renderer.present()
+                renderer.present()
 
             # Handle input
             for event in tcod.event.wait():

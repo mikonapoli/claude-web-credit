@@ -18,6 +18,7 @@ from roguelike.commands.game_commands import (
     TargetingCancelCommand,
     TargetingCycleCommand,
 )
+from roguelike.commands.recipe_commands import ShowRecipeBookCommand
 from roguelike.commands.spell_commands import (
     CastSpellCommand,
     OpenSpellMenuCommand,
@@ -257,6 +258,14 @@ class InputHandler:
                 self.ai_system,
                 self.combat_system,
                 self.status_effects_system,
+            )
+
+        # Recipe Book (lowercase 'r' key)
+        elif key == tcod.event.KeySym.R and not event.mod & tcod.event.KMOD_SHIFT:
+            self.last_command = ShowRecipeBookCommand(
+                self.player,
+                self.crafting_system,
+                self.message_log,
             )
 
         # Test: Confusion scroll targeting (uppercase 'C' key)

@@ -124,7 +124,7 @@ class OpenSpellMenuCommand(Command):
             self.message_log.add_message("You don't know any spells!")
             return CommandResult(success=False, turn_consumed=False)
 
-        spells = spell_component.get_all_spells()
+        spells = spell_component.spells
         if not spells:
             self.message_log.add_message("You don't know any spells!")
             return CommandResult(success=False, turn_consumed=False)

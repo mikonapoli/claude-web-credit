@@ -79,6 +79,7 @@ class CastSpellCommand(Command):
         # Handle target death from spell damage
         if result.target_died:
             self.combat_system.handle_death(self.target, killed_by_player=True)
+            self.combat_system.award_xp(self.caster, self.target.xp_value)
             self.target.blocks_movement = False
 
         # Process turn cycle (status effects and enemy AI)

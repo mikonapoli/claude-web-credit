@@ -543,6 +543,14 @@ class GameEngine:
                                 self.message_log,
                             )
                             cast_result = self.command_executor.execute(cast_cmd)
+
+                            # Regenerate mana after spell casting if turn was consumed
+                            if cast_result.turn_consumed:
+                                from roguelike.components.mana import ManaComponent
+                                mana = self.player.get_component(ManaComponent)
+                                if mana:
+                                    self.magic_system.regenerate_mana(self.player.name, mana)
+
                             if cast_result.should_quit:
                                 self.running = False
                     elif result.data.get("start_spell_targeting"):
@@ -574,6 +582,14 @@ class GameEngine:
                             self.message_log,
                         )
                         cast_result = self.command_executor.execute(cast_cmd)
+
+                        # Regenerate mana after spell casting if turn was consumed
+                        if cast_result.turn_consumed:
+                            from roguelike.components.mana import ManaComponent
+                            mana = self.player.get_component(ManaComponent)
+                            if mana:
+                                self.magic_system.regenerate_mana(self.player.name, mana)
+
                         if cast_result.should_quit:
                             self.running = False
                     self.active_spell = None

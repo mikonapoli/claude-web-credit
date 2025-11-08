@@ -508,7 +508,18 @@ class GameEngine:
                                 )
                                 if success:
                                     self.message_log.add_message(f"You confuse the {target.name}!")
-                                    # Note: Turn processing (mana regen, enemy AI) already handled above
+
+                                    # Process turn cycle: regenerate mana, status effects, enemy AI
+                                    from roguelike.components.mana import ManaComponent
+                                    mana = self.player.get_component(ManaComponent)
+                                    if mana:
+                                        self.magic_system.regenerate_mana(self.player.name, mana)
+
+                                    self._process_turn_after_action()
+
+                                    # Check if player died during enemy turns
+                                    if not self.running:
+                                        return
                                 else:
                                     self.message_log.add_message("The confusion scroll failed!")
                             else:

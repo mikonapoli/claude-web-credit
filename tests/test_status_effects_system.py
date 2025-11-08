@@ -486,9 +486,12 @@ def test_defense_effect_increases_defense():
 
 def test_gigantism_effect_increases_power():
     """Gigantism effect increases power modifier."""
+    from roguelike.components.combat import CombatComponent
+
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
     entity = ComponentEntity(Position(5, 5), "@", "Player")
+    entity.add_component(CombatComponent(power=5, defense=2))
 
     system.apply_effect(entity, "gigantism", duration=5, power=4)
     modifiers = system.get_stat_modifiers(entity)
@@ -498,9 +501,12 @@ def test_gigantism_effect_increases_power():
 
 def test_gigantism_effect_increases_defense():
     """Gigantism effect increases defense modifier."""
+    from roguelike.components.combat import CombatComponent
+
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
     entity = ComponentEntity(Position(5, 5), "@", "Player")
+    entity.add_component(CombatComponent(power=5, defense=2))
 
     system.apply_effect(entity, "gigantism", duration=5, power=4)
     modifiers = system.get_stat_modifiers(entity)
@@ -510,9 +516,12 @@ def test_gigantism_effect_increases_defense():
 
 def test_shrinking_effect_increases_defense():
     """Shrinking effect increases defense modifier."""
+    from roguelike.components.combat import CombatComponent
+
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
     entity = ComponentEntity(Position(5, 5), "@", "Player")
+    entity.add_component(CombatComponent(power=5, defense=2))
 
     system.apply_effect(entity, "shrinking", duration=5, power=3)
     modifiers = system.get_stat_modifiers(entity)
@@ -535,9 +544,12 @@ def test_multiple_effects_stack_modifiers():
 
 def test_multiple_defense_effects_stack():
     """Multiple defense effects stack their modifiers."""
+    from roguelike.components.combat import CombatComponent
+
     event_bus = EventBus()
     system = StatusEffectsSystem(event_bus)
     entity = ComponentEntity(Position(5, 5), "@", "Player")
+    entity.add_component(CombatComponent(power=5, defense=2))
 
     system.apply_effect(entity, "defense", duration=5, power=2)
     system.apply_effect(entity, "shrinking", duration=5, power=1)

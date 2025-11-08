@@ -10,7 +10,9 @@ from roguelike.engine.events import (
     EventBus,
     CombatEvent,
     DeathEvent,
+    EquipEvent,
     LevelUpEvent,
+    UnequipEvent,
     XPGainEvent,
     StatusEffectAppliedEvent,
     StatusEffectExpiredEvent,
@@ -19,6 +21,7 @@ from roguelike.engine.events import (
 from roguelike.entities.item import Item, ItemType
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
+from roguelike.systems.equipment_system import EquipmentSystem
 from roguelike.systems.item_system import ItemSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
@@ -67,6 +70,7 @@ class GameEngine:
         self.combat_system = CombatSystem(self.event_bus, self.status_effects_system)
         self.movement_system = MovementSystem(game_map)
         self.item_system = ItemSystem(self.event_bus, self.status_effects_system)
+        self.equipment_system = EquipmentSystem(self.event_bus)
         self.targeting_system = TargetingSystem()
         self.ai_system = AISystem(
             self.combat_system, self.movement_system, game_map, self.status_effects_system
@@ -98,6 +102,8 @@ class GameEngine:
         self.event_bus.subscribe("death", self._on_death_event)
         self.event_bus.subscribe("xp_gain", self._on_xp_gain_event)
         self.event_bus.subscribe("level_up", self._on_level_up_event)
+        self.event_bus.subscribe("equip", self._on_equip_event)
+        self.event_bus.subscribe("unequip", self._on_unequip_event)
         self.event_bus.subscribe("status_effect_applied", self._on_status_effect_applied)
         self.event_bus.subscribe("status_effect_expired", self._on_status_effect_expired)
         self.event_bus.subscribe("status_effect_tick", self._on_status_effect_tick)
@@ -121,6 +127,27 @@ class GameEngine:
         """Handle level up event."""
         self.message_log.add_message(
             f"You advance to level {event.new_level}!"
+        )
+
+    def _on_equip_event(self, event: EquipEvent) -> None:
+        """Handle equip event."""
+        bonus_parts = []
+        if event.power_bonus > 0:
+            bonus_parts.append(f"+{event.power_bonus} power")
+        if event.defense_bonus > 0:
+            bonus_parts.append(f"+{event.defense_bonus} defense")
+        if event.max_hp_bonus > 0:
+            bonus_parts.append(f"+{event.max_hp_bonus} max HP")
+
+        bonus_text = f" ({', '.join(bonus_parts)})" if bonus_parts else ""
+        self.message_log.add_message(
+            f"You equip the {event.item_name}{bonus_text}."
+        )
+
+    def _on_unequip_event(self, event: UnequipEvent) -> None:
+        """Handle unequip event."""
+        self.message_log.add_message(
+            f"You unequip the {event.item_name}."
         )
 
     def _on_status_effect_applied(self, event: StatusEffectAppliedEvent) -> None:
@@ -244,6 +271,7 @@ class GameEngine:
             movement_system=self.movement_system,
             ai_system=self.ai_system,
             status_effects_system=self.status_effects_system,
+            equipment_system=self.equipment_system,
             targeting_system=self.targeting_system,
             message_log=self.message_log,
             stairs_pos=self.stairs_pos,

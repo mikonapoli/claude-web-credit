@@ -163,10 +163,11 @@ class AutoCraftCommand(Command):
             return CommandResult(success=False, turn_consumed=False)
 
         # Get all items with crafting components
+        # Guard against regular Item objects that don't have get_component method
         items = inventory.get_items()
         craftable_items = [
             item for item in items
-            if item.get_component(CraftingComponent) is not None
+            if hasattr(item, "get_component") and item.get_component(CraftingComponent) is not None
         ]
 
         if len(craftable_items) < 2:

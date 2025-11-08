@@ -268,6 +268,46 @@ def test_auto_craft_command_not_enough_items(
     assert result.turn_consumed is False
 
 
+def test_auto_craft_with_regular_items_in_inventory(
+    player, crafting_system, message_log, entity_loader,
+    ai_system, combat_system, status_effects_system
+):
+    """Test AutoCraftCommand doesn't crash when regular Items are in inventory."""
+    from roguelike.entities.item import create_healing_potion, create_scroll_fireball
+
+    # Create mix of regular Items (potions, scrolls) and crafting materials
+    healing_potion = create_healing_potion(Position(10, 10))
+    scroll = create_scroll_fireball(Position(10, 10))
+    moonleaf = entity_loader.create_entity("moonleaf", Position(10, 10))
+    crystal = entity_loader.create_entity("mana_crystal", Position(10, 10))
+
+    # Add all to inventory - mix of Item and ComponentEntity
+    inventory = player.get_component(InventoryComponent)
+    inventory.add_item(healing_potion)
+    inventory.add_item(scroll)
+    inventory.add_item(moonleaf)
+    inventory.add_item(crystal)
+
+    # Create auto craft command - should not crash
+    entities = []
+    cmd = AutoCraftCommand(
+        player, crafting_system, message_log, entities,
+        ai_system, combat_system, status_effects_system
+    )
+    result = cmd.execute()
+
+    # Should succeed - crafts from the two craftable items (moonleaf + crystal)
+    assert result.success is True
+    assert result.turn_consumed is True
+
+    # Should have crafted healing potion from materials
+    items = inventory.get_items()
+    # Original healing potion + scroll still there, materials consumed, crafted item added
+    assert len(items) == 3  # healing potion, scroll, crafted item
+    assert healing_potion in items
+    assert scroll in items
+
+
 def test_auto_craft_command_prefers_three_ingredient_recipes(
     player, crafting_system, message_log, entity_loader,
     ai_system, combat_system, status_effects_system

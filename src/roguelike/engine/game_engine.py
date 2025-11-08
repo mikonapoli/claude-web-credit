@@ -246,6 +246,12 @@ class GameEngine:
         This handles status effects and AI turns without requiring
         the full turn manager flow.
         """
+        # Regenerate player mana
+        from roguelike.components.mana import ManaComponent
+        mana = self.player.get_component(ManaComponent)
+        if mana:
+            self.magic_system.regenerate_mana(self.player.name, mana)
+
         # Process status effects on player
         if self.status_effects_system:
             player_died = self.status_effects_system.process_effects(self.player)

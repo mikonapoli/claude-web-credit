@@ -13,6 +13,7 @@ from roguelike.entities.entity import Entity
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.health_bar_renderer import HealthBarRenderer
 from roguelike.ui.spell_menu import SpellMenu
+from roguelike.ui.inventory_menu import InventoryMenu
 from roguelike.ui.stats_bar_renderer import StatsBarRenderer
 from roguelike.utils.position import Position
 from roguelike.utils.protocols import HealthBarRenderable
@@ -487,6 +488,86 @@ class Renderer:
                 fg_color = (255, 255, 255)
 
             self.console.print(x + 1, y + i + 1, line[:width - 2], fg=fg_color)
+
+    def render_inventory_menu(
+        self,
+        inventory_menu: InventoryMenu,
+        player: ComponentEntity,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+    ) -> None:
+        """Render the inventory menu overlay.
+
+        Args:
+            inventory_menu: Inventory menu to render
+            player: Player entity (for inventory capacity)
+            x: X position for menu
+            y: Y position for menu
+            width: Width of menu area
+            height: Height of menu area
+        """
+        if not inventory_menu.is_open:
+            return
+
+        # Get inventory capacity
+        from roguelike.components.inventory import InventoryComponent
+        inventory = player.get_component(InventoryComponent)
+        capacity = inventory.capacity if inventory else 0
+
+        # Get menu lines
+        lines = inventory_menu.get_menu_lines(capacity)
+
+        # Render background box
+        for dy in range(min(len(lines) + 2, height)):
+            for dx in range(width):
+                self.console.print(x + dx, y + dy, " ", bg=(0, 64, 0))
+
+        # Render menu lines
+        for i, line in enumerate(lines[:height - 2]):
+            # Highlight selected item line
+            if ">" in line:  # Selected line
+                fg_color = (255, 255, 100)  # Yellow for selected
+            else:
+                fg_color = (255, 255, 255)
+
+            self.console.print(x + 1, y + i + 1, line[:width - 2], fg=fg_color)
+
+    def render_item_examination(
+        self,
+        description_lines: list[str],
+    ) -> None:
+        """Render item examination UI showing item details.
+
+        Args:
+            description_lines: Lines of item description to display
+        """
+        # Clear screen for examination display
+        self.console.clear()
+
+        # Calculate layout
+        start_y = 2
+        current_y = start_y
+
+        # Render title from first line
+        if description_lines:
+            title = description_lines[0]
+            title_x = (self.width - len(title)) // 2
+            self.console.print(title_x, 0, title, fg=(255, 255, 100))
+            current_y = start_y
+
+            # Render rest of description
+            for line in description_lines[1:]:
+                if current_y >= self.height - 2:
+                    break
+                self.console.print(2, current_y, line, fg=(200, 200, 200))
+                current_y += 1
+
+        # Render instructions at bottom
+        instructions = "Press ESC to close"
+        inst_x = (self.width - len(instructions)) // 2
+        self.console.print(inst_x, self.height - 1, instructions, fg=(150, 150, 150))
 
     def render_recipe_book(
         self,

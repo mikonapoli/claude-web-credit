@@ -35,6 +35,7 @@ from roguelike.ui.input_handler import InputHandler
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.renderer import Renderer
 from roguelike.ui.spell_menu import SpellMenu
+from roguelike.ui.inventory_menu import InventoryMenu
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
@@ -66,6 +67,7 @@ class GameEngine:
         self.running = False
         self.message_log = MessageLog()
         self.spell_menu = SpellMenu()  # Spell menu for spell selection
+        self.inventory_menu = InventoryMenu()  # Inventory menu for inventory UI
         self.active_targeted_item: Optional[Item] = None  # Track item being used with targeting
         self.active_spell = None  # Track spell being cast with targeting
         self.level_system = level_system
@@ -73,6 +75,8 @@ class GameEngine:
         self.current_dungeon_level = 1
         self.recipe_book_mode = False  # Track if recipe book UI is open
         self.recipe_book_data: Optional[list] = None  # Recipe data for UI display
+        self.item_examination_mode = False  # Track if item examination UI is open
+        self.item_examination_data: Optional[list] = None  # Item examination data
 
         # Create event bus and systems
         self.event_bus = EventBus()
@@ -352,6 +356,7 @@ class GameEngine:
             crafting_system=self.crafting_system,
             magic_system=self.magic_system,
             spell_menu=self.spell_menu,
+            inventory_menu=self.inventory_menu,
             message_log=self.message_log,
             stairs_pos=self.stairs_pos,
         )
@@ -364,7 +369,11 @@ class GameEngine:
 
         while self.running:
             # Render based on current mode
-            if self.recipe_book_mode and self.recipe_book_data:
+            if self.item_examination_mode and self.item_examination_data:
+                # Render item examination UI
+                renderer.render_item_examination(self.item_examination_data)
+                renderer.present()
+            elif self.recipe_book_mode and self.recipe_book_data:
                 # Render recipe book UI
                 renderer.render_recipe_book(self.recipe_book_data)
                 renderer.present()
@@ -437,10 +446,35 @@ class GameEngine:
                     menu_height
                 )
 
+            # Render inventory menu if open
+            if self.inventory_menu.is_open:
+                menu_x = renderer.width // 4
+                menu_y = renderer.height // 4
+                menu_width = renderer.width // 2
+                menu_height = renderer.height // 2
+                renderer.render_inventory_menu(
+                    self.inventory_menu,
+                    self.player,
+                    menu_x,
+                    menu_y,
+                    menu_width,
+                    menu_height
+                )
+
             renderer.present()
 
             # Handle input
             for event in tcod.event.wait():
+                # Special handling for item examination mode
+                if self.item_examination_mode:
+                    # Check for ESC key to close examination view
+                    if isinstance(event, tcod.event.KeyDown) and event.sym == tcod.event.KeySym.ESCAPE:
+                        self.item_examination_mode = False
+                        self.item_examination_data = None
+                        continue  # Don't process as normal command
+                    # Ignore other input in examination mode
+                    continue
+
                 # Special handling for recipe book mode
                 if self.recipe_book_mode:
                     # Check for ESC key to close recipe book
@@ -530,6 +564,9 @@ class GameEngine:
                         # Clear active spell if we were casting one
                         if self.active_spell:
                             self.active_spell = None
+                        # Clear active targeted item if we were using one
+                        if self.active_targeted_item:
+                            self.active_targeted_item = None
                     elif result.data.get("spell_menu_opened"):
                         # Spell menu opened - enter spell menu mode
                         input_handler.set_spell_menu_mode(True)
@@ -573,6 +610,21 @@ class GameEngine:
                         # Show recipe book UI
                         self.recipe_book_mode = True
                         self.recipe_book_data = result.data.get("recipes", [])
+                    elif result.data.get("inventory_menu_opened"):
+                        # Inventory menu opened - enter inventory menu mode
+                        input_handler.set_inventory_menu_mode(True)
+                    elif result.data.get("inventory_menu_closed"):
+                        # Inventory menu closed - exit inventory menu mode
+                        input_handler.set_inventory_menu_mode(False)
+                    elif result.data.get("examine_item"):
+                        # Item examination requested - show examination UI
+                        self.item_examination_mode = True
+                        self.item_examination_data = result.data.get("description_lines", [])
+                    elif result.data.get("start_item_targeting"):
+                        # Targeted item selected - enter targeting mode
+                        input_handler.set_inventory_menu_mode(False)
+                        input_handler.set_targeting_mode(True)
+                        self.active_targeted_item = result.data.get("item")
 
                 # Handle spell targeting selection (when active_spell is set)
                 if result.data and result.data.get("targeting_select") and self.active_spell:
@@ -604,5 +656,35 @@ class GameEngine:
                         if cast_result.should_quit:
                             self.running = False
                     self.active_spell = None
+
+                # Handle item targeting selection (when active_targeted_item is set)
+                if result.data and result.data.get("targeting_select") and self.active_targeted_item:
+                    # Targeting selection made - use item on target
+                    input_handler.set_targeting_mode(False)
+                    target = result.data.get("target")
+                    if target:
+                        # Use the targeted item on the selected target
+                        success = self.item_system.use_item(
+                            self.active_targeted_item,
+                            self.player,
+                            self.player.inventory,
+                            target=target
+                        )
+                        if success:
+                            self.message_log.add_message(
+                                f"You used {self.active_targeted_item.name} on {target.name}!"
+                            )
+                        else:
+                            self.message_log.add_message(
+                                f"Failed to use {self.active_targeted_item.name}!"
+                            )
+
+                        # Process turn cycle after using item
+                        self._process_turn_after_action()
+
+                        # Check if player died during enemy turns
+                        if not self.running:
+                            return
+                    self.active_targeted_item = None
 
         renderer.close()

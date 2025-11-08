@@ -25,6 +25,15 @@ from roguelike.commands.spell_commands import (
     CloseSpellMenuCommand,
     SelectSpellCommand,
 )
+from roguelike.commands.inventory_menu_commands import (
+    OpenInventoryMenuCommand,
+    CloseInventoryMenuCommand,
+    NavigateInventoryCommand,
+    SetInventoryModeCommand,
+    UseItemFromMenuCommand,
+    DropItemFromMenuCommand,
+    ExamineItemCommand,
+)
 from roguelike.components.entity import ComponentEntity
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
@@ -36,6 +45,7 @@ from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
 from roguelike.ui.message_log import MessageLog
 from roguelike.ui.spell_menu import SpellMenu
+from roguelike.ui.inventory_menu import InventoryMenu
 from roguelike.utils.position import Position
 from roguelike.world.fov import FOVMap
 from roguelike.world.game_map import GameMap
@@ -65,6 +75,7 @@ class InputHandler:
         crafting_system: CraftingSystem,
         magic_system: MagicSystem,
         spell_menu: SpellMenu,
+        inventory_menu: InventoryMenu,
         message_log: MessageLog,
         stairs_pos: Optional[Position] = None,
     ):
@@ -85,6 +96,7 @@ class InputHandler:
             crafting_system: Crafting system for recipe matching
             magic_system: Magic system for spell casting
             spell_menu: Spell menu for spell selection
+            inventory_menu: Inventory menu for inventory UI
             message_log: Message log for displaying messages
             stairs_pos: Position of stairs (if any)
         """
@@ -102,11 +114,13 @@ class InputHandler:
         self.crafting_system = crafting_system
         self.magic_system = magic_system
         self.spell_menu = spell_menu
+        self.inventory_menu = inventory_menu
         self.message_log = message_log
         self.stairs_pos = stairs_pos
         self.last_command: Optional[Command] = None
         self.targeting_mode: bool = False
         self.spell_menu_mode: bool = False
+        self.inventory_menu_mode: bool = False
 
     def update_context(
         self,
@@ -165,6 +179,11 @@ class InputHandler:
             event: KeyDown event
         """
         key = event.sym
+
+        # Inventory menu mode has different key bindings
+        if self.inventory_menu_mode:
+            self._handle_inventory_menu_keys(event)
+            return
 
         # Spell menu mode has different key bindings
         if self.spell_menu_mode:
@@ -282,6 +301,12 @@ class InputHandler:
                 self.player, self.spell_menu, self.message_log
             )
 
+        # Open inventory menu (lowercase 'i' key)
+        elif key == tcod.event.KeySym.I and not event.mod & tcod.event.KMOD_SHIFT:
+            self.last_command = OpenInventoryMenuCommand(
+                self.player, self.inventory_menu, self.message_log
+            )
+
         # Quit
         elif key == tcod.event.KeySym.ESCAPE:
             self.last_command = QuitCommand()
@@ -359,6 +384,63 @@ class InputHandler:
         elif key == tcod.event.KeySym.ESCAPE:
             self.last_command = CloseSpellMenuCommand(self.spell_menu)
 
+    def _handle_inventory_menu_keys(self, event: tcod.event.KeyDown) -> None:
+        """Handle keydown in inventory menu mode.
+
+        Args:
+            event: KeyDown event
+        """
+        key = event.sym
+
+        # Up/Down to navigate items
+        if key in (tcod.event.KeySym.UP, tcod.event.KeySym.K):
+            self.last_command = NavigateInventoryCommand(self.inventory_menu, "up")
+        elif key in (tcod.event.KeySym.DOWN, tcod.event.KeySym.J):
+            self.last_command = NavigateInventoryCommand(self.inventory_menu, "down")
+
+        # Enter to perform current mode action
+        elif key in (tcod.event.KeySym.RETURN, tcod.event.KeySym.RETURN2):
+            if self.inventory_menu.mode == "use":
+                self.last_command = UseItemFromMenuCommand(
+                    self.player,
+                    self.inventory_menu,
+                    self.entities,
+                    self.ai_system,
+                    self.combat_system,
+                    self.status_effects_system,
+                    self.targeting_system,
+                    self.fov_map,
+                    self.game_map,
+                    self.message_log,
+                )
+            elif self.inventory_menu.mode == "drop":
+                self.last_command = DropItemFromMenuCommand(
+                    self.player,
+                    self.inventory_menu,
+                    self.entities,
+                    self.ai_system,
+                    self.combat_system,
+                    self.status_effects_system,
+                    self.message_log,
+                )
+            elif self.inventory_menu.mode == "examine":
+                self.last_command = ExamineItemCommand(
+                    self.inventory_menu,
+                    self.message_log,
+                )
+
+        # Mode switching keys
+        elif key == tcod.event.KeySym.U:
+            self.last_command = SetInventoryModeCommand(self.inventory_menu, "use")
+        elif key == tcod.event.KeySym.D:
+            self.last_command = SetInventoryModeCommand(self.inventory_menu, "drop")
+        elif key == tcod.event.KeySym.X:
+            self.last_command = SetInventoryModeCommand(self.inventory_menu, "examine")
+
+        # Escape to close menu
+        elif key == tcod.event.KeySym.ESCAPE:
+            self.last_command = CloseInventoryMenuCommand(self.inventory_menu)
+
     def set_targeting_mode(self, enabled: bool) -> None:
         """Enable or disable targeting mode.
 
@@ -374,6 +456,14 @@ class InputHandler:
             enabled: True to enable spell menu mode
         """
         self.spell_menu_mode = enabled
+
+    def set_inventory_menu_mode(self, enabled: bool) -> None:
+        """Enable or disable inventory menu mode.
+
+        Args:
+            enabled: True to enable inventory menu mode
+        """
+        self.inventory_menu_mode = enabled
 
     def get_command(self) -> Optional[Command]:
         """Get the last command and clear it.

@@ -351,6 +351,8 @@ class GameEngine:
             equipment_system=self.equipment_system,
             targeting_system=self.targeting_system,
             crafting_system=self.crafting_system,
+            magic_system=self.magic_system,
+            spell_menu=self.spell_menu,
             message_log=self.message_log,
             stairs_pos=self.stairs_pos,
         )
@@ -415,6 +417,21 @@ class GameEngine:
                 if cursor_pos:
                     renderer.render_targeting_cursor(cursor_pos, target_name)
 
+            # Render spell menu if open
+            if self.spell_menu.is_open:
+                menu_x = renderer.width // 4
+                menu_y = renderer.height // 4
+                menu_width = renderer.width // 2
+                menu_height = renderer.height // 2
+                renderer.render_spell_menu(
+                    self.spell_menu,
+                    self.player,
+                    menu_x,
+                    menu_y,
+                    menu_width,
+                    menu_height
+                )
+
             renderer.present()
 
             # Handle input
@@ -478,5 +495,59 @@ class GameEngine:
                     elif result.data.get("targeting_cancel"):
                         # Targeting cancelled - exit targeting mode
                         input_handler.set_targeting_mode(False)
+                    elif result.data.get("spell_menu_opened"):
+                        # Spell menu opened - enter spell menu mode
+                        input_handler.set_spell_menu_mode(True)
+                    elif result.data.get("spell_menu_closed"):
+                        # Spell menu closed - exit spell menu mode
+                        input_handler.set_spell_menu_mode(False)
+                    elif result.data.get("cast_spell_on_self"):
+                        # Self-targeting spell selected - cast immediately
+                        input_handler.set_spell_menu_mode(False)
+                        spell = result.data.get("spell")
+                        if spell:
+                            from roguelike.commands.spell_commands import CastSpellCommand
+                            cast_cmd = CastSpellCommand(
+                                self.player,
+                                self.player,  # Cast on self
+                                spell,
+                                self.entities,
+                                self.magic_system,
+                                self.combat_system,
+                                self.ai_system,
+                                self.status_effects_system,
+                                self.message_log,
+                            )
+                            cast_result = self.command_executor.execute(cast_cmd)
+                            if cast_result.should_quit:
+                                self.running = False
+                    elif result.data.get("start_spell_targeting"):
+                        # Targeted spell selected - enter targeting mode
+                        input_handler.set_spell_menu_mode(False)
+                        input_handler.set_targeting_mode(True)
+                        self.active_spell = result.data.get("spell")
+
+                # Handle spell targeting selection (when active_spell is set)
+                if result.data and result.data.get("targeting_select") and self.active_spell:
+                    # Targeting selection made - cast spell on target
+                    input_handler.set_targeting_mode(False)
+                    target = result.data.get("target")
+                    if target:
+                        from roguelike.commands.spell_commands import CastSpellCommand
+                        cast_cmd = CastSpellCommand(
+                            self.player,
+                            target,
+                            self.active_spell,
+                            self.entities,
+                            self.magic_system,
+                            self.combat_system,
+                            self.ai_system,
+                            self.status_effects_system,
+                            self.message_log,
+                        )
+                        cast_result = self.command_executor.execute(cast_cmd)
+                        if cast_result.should_quit:
+                            self.running = False
+                    self.active_spell = None
 
         renderer.close()

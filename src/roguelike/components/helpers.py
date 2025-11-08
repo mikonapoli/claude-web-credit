@@ -7,8 +7,11 @@ Note: For simple property access (hp, power, defense, etc.), use the
 ComponentEntity properties directly (e.g., entity.hp, entity.power).
 """
 
+from typing import Tuple
+
 from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
+from roguelike.components.equipment import EquipmentComponent
 from roguelike.components.health import HealthComponent
 
 
@@ -85,4 +88,27 @@ def is_monster(entity) -> bool:
         and entity.has_component(CombatComponent)
         and not is_player(entity)
         and entity.blocks_movement
+    )
+
+
+def get_equipment_bonuses(entity: ComponentEntity) -> Tuple[int, int, int]:
+    """Get all equipment bonuses for an entity.
+
+    Args:
+        entity: Entity to get equipment bonuses for
+
+    Returns:
+        Tuple of (power_bonus, defense_bonus, max_hp_bonus)
+
+    Note:
+        Returns (0, 0, 0) if entity has no EquipmentComponent.
+    """
+    equipment = entity.get_component(EquipmentComponent)
+    if not equipment:
+        return (0, 0, 0)
+
+    return (
+        equipment.get_total_power_bonus(),
+        equipment.get_total_defense_bonus(),
+        equipment.get_total_max_hp_bonus(),
     )

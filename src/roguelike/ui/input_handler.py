@@ -22,6 +22,7 @@ from roguelike.components.entity import ComponentEntity
 from roguelike.systems.ai_system import AISystem
 from roguelike.systems.combat_system import CombatSystem
 from roguelike.systems.crafting import CraftingSystem
+from roguelike.systems.equipment_system import EquipmentSystem
 from roguelike.systems.movement_system import MovementSystem
 from roguelike.systems.status_effects import StatusEffectsSystem
 from roguelike.systems.targeting import TargetingSystem
@@ -50,6 +51,7 @@ class InputHandler:
         movement_system: MovementSystem,
         ai_system: AISystem,
         status_effects_system: Optional[StatusEffectsSystem],
+        equipment_system: EquipmentSystem,
         targeting_system: TargetingSystem,
         crafting_system: CraftingSystem,
         message_log: MessageLog,
@@ -67,6 +69,7 @@ class InputHandler:
             movement_system: Movement system for entity movement
             ai_system: AI system for enemy behavior
             status_effects_system: Status effects system for managing effects
+            equipment_system: Equipment system for managing equipment
             targeting_system: Targeting system for targeted abilities
             crafting_system: Crafting system for recipe matching
             message_log: Message log for displaying messages
@@ -81,6 +84,7 @@ class InputHandler:
         self.movement_system = movement_system
         self.ai_system = ai_system
         self.status_effects_system = status_effects_system
+        self.equipment_system = equipment_system
         self.targeting_system = targeting_system
         self.crafting_system = crafting_system
         self.message_log = message_log

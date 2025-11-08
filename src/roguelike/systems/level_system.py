@@ -12,7 +12,7 @@ from roguelike.components.health import HealthComponent
 from roguelike.components.level import LevelComponent
 from roguelike.utils.position import Position
 from roguelike.world.game_map import GameMap
-from roguelike.world.procgen import generate_dungeon, place_stairs
+from roguelike.world.procgen import generate_dungeon, place_equipment, place_stairs
 from roguelike.world.room import Room
 from roguelike.engine.events import EventBus, LevelTransitionEvent
 
@@ -233,34 +233,42 @@ class DungeonLevelSystem:
     def generate_level_with_monsters(
         self, level_number: int
     ) -> Tuple[GameMap, List[Room], List[ComponentEntity], Position]:
-        """Generate a complete level with monsters, items, materials, and stairs.
+        """Generate a complete level with monsters, items, materials, equipment, and stairs.
 
         Args:
             level_number: Level number to generate (1-5)
 
         Returns:
             Tuple of (game map, list of rooms, list of entities, stairs position)
-            entities includes monsters, items, and crafting materials
+            entities includes monsters, items, crafting materials, and equipment
         """
-        from roguelike.world.procgen import place_items, place_crafting_materials
+        from roguelike.world.procgen import place_items, place_crafting_materials, place_equipment
 
         config = self.level_configs[level_number]
         game_map, rooms = self.generate_level(level_number)
 
-        # Place monsters, items, and materials in all rooms except the first (player spawn)
+        # Place monsters, items, materials, and equipment in all rooms except the first (player spawn)
         entities: List[ComponentEntity] = []
+
+        # Equipment spawn rate: 0-2 items per room, scales with dungeon level
+        max_equipment_per_room = min(2, 1 + (level_number // 2))
+
         for room in rooms[1:]:
             # Place monsters
             room_monsters = place_monsters_scaled(room, config)
             entities.extend(room_monsters)
 
-            # Place regular items
+            # Place regular items (potions, scrolls, etc.)
             room_items = place_items(room, config.max_items_per_room)
             entities.extend(room_items)
 
             # Place crafting materials
             room_materials = place_crafting_materials(room, config.max_materials_per_room)
             entities.extend(room_materials)
+
+            # Place equipment (weapons, armor)
+            room_equipment = place_equipment(room, max_equipment_per_room, level_number)
+            entities.extend(room_equipment)
 
         # Place stairs down in the last room (unless it's the final level)
         stairs_pos = None

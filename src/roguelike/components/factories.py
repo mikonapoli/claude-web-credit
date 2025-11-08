@@ -2,6 +2,7 @@
 
 from roguelike.components.combat import CombatComponent
 from roguelike.components.entity import ComponentEntity
+from roguelike.components.equipment import EquipmentComponent, EquipmentSlot, EquipmentStats
 from roguelike.components.health import HealthComponent
 from roguelike.components.inventory import InventoryComponent
 from roguelike.components.level import LevelComponent
@@ -29,6 +30,7 @@ def create_player(position: Position) -> ComponentEntity:
     player.add_component(CombatComponent(power=5, defense=2))
     player.add_component(LevelComponent(level=1, xp=0, xp_value=0))
     player.add_component(InventoryComponent(capacity=26))
+    player.add_component(EquipmentComponent())
 
     return player
 
@@ -79,3 +81,166 @@ def create_troll(position: Position) -> ComponentEntity:
     troll.add_component(LevelComponent(level=2, xp=0, xp_value=100))
 
     return troll
+
+
+# Equipment creation functions
+
+def create_iron_sword(position: Position) -> ComponentEntity:
+    """Create an iron sword."""
+    item = ComponentEntity(position=position, char="/", name="Iron Sword", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.WEAPON, power_bonus=3, defense_bonus=0, max_hp_bonus=0))
+    return item
+
+
+def create_steel_sword(position: Position) -> ComponentEntity:
+    """Create a steel sword."""
+    item = ComponentEntity(position=position, char="/", name="Steel Sword", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.WEAPON, power_bonus=5, defense_bonus=0, max_hp_bonus=0))
+    return item
+
+
+def create_enchanted_blade(position: Position) -> ComponentEntity:
+    """Create an enchanted blade."""
+    item = ComponentEntity(position=position, char="/", name="Enchanted Blade", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.WEAPON, power_bonus=7, defense_bonus=1, max_hp_bonus=0))
+    return item
+
+
+def create_wooden_club(position: Position) -> ComponentEntity:
+    """Create a wooden club."""
+    item = ComponentEntity(position=position, char="\\", name="Wooden Club", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.WEAPON, power_bonus=2, defense_bonus=0, max_hp_bonus=0))
+    return item
+
+
+def create_battle_axe(position: Position) -> ComponentEntity:
+    """Create a battle axe."""
+    item = ComponentEntity(position=position, char="/", name="Battle Axe", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.WEAPON, power_bonus=8, defense_bonus=-1, max_hp_bonus=0))
+    return item
+
+
+def create_leather_armor(position: Position) -> ComponentEntity:
+    """Create leather armor."""
+    item = ComponentEntity(position=position, char="[", name="Leather Armor", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.ARMOR, power_bonus=0, defense_bonus=2, max_hp_bonus=0))
+    return item
+
+
+def create_chainmail(position: Position) -> ComponentEntity:
+    """Create chainmail."""
+    item = ComponentEntity(position=position, char="[", name="Chainmail", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.ARMOR, power_bonus=0, defense_bonus=4, max_hp_bonus=0))
+    return item
+
+
+def create_plate_armor(position: Position) -> ComponentEntity:
+    """Create plate armor."""
+    item = ComponentEntity(position=position, char="[", name="Plate Armor", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.ARMOR, power_bonus=0, defense_bonus=6, max_hp_bonus=5))
+    return item
+
+
+def create_dragon_scale_armor(position: Position) -> ComponentEntity:
+    """Create dragon scale armor."""
+    item = ComponentEntity(position=position, char="[", name="Dragon Scale Armor", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.ARMOR, power_bonus=1, defense_bonus=8, max_hp_bonus=10))
+    return item
+
+
+def create_leather_helmet(position: Position) -> ComponentEntity:
+    """Create a leather helmet."""
+    item = ComponentEntity(position=position, char="^", name="Leather Helmet", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.HELMET, power_bonus=0, defense_bonus=1, max_hp_bonus=2))
+    return item
+
+
+def create_steel_helmet(position: Position) -> ComponentEntity:
+    """Create a steel helmet."""
+    item = ComponentEntity(position=position, char="^", name="Steel Helmet", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.HELMET, power_bonus=0, defense_bonus=2, max_hp_bonus=5))
+    return item
+
+
+def create_crown_of_kings(position: Position) -> ComponentEntity:
+    """Create the Crown of Kings."""
+    item = ComponentEntity(position=position, char="^", name="Crown of Kings", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.HELMET, power_bonus=2, defense_bonus=3, max_hp_bonus=10))
+    return item
+
+
+def create_leather_boots(position: Position) -> ComponentEntity:
+    """Create leather boots."""
+    item = ComponentEntity(position=position, char="]", name="Leather Boots", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.BOOTS, power_bonus=0, defense_bonus=1, max_hp_bonus=0))
+    return item
+
+
+def create_steel_boots(position: Position) -> ComponentEntity:
+    """Create steel boots."""
+    item = ComponentEntity(position=position, char="]", name="Steel Boots", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.BOOTS, power_bonus=1, defense_bonus=2, max_hp_bonus=0))
+    return item
+
+
+def create_boots_of_speed(position: Position) -> ComponentEntity:
+    """Create boots of speed."""
+    item = ComponentEntity(position=position, char="]", name="Boots of Speed", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.BOOTS, power_bonus=0, defense_bonus=1, max_hp_bonus=5))
+    return item
+
+
+def create_leather_gloves(position: Position) -> ComponentEntity:
+    """Create leather gloves."""
+    item = ComponentEntity(position=position, char=")", name="Leather Gloves", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.GLOVES, power_bonus=1, defense_bonus=0, max_hp_bonus=0))
+    return item
+
+
+def create_gauntlets(position: Position) -> ComponentEntity:
+    """Create gauntlets."""
+    item = ComponentEntity(position=position, char=")", name="Gauntlets", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.GLOVES, power_bonus=2, defense_bonus=1, max_hp_bonus=0))
+    return item
+
+
+def create_ring_of_power(position: Position) -> ComponentEntity:
+    """Create a ring of power."""
+    item = ComponentEntity(position=position, char="=", name="Ring of Power", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.RING, power_bonus=3, defense_bonus=0, max_hp_bonus=0))
+    return item
+
+
+def create_ring_of_protection(position: Position) -> ComponentEntity:
+    """Create a ring of protection."""
+    item = ComponentEntity(position=position, char="=", name="Ring of Protection", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.RING, power_bonus=0, defense_bonus=3, max_hp_bonus=0))
+    return item
+
+
+def create_ring_of_vitality(position: Position) -> ComponentEntity:
+    """Create a ring of vitality."""
+    item = ComponentEntity(position=position, char="=", name="Ring of Vitality", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.RING, power_bonus=0, defense_bonus=0, max_hp_bonus=15))
+    return item
+
+
+def create_amulet_of_strength(position: Position) -> ComponentEntity:
+    """Create an amulet of strength."""
+    item = ComponentEntity(position=position, char='"', name="Amulet of Strength", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.AMULET, power_bonus=4, defense_bonus=0, max_hp_bonus=0))
+    return item
+
+
+def create_amulet_of_defense(position: Position) -> ComponentEntity:
+    """Create an amulet of defense."""
+    item = ComponentEntity(position=position, char='"', name="Amulet of Defense", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.AMULET, power_bonus=0, defense_bonus=4, max_hp_bonus=0))
+    return item
+
+
+def create_amulet_of_life(position: Position) -> ComponentEntity:
+    """Create an amulet of life."""
+    item = ComponentEntity(position=position, char='"', name="Amulet of Life", blocks_movement=False)
+    item.add_component(EquipmentStats(slot=EquipmentSlot.AMULET, power_bonus=0, defense_bonus=0, max_hp_bonus=20))
+    return item

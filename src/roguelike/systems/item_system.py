@@ -1,12 +1,16 @@
 """Item system for handling item effects."""
 
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from roguelike.engine.events import EventBus, HealingEvent, ItemUseEvent
 from roguelike.components.entity import ComponentEntity
 from roguelike.entities.item import Item, ItemType
 from roguelike.systems.inventory import Inventory
 from roguelike.systems.status_effects import StatusEffectsSystem
+
+if TYPE_CHECKING:
+    from roguelike.world.fov import FOVMap
+    from roguelike.world.game_map import GameMap
 
 
 class ItemSystem:
@@ -24,7 +28,16 @@ class ItemSystem:
         self.event_bus = event_bus
         self.status_effects_system = status_effects_system
 
-    def use_item(self, item: Item, user: ComponentEntity, inventory: Inventory, target: Optional[ComponentEntity] = None) -> bool:
+    def use_item(
+        self,
+        item: Item,
+        user: ComponentEntity,
+        inventory: Inventory,
+        target: Optional[ComponentEntity] = None,
+        fov_map: Optional["FOVMap"] = None,
+        game_map: Optional["GameMap"] = None,
+        entities: Optional[List[ComponentEntity]] = None,
+    ) -> bool:
         """Use an item and apply its effects.
 
         Args:
@@ -32,6 +45,9 @@ class ItemSystem:
             user: ComponentEntity using the item
             inventory: User's inventory
             target: Optional target actor for targeted items
+            fov_map: Optional FOV map for map-revealing effects
+            game_map: Optional game map for teleportation effects
+            entities: Optional list of entities for collision checking
 
         Returns:
             True if item was used successfully
@@ -46,7 +62,7 @@ class ItemSystem:
         )
 
         # Apply item effect based on type
-        success = self._apply_item_effect(item, user, target)
+        success = self._apply_item_effect(item, user, target, fov_map, game_map, entities)
 
         # Remove item from inventory if used successfully
         if success:
@@ -54,13 +70,24 @@ class ItemSystem:
 
         return success
 
-    def _apply_item_effect(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
+    def _apply_item_effect(
+        self,
+        item: Item,
+        user: ComponentEntity,
+        target: Optional[ComponentEntity] = None,
+        fov_map: Optional["FOVMap"] = None,
+        game_map: Optional["GameMap"] = None,
+        entities: Optional[List[ComponentEntity]] = None,
+    ) -> bool:
         """Apply the effect of an item.
 
         Args:
             item: Item being used
             user: ComponentEntity using the item
             target: Optional target actor for targeted items
+            fov_map: Optional FOV map for map-revealing effects
+            game_map: Optional game map for teleportation effects
+            entities: Optional list of entities for collision checking
 
         Returns:
             True if effect was applied successfully
@@ -99,9 +126,9 @@ class ItemSystem:
 
         # Utility scrolls
         elif item_type == ItemType.SCROLL_TELEPORT:
-            return self._apply_teleport(item, user)
+            return self._apply_teleport(item, user, game_map, entities)
         elif item_type == ItemType.SCROLL_MAGIC_MAPPING:
-            return self._apply_magic_mapping(item, user)
+            return self._apply_magic_mapping(item, user, fov_map)
 
         # Quirky items
         elif item_type == ItemType.COFFEE:
@@ -109,9 +136,9 @@ class ItemSystem:
         elif item_type == ItemType.LUCKY_COIN:
             return self._apply_lucky_coin(item, user)
         elif item_type == ItemType.BANANA_PEEL:
-            return self._apply_banana_peel(item, user)
+            return self._apply_banana_peel(item, user, target)
         elif item_type == ItemType.RUBBER_CHICKEN:
-            return self._apply_rubber_chicken(item, user)
+            return self._apply_rubber_chicken(item, user, target)
         elif item_type == ItemType.CURSED_RING:
             return self._apply_cursed_ring(item, user)
 
@@ -147,9 +174,12 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # Apply permanent power boost
-        user.power += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary strength buff (value = power bonus, duration in turns)
+            return self.status_effects_system.apply_effect(
+                user, "strength", duration=10, power=item.value
+            )
+        return False
 
     def _apply_defense_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply defense buff.
@@ -164,9 +194,12 @@ class ItemSystem:
         Returns:
             True if buff was applied
         """
-        # Apply permanent defense boost
-        user.defense += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary defense buff (value = defense bonus, duration in turns)
+            return self.status_effects_system.apply_effect(
+                user, "defense", duration=10, power=item.value
+            )
+        return False
 
     def _apply_speed_buff(self, item: Item, user: ComponentEntity) -> bool:
         """Apply speed buff.
@@ -181,8 +214,12 @@ class ItemSystem:
         Returns:
             True (item consumed with no effect)
         """
-        # Speed/turn system not yet implemented
-        return True
+        if self.status_effects_system:
+            # Apply temporary speed buff (allows extra actions)
+            return self.status_effects_system.apply_effect(
+                user, "speed", duration=5, power=1
+            )
+        return False
 
     def _apply_invisibility(self, item: Item, user: ComponentEntity) -> bool:
         """Apply invisibility effect.
@@ -203,8 +240,7 @@ class ItemSystem:
     def _apply_gigantism(self, item: Item, user: ComponentEntity) -> bool:
         """Apply gigantism effect.
 
-        Note: Currently applies permanent power boost.
-        A temporary buff system could be added in the future.
+        Temporarily increases power by growing in size.
 
         Args:
             item: Gigantism potion
@@ -213,15 +249,17 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # Apply permanent power boost (representing growth)
-        user.power += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary gigantism buff (increases power and defense)
+            return self.status_effects_system.apply_effect(
+                user, "gigantism", duration=8, power=item.value
+            )
+        return False
 
     def _apply_shrinking(self, item: Item, user: ComponentEntity) -> bool:
         """Apply shrinking effect.
 
-        Note: Currently applies permanent defense boost.
-        A temporary buff system could be added in the future.
+        Temporarily increases defense by becoming smaller and harder to hit.
 
         Args:
             item: Shrinking potion
@@ -230,9 +268,14 @@ class ItemSystem:
         Returns:
             True if effect was applied
         """
-        # Apply permanent defense boost (representing evasiveness from being small)
-        user.defense += item.value
-        return True
+        if self.status_effects_system:
+            # Apply temporary defense boost via status effect
+            # Duration is 10 turns, power value is the boost amount
+            duration = 10
+            return self.status_effects_system.apply_effect(
+                user, "shrinking", duration=duration, power=item.value
+            )
+        return False
 
     def _apply_fireball(self, item: Item, user: ComponentEntity, target: Optional[ComponentEntity] = None) -> bool:
         """Apply fireball effect.
@@ -292,36 +335,79 @@ class ItemSystem:
             )
         return False
 
-    def _apply_teleport(self, item: Item, user: ComponentEntity) -> bool:
+    def _apply_teleport(
+        self,
+        item: Item,
+        user: ComponentEntity,
+        game_map: Optional["GameMap"] = None,
+        entities: Optional[List[ComponentEntity]] = None,
+    ) -> bool:
         """Apply teleport effect.
 
-        Note: This is a stub - random teleportation not yet implemented.
-        Currently consumes the item but has no effect.
+        Teleports the user to a random walkable location on the map.
 
         Args:
             item: Teleport scroll
             user: ComponentEntity to teleport
+            game_map: Game map for finding valid locations
+            entities: List of entities for collision checking
 
         Returns:
-            True (item consumed with no effect)
+            True if teleportation succeeded
         """
-        # Random teleportation not yet implemented
-        return True
+        if game_map is None or entities is None:
+            return False
 
-    def _apply_magic_mapping(self, item: Item, user: ComponentEntity) -> bool:
+        import random
+        from roguelike.utils.position import Position
+
+        # Try to find a random walkable position
+        # Attempt up to 100 times to find a valid spot
+        for _ in range(100):
+            x = random.randint(0, game_map.width - 1)
+            y = random.randint(0, game_map.height - 1)
+            new_pos = Position(x, y)
+
+            # Check if position is walkable and not occupied
+            if game_map.is_walkable(new_pos):
+                # Check for blocking entities
+                blocked = False
+                for entity in entities:
+                    if entity.position == new_pos and entity.blocks_movement:
+                        blocked = True
+                        break
+
+                if not blocked:
+                    # Teleport successful
+                    user.move_to(new_pos)
+                    return True
+
+        # Failed to find valid location after 100 attempts
+        return False
+
+    def _apply_magic_mapping(
+        self,
+        item: Item,
+        user: ComponentEntity,
+        fov_map: Optional["FOVMap"] = None,
+    ) -> bool:
         """Apply magic mapping effect.
 
-        Note: This is a stub - map reveal not yet implemented.
-        Currently consumes the item but has no effect.
+        Reveals the entire map to the user.
 
         Args:
             item: Magic mapping scroll
             user: ComponentEntity revealing map
+            fov_map: FOV map to update
 
         Returns:
-            True (item consumed with no effect)
+            True if map was revealed
         """
-        # Map reveal not yet implemented
+        if fov_map is None:
+            return False
+
+        # Reveal all tiles on the map
+        fov_map.explored[:] = True
         return True
 
     def _apply_coffee(self, item: Item, user: ComponentEntity) -> bool:
@@ -343,50 +429,82 @@ class ItemSystem:
     def _apply_lucky_coin(self, item: Item, user: ComponentEntity) -> bool:
         """Apply lucky coin effect.
 
-        Note: This is a stub - XP boost not yet implemented.
-        Currently consumes the item but has no effect.
+        Grants a temporary XP bonus for a duration.
 
         Args:
             item: Lucky coin
             user: ComponentEntity using coin
 
         Returns:
-            True (item consumed with no effect)
+            True if effect was applied
         """
-        # XP boost not yet implemented
-        return True
+        if self.status_effects_system:
+            # Apply XP bonus effect
+            # Duration is 20 turns, power value is the XP bonus percentage
+            duration = 20
+            return self.status_effects_system.apply_effect(
+                user, "xp_bonus", duration=duration, power=item.value
+            )
+        return False
 
-    def _apply_banana_peel(self, item: Item, user: ComponentEntity) -> bool:
+    def _apply_banana_peel(
+        self,
+        item: Item,
+        user: ComponentEntity,
+        target: Optional[ComponentEntity] = None,
+    ) -> bool:
         """Apply banana peel effect.
 
-        Note: This is a stub - throwable trap not yet implemented.
-        Currently consumes the item but has no effect.
+        Throws banana peel at target, causing confusion.
 
         Args:
             item: Banana peel
             user: ComponentEntity throwing banana peel
+            target: Target to confuse
 
         Returns:
-            True (item consumed with no effect)
+            True if effect was applied
         """
-        # Throwable trap not yet implemented
-        return True
+        if not target or not target.is_alive:
+            return False
 
-    def _apply_rubber_chicken(self, item: Item, user: ComponentEntity) -> bool:
+        # Apply confusion to the target (they "slipped" on the banana peel)
+        if self.status_effects_system:
+            return self.status_effects_system.apply_effect(
+                target, "confusion", duration=item.value, power=0
+            )
+        return False
+
+    def _apply_rubber_chicken(
+        self,
+        item: Item,
+        user: ComponentEntity,
+        target: Optional[ComponentEntity] = None,
+    ) -> bool:
         """Apply rubber chicken effect.
 
-        Note: This is a stub - weak attack not yet implemented.
-        Currently consumes the item but has no effect.
+        Throws rubber chicken at target, dealing weak damage.
 
         Args:
             item: Rubber chicken
-            user: ComponentEntity using rubber chicken
+            user: ComponentEntity throwing rubber chicken
+            target: Target to hit
 
         Returns:
-            True (item consumed with no effect)
+            True if effect was applied
         """
-        # Weak attack not yet implemented
-        return True
+        if not target or not target.is_alive:
+            return False
+
+        # Deal weak damage to the target
+        from roguelike.components.health import HealthComponent
+
+        health = target.get_component(HealthComponent)
+        if health:
+            health.take_damage(item.value)
+            return True
+
+        return False
 
     def _apply_cursed_ring(self, item: Item, user: ComponentEntity) -> bool:
         """Apply cursed ring effect.

@@ -81,3 +81,20 @@ class HealthBarRenderable(Protocol):
     def is_alive(self) -> bool:
         """Check if entity is alive."""
         ...
+
+
+class StatsDisplayable(Protocol):
+    """Protocol for entities that can have comprehensive stats displayed."""
+
+    name: str
+    hp: int
+    max_hp: int
+    power: int
+    defense: int
+    level: int
+    xp: int
+
+    @property
+    def is_alive(self) -> bool:
+        """Check if entity is alive."""
+        ...
